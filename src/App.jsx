@@ -23,27 +23,27 @@ const GROUP_TEAMS = {
   K:["🇵🇹 Portugal","🇨🇩 DR Congo","🇺🇿 Oezbekistan","🇨🇴 Colombia"],
   L:["🏴󠁧󠁢󠁥󠁮󠁧󠁿 Engeland","🇭🇷 Kroatië","🇬🇭 Ghana","🇵🇦 Panama"],
 };
-const ALL_TEAMS = Object.values(GROUP_TEAMS).flat();
+const ALL_TEAMS = Object.values(GROUP_TEAMS).flat().sort((a,b)=>{const cl=s=>s.replace(/[^a-zA-ZÀ-ÿ ]/g,'').trim();return cl(a).localeCompare(cl(b),'nl');});
 
 // Avatar kleuren per letter
 const AVATAR_COLORS = ["#10b981","#f59e0b","#3b82f6","#ec4899","#8b5cf6","#ef4444","#14b8a6","#f97316","#84cc16","#06b6d4","#a855f7","#d946ef"];
 
 const BONUS_QS = [
-  {id:"b1",label:"🏆 Wie wordt wereldkampioen?",type:"team"},
-  {id:"b2",label:"👟 Wie wordt topscorer?",type:"text"},
-  {id:"b3",label:"⚽ Hoeveel goals in de finale?",type:"number"},
+  {id:"b8",label:"⚽ Hoeveel goals totaal in de groepsfase?",type:"number"},
+  {id:"b3",label:"🥅 Hoeveel goals in de finale?",type:"number"},
   {id:"b5",label:"🔥 Welk team scoort de meeste goals?",type:"team"},
-  {id:"b6",label:"🛡️ Welk team krijgt meeste goals tegen?",type:"team"},
-  {id:"b8",label:"🥅 Totaal goals in de groepsfase?",type:"number"},
+  {id:"b6",label:"🛡️ Welk team krijgt de meeste goals tegen?",type:"team"},
+  {id:"b2",label:"👟 Wie wordt topscorer?",type:"text"},
+  {id:"b1",label:"🏆 Wie wordt wereldkampioen?",type:"team"},
 ];
 
 const KO_PHASES = [
-  {id:"r32",label:"1/16",full:"Zestiende Finale"},
-  {id:"r16",label:"1/8",full:"Achtste Finale"},
-  {id:"qf",label:"QF",full:"Kwartfinale"},
-  {id:"sf",label:"HF",full:"Halve Finale"},
-  {id:"3p",label:"3P",full:"3e Plaats"},
-  {id:"final",label:"🏆",full:"Finale"},
+  {id:"r32",label:"1/16",full:"⚔️ Zestiende Finale"},
+  {id:"r16",label:"1/8",full:"🏹 Achtste Finale"},
+  {id:"qf",label:"QF",full:"💥 Kwartfinale"},
+  {id:"sf",label:"HF",full:"🔥 Halve Finale"},
+  {id:"3p",label:"3P",full:"🥉 3e Plaats"},
+  {id:"final",label:"🏆",full:"🏆 Finale"},
 ];
 
 // WK 2026 start
@@ -140,8 +140,9 @@ input,button,select,textarea{font-family:inherit}button{cursor:pointer}
 .bn-ic{font-size:20px;line-height:1}
 
 /* COUNTDOWN */
-.countdown{background:linear-gradient(135deg,var(--c2),var(--c3));border:1px solid var(--bd);border-radius:var(--r);padding:16px 14px;margin-bottom:12px;position:relative;overflow:hidden}
-.countdown::before{content:'⚽';position:absolute;right:-10px;bottom:-10px;font-size:80px;opacity:.04;transform:rotate(-15deg)}
+.countdown{background:linear-gradient(135deg,#071a10,#0a1a28);border:1px solid rgba(0,201,125,.2);border-radius:var(--r);padding:16px 14px;margin-bottom:12px;position:relative;overflow:hidden;box-shadow:0 4px 24px rgba(0,201,125,.06)}
+.countdown::before{content:'⚽';position:absolute;right:-10px;bottom:-10px;font-size:80px;opacity:.05;transform:rotate(-15deg)}
+.countdown::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 0% 100%,rgba(0,201,125,.08),transparent 50%)}
 .cd-title{font-size:11px;color:var(--t3);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
 .cd-boxes{display:flex;gap:8px;align-items:center}
 .cd-box{background:var(--c1);border:1px solid var(--bd);border-radius:8px;padding:8px 10px;text-align:center;flex:1}
@@ -150,10 +151,12 @@ input,button,select,textarea{font-family:inherit}button{cursor:pointer}
 .cd-sep{font-family:'Oswald',sans-serif;font-weight:700;font-size:20px;color:var(--t3);margin-bottom:8px}
 
 /* BANNER */
-.banner{background:linear-gradient(135deg,#080b12 0%,#0a1420 40%,#0d1a10 70%,#080b12 100%);border-radius:var(--r);padding:20px 16px 18px;margin-bottom:12px;position:relative;overflow:hidden;border:1px solid var(--bd)}
-.banner::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 0% 100%,rgba(0,201,125,.06),transparent 50%),radial-gradient(ellipse at 100% 0%,rgba(251,191,36,.04),transparent 50%)}
-.banner-flags{position:absolute;right:12px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:4px;opacity:.3;font-size:28px}
-.banner-divider{height:1.5px;background:linear-gradient(90deg,transparent,var(--gr),var(--am),var(--gr),transparent);margin-top:14px;border-radius:1px}
+.banner{background:linear-gradient(160deg,#05080f 0%,#071a10 35%,#0a1520 65%,#05080f 100%);border-radius:var(--r);padding:22px 16px 20px;margin-bottom:12px;position:relative;overflow:hidden;border:1px solid rgba(0,201,125,.15);box-shadow:0 0 40px rgba(0,201,125,.05),inset 0 1px 0 rgba(0,201,125,.1)}
+.banner::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 10% 100%,rgba(0,201,125,.09),transparent 45%),radial-gradient(ellipse at 90% 0%,rgba(251,191,36,.06),transparent 45%)}
+.banner::after{content:'⚽';position:absolute;right:-8px;bottom:-12px;font-size:100px;opacity:.03;transform:rotate(20deg)}
+.banner-flags{position:absolute;right:14px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:5px;opacity:.25;font-size:30px;filter:saturate(.5)}
+.banner-divider{height:1.5px;background:linear-gradient(90deg,transparent,var(--gr),var(--am),var(--gr),transparent);margin-top:14px;border-radius:1px;box-shadow:0 0 8px rgba(0,201,125,.3)}
+.banner-stars{position:absolute;inset:0;pointer-events:none}
 
 /* CARDS */
 .card{background:var(--c1);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;margin-bottom:10px}
@@ -506,16 +509,29 @@ export default function App(){
           <div className="fu">
             {/* Banner */}
             <div className="banner">
+              {/* Decorative dots */}
+              {[...Array(8)].map((_,i)=>(
+                <div key={i} style={{position:"absolute",width:i%2===0?3:2,height:i%2===0?3:2,borderRadius:"50%",background:"rgba(0,201,125,.2)",top:`${10+i*12}%`,left:`${5+i*12}%`,pointerEvents:"none"}}/>
+              ))}
               <div style={{position:"relative",zIndex:1}}>
                 <div className="banner-flags">
                   <span>🇺🇸</span><span>🇲🇽</span><span>🇨🇦</span>
                 </div>
-                <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:26,letterSpacing:.5}}>
-                  WK <span style={{color:"var(--gr)"}}>2026</span>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
+                  <span style={{fontSize:32,filter:"drop-shadow(0 0 10px rgba(0,201,125,.4))"}}>🏆</span>
+                  <div>
+                    <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:28,letterSpacing:.5,lineHeight:1}}>
+                      WK <span style={{color:"var(--gr)"}}>2026</span>
+                    </div>
+                    <div style={{fontWeight:800,fontSize:13,color:"var(--am)",letterSpacing:2,textTransform:"uppercase",marginTop:2}}>Dinxperlo Boys</div>
+                  </div>
                 </div>
-                <div style={{fontWeight:800,fontSize:14,color:"var(--am)",letterSpacing:1.5,textTransform:"uppercase",marginTop:3}}>Dinxperlo Boys</div>
-                <div style={{fontSize:10,color:"var(--t3)",letterSpacing:1.5,textTransform:"uppercase",marginTop:4}}>48 Teams · 104 Wedstrijden · Noord-Amerika</div>
+                <div style={{fontSize:10,color:"var(--t3)",letterSpacing:1.5,textTransform:"uppercase"}}>⚽ 48 Teams · 104 Wedstrijden · Noord-Amerika</div>
                 <div className="banner-divider"/>
+                <div style={{display:"flex",gap:12,marginTop:10,alignItems:"center"}}>
+                  <div style={{background:"rgba(0,201,125,.1)",border:"1px solid rgba(0,201,125,.2)",borderRadius:6,padding:"4px 10px",fontSize:10,color:"var(--gr)",fontWeight:700,letterSpacing:.5}}>🗓 11 JUN – 19 JUL</div>
+                  <div style={{background:"rgba(251,191,36,.1)",border:"1px solid rgba(251,191,36,.2)",borderRadius:6,padding:"4px 10px",fontSize:10,color:"var(--am)",fontWeight:700,letterSpacing:.5}}>🌍 VS · MX · CA</div>
+                </div>
               </div>
             </div>
 
