@@ -529,8 +529,9 @@ export default function App(){
                 <div style={{fontSize:10,color:"var(--t3)",letterSpacing:1.5,textTransform:"uppercase"}}>⚽ 48 Teams · 104 Wedstrijden · Noord-Amerika</div>
                 <div className="banner-divider"/>
                 <div style={{display:"flex",gap:12,marginTop:10,alignItems:"center"}}>
-                  <div style={{background:"rgba(0,201,125,.1)",border:"1px solid rgba(0,201,125,.2)",borderRadius:6,padding:"4px 10px",fontSize:10,color:"var(--gr)",fontWeight:700,letterSpacing:.5}}>🗓 11 JUN – 19 JUL</div>
-                  <div style={{background:"rgba(251,191,36,.1)",border:"1px solid rgba(251,191,36,.2)",borderRadius:6,padding:"4px 10px",fontSize:10,color:"var(--am)",fontWeight:700,letterSpacing:.5}}>🌍 VS · MX · CA</div>
+                  <div style={{background:"rgba(0,201,125,.1)",border:"1px solid rgba(0,201,125,.2)",borderRadius:6,padding:"4px 10px",fontSize:10,color:"var(--gr)",fontWeight:700,letterSpacing:.5}}>⚽ 104 Wedstrijden</div>
+                  <div style={{background:"rgba(251,191,36,.1)",border:"1px solid rgba(251,191,36,.2)",borderRadius:6,padding:"4px 10px",fontSize:10,color:"var(--am)",fontWeight:700,letterSpacing:.5}}>🌍 3 Landen</div>
+                  <div style={{background:"rgba(59,130,246,.1)",border:"1px solid rgba(59,130,246,.2)",borderRadius:6,padding:"4px 10px",fontSize:10,color:"#60a5fa",fontWeight:700,letterSpacing:.5}}>🏟️ 16 Stadions</div>
                 </div>
               </div>
             </div>
