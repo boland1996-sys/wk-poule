@@ -877,9 +877,9 @@ function AuthPage({ mode, setMode, form, setForm, err, loading, onLogin, onRegis
           </div>
           <div style={{ fontWeight:900, fontSize:13, color:"var(--am)", letterSpacing:3, textTransform:"uppercase", marginTop:6 }}>Boland's Special</div>
           <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:8, marginTop:12, flexWrap:"wrap" }}>
-            <div style={{ background:"rgba(0,201,125,.1)", border:"1px solid rgba(0,201,125,.25)", borderRadius:20, padding:"4px 12px", fontSize:11, color:"var(--gr)", fontWeight:700 }}>⚽ 48 landen</div>
-            <div style={{ background:"rgba(251,191,36,.1)", border:"1px solid rgba(251,191,36,.25)", borderRadius:20, padding:"4px 12px", fontSize:11, color:"var(--am)", fontWeight:700 }}>🏟️ 104 duels</div>
-            <div style={{ background:"rgba(59,130,246,.1)", border:"1px solid rgba(59,130,246,.25)", borderRadius:20, padding:"4px 12px", fontSize:11, color:"#60a5fa", fontWeight:700 }}>🌎 3 landen</div>
+            <div style={{ background:"rgba(255,107,0,.1)", border:"1px solid rgba(255,107,0,.25)", borderRadius:20, padding:"6px 16px", fontSize:12, color:"var(--gr)", fontWeight:700, display:"flex", alignItems:"center", gap:6 }}>
+              👑 Georganiseerd door <span style={{color:"#fff8ee", fontWeight:900}}>Ramon Boland</span>
+            </div>
           </div>
         </div>
 
