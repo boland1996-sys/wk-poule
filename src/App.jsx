@@ -152,9 +152,9 @@ input,button,select,textarea{font-family:inherit}button{cursor:pointer}
 
 /* BANNER */
 .banner{background:linear-gradient(160deg,#1a1200 0%,#2a1800 35%,#1f1500 65%,#1a1200 100%);border-radius:var(--r);padding:22px 16px 20px;margin-bottom:12px;position:relative;overflow:hidden;border:1px solid rgba(255,107,0,.15);box-shadow:0 0 30px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,107,0,.08)}
-.banner::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 10% 100%,rgba(255,107,0,.08),transparent 45%),radial-gradient(ellipse at 90% 0%,rgba(255,179,71,.05),transparent 45%)}
+.banner::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 0% 80%,rgba(255,107,0,.12),transparent 50%),radial-gradient(ellipse at 100% 20%,rgba(255,179,71,.08),transparent 50%)}
 .banner::after{content:'⚽';position:absolute;right:-8px;bottom:-12px;font-size:100px;opacity:.03;transform:rotate(20deg)}
-.banner-flags{position:absolute;right:14px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:5px;opacity:.25;font-size:30px;filter:saturate(.5)}
+.banner-flags{position:absolute;right:14px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:5px;opacity:.35;font-size:30px}
 .banner-divider{height:1.5px;background:linear-gradient(90deg,transparent,var(--gr),var(--am),var(--gr),transparent);margin-top:14px;border-radius:1px;box-shadow:0 0 8px rgba(255,107,0,.4)}
 .banner-stars{position:absolute;inset:0;pointer-events:none}
 
@@ -511,7 +511,7 @@ export default function App(){
             <div className="banner">
               {/* Decorative dots */}
               {[...Array(8)].map((_,i)=>(
-                <div key={i} style={{position:"absolute",width:i%2===0?3:2,height:i%2===0?3:2,borderRadius:"50%",background:"rgba(0,201,125,.2)",top:`${10+i*12}%`,left:`${5+i*12}%`,pointerEvents:"none"}}/>
+                <div key={i} style={{position:"absolute",width:i%2===0?3:2,height:i%2===0?3:2,borderRadius:"50%",background:"rgba(255,107,0,.15)",top:`${10+i*12}%`,left:`${5+i*12}%`,pointerEvents:"none"}}/>
               ))}
               <div style={{position:"relative",zIndex:1}}>
                 <div className="banner-flags">
@@ -529,8 +529,8 @@ export default function App(){
                 <div style={{fontSize:10,color:"var(--t3)",letterSpacing:1.5,textTransform:"uppercase"}}>⚽ 48 Teams · 104 Wedstrijden · Noord-Amerika</div>
                 <div className="banner-divider"/>
                 <div style={{display:"flex",gap:12,marginTop:10,alignItems:"center"}}>
-                  <div style={{background:"rgba(0,201,125,.1)",border:"1px solid rgba(255,107,0,.2)",borderRadius:6,padding:"4px 10px",fontSize:10,color:"var(--gr)",fontWeight:700,letterSpacing:.5}}>⚽ 104 Wedstrijden</div>
-                  <div style={{background:"rgba(251,191,36,.1)",border:"1px solid rgba(251,191,36,.2)",borderRadius:6,padding:"4px 10px",fontSize:10,color:"var(--am)",fontWeight:700,letterSpacing:.5}}>🌍 3 Landen</div>
+                  <div style={{background:"rgba(255,107,0,.1)",border:"1px solid rgba(255,107,0,.2)",borderRadius:6,padding:"4px 10px",fontSize:10,color:"var(--gr)",fontWeight:700,letterSpacing:.5}}>⚽ 104 Wedstrijden</div>
+                  <div style={{background:"rgba(255,179,71,.1)",border:"1px solid rgba(255,179,71,.2)",borderRadius:6,padding:"4px 10px",fontSize:10,color:"var(--am)",fontWeight:700,letterSpacing:.5}}>🌍 3 Landen</div>
                   <div style={{background:"rgba(59,130,246,.1)",border:"1px solid rgba(59,130,246,.2)",borderRadius:6,padding:"4px 10px",fontSize:10,color:"#60a5fa",fontWeight:700,letterSpacing:.5}}>🏟️ 16 Stadions</div>
                 </div>
               </div>
