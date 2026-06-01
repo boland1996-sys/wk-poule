@@ -1,0 +1,24 @@
+{
+  "name": "WK 2026 Dinxperlo Boys",
+  "short_name": "WK Poule",
+  "description": "WK 2026 poule voor Dinxperlo Boys",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#080b12",
+  "theme_color": "#00c97d",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
