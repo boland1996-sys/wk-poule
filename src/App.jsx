@@ -990,6 +990,10 @@ export default function App() {
   const [ptsPopup,      setPtsPopup]      = useState(null);
   const [importing,     setImporting]     = useState(false);
   const [importLog,     setImportLog]     = useState([]);
+  const [autoRefresh,   setAutoRefresh]   = useState(false);
+  const [lastRefresh,   setLastRefresh]   = useState(null);
+  const [lockAllLoading,setLockAllLoading]= useState(false);
+  const [exportText,    setExportText]    = useState(null);
 
   // FIX #17: toast met ref
   const [toast, showToast] = useToast();
@@ -1071,6 +1075,19 @@ export default function App() {
   }, []);
 
   useEffect(() => { try { localStorage.setItem("wkp2026", JSON.stringify(session)); } catch {} }, [session]);
+
+  // ── AUTO REFRESH UITSLAGEN ELKE 5 MINUTEN ────────────────────────────
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const doRefresh = async () => {
+      const { data:m } = await sb.from("matches").select("*").order("id");
+      if (m) setMatches(m);
+      setLastRefresh(new Date());
+    };
+    doRefresh();
+    const id = setInterval(doRefresh, 5 * 60 * 1000);
+    return () => clearInterval(id);
+  }, [autoRefresh]);
 
   // ── AUTH ──────────────────────────────────────────────────────────────
   const login = async () => {
@@ -1888,6 +1905,111 @@ export default function App() {
               );
             })()}
 
+            {/* ── AUTO REFRESH TOGGLE ── */}
+            <div style={{ background:"var(--c2)", border:"1px solid var(--bd)", borderRadius:10, padding:"14px 16px", marginBottom:10 }}>
+              <div style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:14, color:"var(--gr)", marginBottom:6 }}>🔄 Auto-refresh uitslagen</div>
+              <div style={{ fontSize:12, color:"var(--t3)", marginBottom:10, lineHeight:1.5 }}>
+                Haalt automatisch elke 5 minuten de laatste uitslagen op. Zet aan tijdens het WK!
+                {lastRefresh && <span style={{ display:"block", marginTop:4, color:"var(--t2)" }}>⏱ Laatste update: {lastRefresh.toLocaleTimeString("nl-NL")}</span>}
+              </div>
+              <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+                <button
+                  className="btn"
+                  style={{ flex:1, background: autoRefresh ? "var(--gr)" : "var(--c3)", color: autoRefresh ? "#fff" : "var(--t2)", border:"1px solid var(--bd)", padding:"10px", borderRadius:8, fontWeight:700, fontSize:13 }}
+                  onClick={() => { setAutoRefresh(v => !v); if (!autoRefresh) setLastRefresh(null); }}
+                >
+                  {autoRefresh ? "🟢 Auto-refresh AAN" : "⚫ Auto-refresh UIT"}
+                </button>
+              </div>
+            </div>
+
+            {/* ── ALLES VERGRENDELEN ── */}
+            <div style={{ background:"var(--c2)", border:"1px solid var(--bd)", borderRadius:10, padding:"14px 16px", marginBottom:10 }}>
+              <div style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:14, color:"var(--gr)", marginBottom:6 }}>🔒 Alles vergrendelen</div>
+              <div style={{ fontSize:12, color:"var(--t3)", marginBottom:10, lineHeight:1.5 }}>
+                Vergrendelt alle wedstrijden van vandaag in één klik. Niemand kan meer tippen.
+              </div>
+              <div style={{ display:"flex", gap:8 }}>
+                <button
+                  className="btn btn-green"
+                  style={{ flex:1 }}
+                  disabled={lockAllLoading}
+                  onClick={async () => {
+                    setLockAllLoading(true);
+                    const today = new Date().toLocaleDateString("nl-NL", { day:"numeric", month:"short" }).toLowerCase();
+                    const todayMs = matches.filter(m => m.match_date && m.match_date.toLowerCase().includes(today.split(" ")[0]) && !m.locked);
+                    let count = 0;
+                    for (const m of todayMs) {
+                      const { error } = await sb.from("matches").update({ locked: true }).eq("id", m.id);
+                      if (!error) { setMatches(ms => ms.map(x => x.id === m.id ? { ...x, locked: true } : x)); count++; }
+                    }
+                    if (count === 0) {
+                      // Lock all unlocked matches if none found for today
+                      const allUnlocked = matches.filter(m => !m.locked);
+                      for (const m of allUnlocked.slice(0, 10)) {
+                        const { error } = await sb.from("matches").update({ locked: true }).eq("id", m.id);
+                        if (!error) { setMatches(ms => ms.map(x => x.id === m.id ? { ...x, locked: true } : x)); count++; }
+                      }
+                    }
+                    showToast(`🔒 ${count} wedstrijd(en) vergrendeld`);
+                    setLockAllLoading(false);
+                  }}
+                >
+                  {lockAllLoading ? <><span className="spin">⚽</span> Bezig...</> : "🔒 Vergrendel wedstrijden van vandaag"}
+                </button>
+                <button
+                  className="btn btn-out"
+                  style={{ flex:1 }}
+                  disabled={lockAllLoading}
+                  onClick={async () => {
+                    setLockAllLoading(true);
+                    const locked = matches.filter(m => m.locked);
+                    for (const m of locked) {
+                      await sb.from("matches").update({ locked: false }).eq("id", m.id);
+                      setMatches(ms => ms.map(x => x.id === m.id ? { ...x, locked: false } : x));
+                    }
+                    showToast(`🔓 Alles geopend`);
+                    setLockAllLoading(false);
+                  }}
+                >
+                  🔓 Alles openen
+                </button>
+              </div>
+            </div>
+
+            {/* ── STAND EXPORTEREN ── */}
+            <div style={{ background:"var(--c2)", border:"1px solid var(--bd)", borderRadius:10, padding:"14px 16px", marginBottom:12 }}>
+              <div style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:14, color:"var(--gr)", marginBottom:6 }}>📤 Stand exporteren</div>
+              <div style={{ fontSize:12, color:"var(--t3)", marginBottom:10, lineHeight:1.5 }}>
+                Kopieer de stand als tekst om te plakken in WhatsApp of andere apps.
+              </div>
+              <button
+                className="btn btn-green"
+                onClick={() => {
+                  const lines = ["🏆 WK 2026 Poule — Dinxperlo Boys", "━━━━━━━━━━━━━━━━━━━━", ""];
+                  leaderboard.forEach((u, i) => {
+                    const medals = ["🥇","🥈","🥉"];
+                    const rank = i < 3 ? medals[i] : `${i+1}.`;
+                    lines.push(`${rank} ${u.username} — ${u.pts} pt (${u.exact}× exact)`);
+                  });
+                  lines.push("");
+                  lines.push(`📅 ${new Date().toLocaleDateString("nl-NL", { day:"numeric", month:"long" })}`);
+                  lines.push("ramonboland.com");
+                  const text = lines.join("
+");
+                  setExportText(text);
+                  navigator.clipboard?.writeText(text).then(() => showToast("📋 Stand gekopieerd!")).catch(() => showToast("📋 Selecteer en kopieer de tekst"));
+                }}
+              >
+                📤 Kopieer stand naar klembord
+              </button>
+              {exportText && (
+                <div style={{ marginTop:10, background:"var(--bg)", borderRadius:8, padding:"10px 12px", fontSize:12, color:"var(--t2)", fontFamily:"monospace", whiteSpace:"pre", lineHeight:1.6, overflowX:"auto" }}>
+                  {exportText}
+                </div>
+              )}
+            </div>
+
             {users.length === 0
               ? <div className="empty"><div className="empty-i">👤</div><div className="empty-t">Nog geen deelnemers aangemeld.</div></div>
               : <div className="card">
@@ -1912,6 +2034,12 @@ export default function App() {
                       </div>
                       <div style={{ display:"flex", gap:5, flexShrink:0 }}>
                         <button className="btn btn-out btn-sm btn-ic" title="Wachtwoord resetten" onClick={() => { setModal({ type:"resetpw", user:u }); setModalInput(""); }}>🔑</button>
+                        <button className="btn btn-out btn-sm btn-ic" title="Tips wissen" style={{color:"var(--am)",borderColor:"rgba(255,179,71,.3)"}} onClick={async () => {
+                          if (!confirm(`Alle tips van ${u.username} wissen?`)) return;
+                          await sb.from("predictions").delete().eq("user_id", u.id);
+                          setPreds(ps => ps.filter(p => p.user_id !== u.id));
+                          showToast(`🧹 Tips van ${u.username} gewist`);
+                        }}>🧹</button>
                         <button className="btn btn-del btn-sm btn-ic" title="Definitief verwijderen" onClick={() => setModal({ type:"delete", user:u })}>🗑️</button>
                       </div>
                     </div>
