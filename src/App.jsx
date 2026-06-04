@@ -1995,8 +1995,7 @@ export default function App() {
                   lines.push("");
                   lines.push(`📅 ${new Date().toLocaleDateString("nl-NL", { day:"numeric", month:"long" })}`);
                   lines.push("ramonboland.com");
-                  const text = lines.join("
-");
+                  const text = lines.join("\n");
                   setExportText(text);
                   navigator.clipboard?.writeText(text).then(() => showToast("📋 Stand gekopieerd!")).catch(() => showToast("📋 Selecteer en kopieer de tekst"));
                 }}
