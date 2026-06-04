@@ -2027,7 +2027,23 @@ export default function App() {
                           {u.username}
                           {rank > 0 && <span style={{ fontSize:9, color:"var(--t3)", fontWeight:700 }}>#{rank}</span>}
                         </div>
-                        <div style={{ fontSize:11, color:"var(--t3)", marginTop:2 }}>{lb.pc} tips · {lb.exact}× exact · {lb.bp}pt bonus · {lb.sp}pt stand</div>
+                        <div style={{ fontSize:11, color:"var(--t3)", marginTop:2, display:"flex", alignItems:"center", gap:5, flexWrap:"wrap" }}>
+                          <span>{lb.pc} tips</span>
+                          <span>·</span>
+                          <span>{lb.exact}× exact</span>
+                          <span>·</span>
+                          {(() => {
+                            const ba = bonusA.find(b => b.user_id === u.id)?.answers || {};
+                            const filled = BONUS_QS.filter(q => ba[q.id] && ba[q.id].toString().trim() !== "").length;
+                            const total = BONUS_QS.length;
+                            const allDone = filled === total;
+                            return (
+                              <span style={{ color: allDone ? "var(--gr)" : filled > 0 ? "var(--am)" : "var(--re)", fontWeight:700 }}>
+                                🎯 {filled}/{total} bonus{allDone ? " ✓" : ""}
+                              </span>
+                            );
+                          })()}
+                        </div>
                       </div>
                       <div style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:18, color:"var(--gr)", marginRight:8, flexShrink:0 }}>
                         {lb.pts}<span style={{ fontSize:10, color:"var(--t3)" }}> pt</span>
