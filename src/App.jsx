@@ -491,18 +491,16 @@ function GroupCard({ group, matches, isAdmin, myPreds, allPreds, onScore, onLock
         }
         return (
           <div key={m.id} className="mr">
-            <div className="mr-teams">
-              <div className="mr-home">{m.home}</div>
-              {canEdit && isE ? (
+            {/* Optie B: tijd+datum links, teams rechts */}
+            {canEdit && isE ? (
+              <div style={{ marginBottom:8 }}>
                 <div className="score-edit" style={{ padding:"6px 8px" }}>
-                  {/* FIX #6: gebruik parseInt en valideer 0 */}
                   <input type="number" min="0" max="20" className="ni" style={{ width:40, height:36, fontSize:16 }}
                     value={ts.h} onChange={e => setTs(s => ({ ...s, h: e.target.value }))} />
                   <span style={{ color:"var(--t3)", fontWeight:700 }}>–</span>
                   <input type="number" min="0" max="20" className="ni" style={{ width:40, height:36, fontSize:16 }}
                     value={ts.a} onChange={e => setTs(s => ({ ...s, a: e.target.value }))} />
                   <button className="btn-confirm" onClick={async () => {
-                    // FIX #6: "0" mag niet null worden
                     const hg = ts.h === "" ? null : parseInt(ts.h, 10);
                     const ag = ts.a === "" ? null : parseInt(ts.a, 10);
                     await onScore(m.id, { home_goals: hg, away_goals: ag });
@@ -510,32 +508,39 @@ function GroupCard({ group, matches, isAdmin, myPreds, allPreds, onScore, onLock
                   }}>✓</button>
                   <button className="btn btn-out btn-sm" onClick={() => setEd(null)}>✕</button>
                 </div>
-              ) : (
-                <div className={`score-btn${done ? " done" : ""}${canEdit ? " editable" : ""}`}
-                  onClick={() => { if (canEdit) { setEd(m.id); setTs({ h: m.home_goals ?? "", a: m.away_goals ?? "" }); } }}>
-                  {done ? `${m.home_goals}–${m.away_goals}` : "vs"}
+                <div className="mr-teams">
+                  <div className="mr-home">{m.home}</div>
+                  <div className={`score-btn${done ? " done" : ""}`}>{done ? `${m.home_goals}–${m.away_goals}` : "vs"}</div>
+                  <div className="mr-away">{m.away}</div>
                 </div>
-              )}
-              <div className="mr-away">{m.away}</div>
-            </div>
+              </div>
+            ) : (
+              <div style={{ display:"grid", gridTemplateColumns:"70px 1fr", gap:10, alignItems:"center" }}>
+                <div style={{ borderRight:"1.5px solid var(--bd)", paddingRight:10, textAlign:"center" }}>
+                  {(() => {
+                    const parts = (m.match_date || "").split(" ");
+                    const dag = parts[0] ? parts[0].charAt(0).toUpperCase() + parts[0].slice(1) : "";
+                    const datum = parts[1] && parts[2] ? `${parts[1]} ${parts[2]}` : "";
+                    const tijd = parts[3] || "";
+                    return (<>
+                      <div style={{ fontSize:16, fontWeight:800, color: done ? "var(--gr)" : "var(--gr)", fontFamily:"'Oswald',sans-serif", lineHeight:1 }}>{done ? `${m.home_goals}–${m.away_goals}` : tijd}</div>
+                      <div style={{ fontSize:9, color:"var(--t3)", fontWeight:700, marginTop:3, textTransform:"uppercase", whiteSpace:"nowrap" }}>{dag} {datum}</div>
+                    </>);
+                  })()}
+                </div>
+                <div className="mr-teams" style={{ margin:0 }}>
+                  <div className="mr-home">{m.home}</div>
+                  <div className={`score-btn${done ? " done" : ""}${canEdit ? " editable" : ""}`}
+                    style={{ fontSize:11, minWidth:40, padding:"5px 6px" }}
+                    onClick={() => { if (canEdit) { setEd(m.id); setTs({ h: m.home_goals ?? "", a: m.away_goals ?? "" }); } }}>
+                    {done ? "✓" : "vs"}
+                  </div>
+                  <div className="mr-away">{m.away}</div>
+                </div>
+              </div>
+            )}
             <div className="mr-meta">
-              <span className="mr-time" style={{ display:"flex", alignItems:"center", gap:6 }}>
-                {(() => {
-                  const parts = (m.match_date || "").split(" ");
-                  const dag = parts[0] || "";
-                  const datum = parts[1] && parts[2] ? `${parts[1]} ${parts[2]}` : "";
-                  const tijd = parts[3] || "";
-                  return (
-                    <>
-                      <span style={{ fontSize:11, color:"var(--t2)", fontWeight:600 }}>
-                        {dag.charAt(0).toUpperCase() + dag.slice(1)} {datum}
-                      </span>
-                      <span style={{ color:"var(--t3)" }}>·</span>
-                      <span style={{ fontSize:12, fontWeight:800, color:"var(--gr)" }}>{tijd} uur</span>
-                    </>
-                  );
-                })()}
-              </span>
+              <span></span>
               <div className="mr-actions">
                 {/* FIX #8: toon "te laat" als wedstrijd vergrendeld */}
                 {m.locked && !isAdmin && <span className="lock-tag">🔒</span>}
@@ -611,23 +616,19 @@ function KOCard({ phase, matches, isAdmin, myPreds, allPreds, onScore, onLock, o
         }
         return (
           <div key={m.id} className="mr">
-            <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:6 }}>
-              {(() => {
-                const parts = (m.match_date || "").split(" ");
-                const dag = parts[0] || "";
-                const datum = parts[1] && parts[2] ? `${parts[1]} ${parts[2]}` : "";
-                const tijd = parts[3] || "";
-                return (
-                  <>
-                    <span style={{ fontSize:11, color:"var(--t2)", fontWeight:600 }}>
-                      {dag.charAt(0).toUpperCase() + dag.slice(1)} {datum}
-                    </span>
-                    <span style={{ color:"var(--t3)" }}>·</span>
-                    <span style={{ fontSize:12, fontWeight:800, color:"var(--gr)" }}>{tijd} uur</span>
-                  </>
-                );
-              })()}
-            </div>
+            {(() => {
+              const parts = (m.match_date || "").split(" ");
+              const dag = parts[0] ? parts[0].charAt(0).toUpperCase() + parts[0].slice(1) : "";
+              const datum = parts[1] && parts[2] ? `${parts[1]} ${parts[2]}` : "";
+              const tijd = parts[3] || "";
+              return (
+                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8, paddingBottom:6, borderBottom:"1px solid var(--bd)" }}>
+                  <div style={{ fontSize:16, fontWeight:800, color:"var(--gr)", fontFamily:"'Oswald',sans-serif", lineHeight:1 }}>{tijd}</div>
+                  <div style={{ width:1, height:16, background:"var(--bd)" }}/>
+                  <div style={{ fontSize:10, color:"var(--t3)", fontWeight:700, textTransform:"uppercase" }}>{dag} {datum}</div>
+                </div>
+              );
+            })()}
             {canEdit && isE ? (
               <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
                 <div style={{ display:"flex", gap:7 }}>
