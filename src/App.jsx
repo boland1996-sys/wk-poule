@@ -992,6 +992,8 @@ export default function App() {
   const [importLog,     setImportLog]     = useState([]);
   const [autoRefresh,   setAutoRefresh]   = useState(false);
   const [lastRefresh,   setLastRefresh]   = useState(null);
+  const [refreshCount,  setRefreshCount]  = useState(0);
+  const MAX_REFRESH = 100;
   const [lockAllLoading,setLockAllLoading]= useState(false);
   const [exportText,    setExportText]    = useState(null);
 
@@ -1076,16 +1078,24 @@ export default function App() {
 
   useEffect(() => { try { localStorage.setItem("wkp2026", JSON.stringify(session)); } catch {} }, [session]);
 
-  // ── AUTO REFRESH UITSLAGEN ELKE 5 MINUTEN ────────────────────────────
+  // ── AUTO REFRESH UITSLAGEN ELKE 5 MINUTEN (max 100x) ────────────────
   useEffect(() => {
     if (!autoRefresh) return;
+    let count = 0;
     const doRefresh = async () => {
+      if (count >= MAX_REFRESH) {
+        setAutoRefresh(false);
+        showToast("⏹️ Auto-refresh gestopt na 100x");
+        return;
+      }
       const { data:m } = await sb.from("matches").select("*").order("id");
       if (m) setMatches(m);
       setLastRefresh(new Date());
+      count++;
+      setRefreshCount(count);
     };
     doRefresh();
-    const id = setInterval(doRefresh, 5 * 60 * 1000);
+    const id = setInterval(doRefresh, 15 * 60 * 1000);
     return () => clearInterval(id);
   }, [autoRefresh]);
 
@@ -1910,7 +1920,7 @@ export default function App() {
               <div style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:14, color:"var(--gr)", marginBottom:6 }}>🔄 Auto-refresh uitslagen</div>
               <div style={{ fontSize:12, color:"var(--t3)", marginBottom:10, lineHeight:1.5 }}>
                 Haalt automatisch elke 5 minuten de laatste uitslagen op. Zet aan tijdens het WK!
-                {lastRefresh && <span style={{ display:"block", marginTop:4, color:"var(--t2)" }}>⏱ Laatste update: {lastRefresh.toLocaleTimeString("nl-NL")}</span>}
+                {lastRefresh && <span style={{ display:"block", marginTop:4, color:"var(--t2)" }}>⏱ Laatste update: {lastRefresh.toLocaleTimeString("nl-NL")} · {refreshCount}/{MAX_REFRESH} refreshes gebruikt</span>}
               </div>
               <div style={{ display:"flex", gap:8, alignItems:"center" }}>
                 <button
@@ -1918,7 +1928,7 @@ export default function App() {
                   style={{ flex:1, background: autoRefresh ? "var(--gr)" : "var(--c3)", color: autoRefresh ? "#fff" : "var(--t2)", border:"1px solid var(--bd)", padding:"10px", borderRadius:8, fontWeight:700, fontSize:13 }}
                   onClick={() => { setAutoRefresh(v => !v); if (!autoRefresh) setLastRefresh(null); }}
                 >
-                  {autoRefresh ? "🟢 Auto-refresh AAN" : "⚫ Auto-refresh UIT"}
+                  {autoRefresh ? `🟢 Auto-refresh AAN (${refreshCount}/${MAX_REFRESH})` : "⚫ Auto-refresh UIT"}
                 </button>
               </div>
             </div>
