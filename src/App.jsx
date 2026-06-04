@@ -519,8 +519,22 @@ function GroupCard({ group, matches, isAdmin, myPreds, allPreds, onScore, onLock
               <div className="mr-away">{m.away}</div>
             </div>
             <div className="mr-meta">
-              <span className="mr-time">
-                <span style={{ background:"var(--c3)", borderRadius:4, padding:"2px 6px", fontSize:10, fontWeight:700, color:"var(--t2)" }}>{m.match_date}</span>
+              <span className="mr-time" style={{ display:"flex", alignItems:"center", gap:6 }}>
+                {(() => {
+                  const parts = (m.match_date || "").split(" ");
+                  const dag = parts[0] || "";
+                  const datum = parts[1] && parts[2] ? `${parts[1]} ${parts[2]}` : "";
+                  const tijd = parts[3] || "";
+                  return (
+                    <>
+                      <span style={{ fontSize:11, color:"var(--t2)", fontWeight:600 }}>
+                        {dag.charAt(0).toUpperCase() + dag.slice(1)} {datum}
+                      </span>
+                      <span style={{ color:"var(--t3)" }}>·</span>
+                      <span style={{ fontSize:12, fontWeight:800, color:"var(--gr)" }}>{tijd} uur</span>
+                    </>
+                  );
+                })()}
               </span>
               <div className="mr-actions">
                 {/* FIX #8: toon "te laat" als wedstrijd vergrendeld */}
@@ -597,7 +611,23 @@ function KOCard({ phase, matches, isAdmin, myPreds, allPreds, onScore, onLock, o
         }
         return (
           <div key={m.id} className="mr">
-            <div style={{ fontSize:10, color:"var(--t3)", fontWeight:600, marginBottom:6 }}>📅 {m.match_date}</div>
+            <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:6 }}>
+              {(() => {
+                const parts = (m.match_date || "").split(" ");
+                const dag = parts[0] || "";
+                const datum = parts[1] && parts[2] ? `${parts[1]} ${parts[2]}` : "";
+                const tijd = parts[3] || "";
+                return (
+                  <>
+                    <span style={{ fontSize:11, color:"var(--t2)", fontWeight:600 }}>
+                      {dag.charAt(0).toUpperCase() + dag.slice(1)} {datum}
+                    </span>
+                    <span style={{ color:"var(--t3)" }}>·</span>
+                    <span style={{ fontSize:12, fontWeight:800, color:"var(--gr)" }}>{tijd} uur</span>
+                  </>
+                );
+              })()}
+            </div>
             {canEdit && isE ? (
               <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
                 <div style={{ display:"flex", gap:7 }}>
@@ -1099,33 +1129,6 @@ export default function App() {
     return () => clearInterval(id);
   }, [autoRefresh]);
 
-  // ── AUTO VERGRENDELEN BIJ AANVANG WEDSTRIJD ──────────────────────────
-  useEffect(() => {
-    if (!matches.length) return;
-    const checkLocks = async () => {
-      const now = new Date();
-      const NL_MONTHS = { "jan":0,"feb":1,"mrt":2,"apr":3,"mei":4,"jun":5,"jul":6,"aug":7,"sep":8,"okt":9,"nov":10,"dec":11 };
-      for (const m of matches) {
-        if (m.locked || !m.match_date) continue;
-        // Parse "do 11 jun 21:00" format
-        const parts = m.match_date.trim().split(" ");
-        if (parts.length < 4) continue;
-        const day = parseInt(parts[1]);
-        const month = NL_MONTHS[parts[2].toLowerCase()];
-        const timeParts = parts[3].split(":");
-        if (isNaN(day) || month === undefined || timeParts.length < 2) continue;
-        const matchTime = new Date(now.getFullYear(), month, day, parseInt(timeParts[0]), parseInt(timeParts[1]));
-        if (now >= matchTime) {
-          await sb.from("matches").update({ locked: true }).eq("id", m.id);
-          setMatches(ms => ms.map(x => x.id === m.id ? { ...x, locked: true } : x));
-        }
-      }
-    };
-    checkLocks();
-    const id = setInterval(checkLocks, 60 * 1000); // elke minuut checken
-    return () => clearInterval(id);
-  }, [matches.length]);
-
   // ── AUTH ──────────────────────────────────────────────────────────────
   const login = async () => {
     const { u, p } = form;
@@ -1285,8 +1288,8 @@ export default function App() {
   const todayUntiped = !isAdmin && todayMatches.filter(m => !myPreds.find(p => p.match_id === m.id)).length > 0;
 
   const TABS = isAdmin
-    ? [{ id:"stand",ic:"🏆",lb:"Stand" },{ id:"vandaag",ic:"📅",lb:"Vandaag" },{ id:"groepen",ic:"⚽",lb:"Groepen" },{ id:"ko",ic:"🥊",lb:"KO" },{ id:"standen",ic:"📊",lb:"Standen" },{ id:"bonus",ic:"🎯",lb:"Bonus" },{ id:"pot",ic:"💶",lb:"Pot" },{ id:"beheer",ic:"👑",lb:"Beheer" }]
-    : [{ id:"stand",ic:"🏆",lb:"Stand" },{ id:"vandaag",ic:"📅",lb:"Vandaag" },{ id:"groepen",ic:"⚽",lb:"Groepen" },{ id:"ko",ic:"🥊",lb:"KO" },{ id:"standen",ic:"📊",lb:"Standen" },{ id:"bonus",ic:"🎯",lb:"Bonus" },{ id:"pot",ic:"💶",lb:"Pot" },{ id:"mijn",ic:"📋",lb:"Mijn" }];
+    ? [{ id:"stand",ic:"🏆",lb:"Stand" },{ id:"groepen",ic:"⚽",lb:"Groepen" },{ id:"ko",ic:"🥊",lb:"KO" },{ id:"standen",ic:"📊",lb:"Standen" },{ id:"bonus",ic:"🎯",lb:"Bonus" },{ id:"pot",ic:"💶",lb:"Pot" },{ id:"beheer",ic:"👑",lb:"Beheer" }]
+    : [{ id:"stand",ic:"🏆",lb:"Stand" },{ id:"groepen",ic:"⚽",lb:"Groepen" },{ id:"ko",ic:"🥊",lb:"KO" },{ id:"standen",ic:"📊",lb:"Standen" },{ id:"bonus",ic:"🎯",lb:"Bonus" },{ id:"pot",ic:"💶",lb:"Pot" },{ id:"mijn",ic:"📋",lb:"Mijn" }];
 
   const myStandingPred = standingPreds.find(s => s.user_id === session?.id && s.group === grp)?.order;
 
@@ -1556,113 +1559,6 @@ export default function App() {
               </div>
             </div>
             <GroupCard group={grp} matches={matches} isAdmin={isAdmin} myPreds={myPreds} allPreds={preds} onScore={setScore} onLock={toggleLock} onPred={savePred} />
-          </div>
-        )}
-
-        {/* ── VANDAAG ── */}
-        {tab === "vandaag" && (
-          <div className="fu">
-            <div className="sec-title">📅 Wedstrijden Vandaag</div>
-            <div className="sec-sub">{new Date().toLocaleDateString("nl-NL", { weekday:"long", day:"numeric", month:"long" })} · 🔒 = automatisch vergrendeld bij aanvang</div>
-            {(() => {
-              const now = new Date();
-              const NL_MONTHS = { "jan":0,"feb":1,"mrt":2,"apr":3,"mei":4,"jun":5,"jul":6,"aug":7,"sep":8,"okt":9,"nov":10,"dec":11 };
-              const todayMs = matches.filter(m => {
-                if (!m.match_date) return false;
-                const parts = m.match_date.trim().split(" ");
-                if (parts.length < 4) return false;
-                const day = parseInt(parts[1]);
-                const month = NL_MONTHS[parts[2].toLowerCase()];
-                if (isNaN(day) || month === undefined) return false;
-                const matchDate = new Date(now.getFullYear(), month, day);
-                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                return matchDate.getTime() === today.getTime();
-              }).sort((a,b) => {
-                const ta = a.match_date.split(" ")[3] || "00:00";
-                const tb = b.match_date.split(" ")[3] || "00:00";
-                return ta.localeCompare(tb);
-              });
-
-              if (todayMs.length === 0) return (
-                <div className="empty">
-                  <div className="empty-i">📅</div>
-                  <div className="empty-t">Geen wedstrijden vandaag.<br/>Geniet van de rustdag!</div>
-                </div>
-              );
-
-              return (
-                <div className="card">
-                  <div className="card-head">
-                    <span className="card-title">📅 {todayMs.length} wedstrijd{todayMs.length !== 1 ? "en" : ""} vandaag</span>
-                    <span style={{ fontSize:11, color:"var(--t3)" }}>{todayMs.filter(m => m.home_goals != null).length} gespeeld</span>
-                  </div>
-                  {todayMs.map(m => {
-                    const mp = myPreds.find(p => p.match_id === m.id);
-                    const done = m.home_goals != null && m.away_goals != null;
-                    const parts = m.match_date.trim().split(" ");
-                    const NL_M = { "jan":0,"feb":1,"mrt":2,"apr":3,"mei":4,"jun":5,"jul":6,"aug":7,"sep":8,"okt":9,"nov":10,"dec":11 };
-                    const day = parseInt(parts[1]);
-                    const month = NL_M[parts[2]?.toLowerCase()];
-                    const timeParts = (parts[3] || "00:00").split(":");
-                    const matchTime = new Date(now.getFullYear(), month, day, parseInt(timeParts[0]), parseInt(timeParts[1]));
-                    const started = now >= matchTime;
-                    const minsUntil = Math.max(0, Math.round((matchTime - now) / 60000));
-                    const canP = !isAdmin && !m.locked && !started;
-
-                    let cls = "", lbl = "";
-                    if (!isAdmin && mp && done) {
-                      const r = scorePts(mp.home_goals, mp.away_goals, m.home_goals, m.away_goals);
-                      cls = r.cls; lbl = r.label;
-                    }
-
-                    return (
-                      <div key={m.id} className="mr">
-                        {/* Fase label */}
-                        <div style={{ fontSize:10, color:"var(--t3)", fontWeight:700, marginBottom:6, display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
-                          <span style={{ background:"var(--c3)", borderRadius:4, padding:"2px 7px" }}>
-                            {m.phase === "group" ? `Groep ${m.grp}` : KO_PHASES.find(p => p.id === m.phase)?.full || m.phase}
-                          </span>
-                          <span style={{ color: started && !done ? "#22c55e" : "var(--t3)" }}>
-                            {started && !done ? <><span className="live"/>LIVE</> : parts[3] || m.match_date}
-                          </span>
-                          {!started && minsUntil < 60 && minsUntil > 0 && (
-                            <span style={{ color:"var(--am)", fontWeight:700 }}>⏱ Nog {minsUntil} min</span>
-                          )}
-                        </div>
-
-                        {/* Teams + score */}
-                        <div className="mr-teams">
-                          <div className="mr-home">{m.home || "?"}</div>
-                          <div className={`score-btn${done ? " done" : ""}${isAdmin && !done ? " editable" : ""}`}
-                            onClick={() => { if (isAdmin) { setTab("groepen"); setTimeout(() => {}, 100); } }}>
-                            {done ? `${m.home_goals}–${m.away_goals}` : started ? "–" : "vs"}
-                          </div>
-                          <div className="mr-away">{m.away || "?"}</div>
-                        </div>
-
-                        {/* Meta */}
-                        <div className="mr-meta">
-                          <div style={{ display:"flex", alignItems:"center", gap:5 }}>
-                            {m.locked && <span className="lock-tag">🔒</span>}
-                            {started && !done && <span style={{ fontSize:10, fontWeight:700, color:"#22c55e" }}>⚽ Bezig</span>}
-                          </div>
-                          <div className="mr-actions">
-                            {!isAdmin && mp && done && <span className={`pts-badge ${cls}`}>{lbl}</span>}
-                            {!isAdmin && mp && <span className="pill">{mp.home_goals}–{mp.away_goals}</span>}
-                            {!isAdmin && !mp && !m.locked && !started && (
-                              <span style={{ fontSize:11, color:"var(--re)", fontWeight:700 }}>⚠️ Nog geen tip!</span>
-                            )}
-                            {!isAdmin && !mp && (m.locked || started) && (
-                              <span className="too-late">Te laat</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })()}
           </div>
         )}
 
