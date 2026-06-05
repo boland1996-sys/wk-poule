@@ -1441,19 +1441,77 @@ export default function App() {
               </div>
             )}
 
-            {countdown.started && nextMatch && (
-              <div className="next-match">
-                <div className="nm-label">⚽ Volgende wedstrijd</div>
-                <div className="nm-teams">
-                  <span className="nm-team">{nextMatch.home}</span>
-                  <span className="nm-vs">vs</span>
-                  <span className="nm-team away">{nextMatch.away}</span>
+            {countdown.started && (() => {
+              const NL_MONTHS = {"jan":0,"feb":1,"mrt":2,"apr":3,"mei":4,"jun":5,"jul":6,"aug":7,"sep":8,"okt":9,"nov":10,"dec":11};
+              const now = new Date();
+
+              // Wedstrijden die nu LIVE zijn
+              const liveMatches = matches.filter(m => {
+                if (!m.match_date || m.home_goals != null) return false;
+                const parts = m.match_date.trim().split(" ");
+                if (parts.length < 4) return false;
+                const day = parseInt(parts[1]);
+                const month = NL_MONTHS[parts[2]?.toLowerCase()];
+                const timeParts = parts[3].split(":");
+                if (isNaN(day) || month === undefined) return false;
+                const matchStart = new Date(now.getFullYear(), month, day, parseInt(timeParts[0]), parseInt(timeParts[1]));
+                const matchEnd = new Date(matchStart.getTime() + 2 * 60 * 60 * 1000); // +2 uur
+                return now >= matchStart && now <= matchEnd;
+              });
+
+              if (liveMatches.length > 0) return (
+                <div style={{ background:"linear-gradient(135deg,rgba(34,197,94,.08),rgba(34,197,94,.04))", border:"1px solid rgba(34,197,94,.25)", borderRadius:"var(--r)", padding:"14px 16px", marginBottom:12 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
+                    <span className="live"/>
+                    <span style={{ fontSize:12, fontWeight:800, color:"#22c55e", textTransform:"uppercase", letterSpacing:1 }}>Live nu</span>
+                    <span style={{ fontSize:11, color:"var(--t3)" }}>{liveMatches.length} wedstrijd{liveMatches.length>1?"en":""} bezig</span>
+                  </div>
+                  {liveMatches.map(m => (
+                    <div key={m.id} style={{ display:"flex", alignItems:"center", gap:8, padding:"7px 0", borderBottom:"1px solid rgba(34,197,94,.1)" }}>
+                      <div style={{ flex:1, fontSize:12, fontWeight:700, textAlign:"right", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{m.home}</div>
+                      <div style={{ background:"rgba(34,197,94,.15)", border:"1.5px solid rgba(34,197,94,.3)", borderRadius:7, padding:"4px 10px", fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:14, color:"#22c55e", flexShrink:0 }}>LIVE</div>
+                      <div style={{ flex:1, fontSize:12, fontWeight:700, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{m.away}</div>
+                    </div>
+                  ))}
                 </div>
-                <div style={{ fontSize:11, color:"var(--t3)", marginTop:6 }}>
-                  📅 {nextMatch.match_date} · {nextMatch.phase === "group" ? `Groep ${nextMatch.grp}` : KO_PHASES.find(p => p.id === nextMatch.phase)?.full || nextMatch.phase}
+              );
+
+              // Geen live wedstrijden — toon volgende wedstrijd met countdown
+              if (!nextMatch) return null;
+              const parts = nextMatch.match_date.trim().split(" ");
+              const day = parseInt(parts[1]);
+              const month = NL_MONTHS[parts[2]?.toLowerCase()];
+              const timeParts = (parts[3] || "00:00").split(":");
+              const matchTime = new Date(now.getFullYear(), month, day, parseInt(timeParts[0]), parseInt(timeParts[1]));
+              const diff = matchTime - now;
+              const dh = Math.floor(diff/36e5);
+              const dm = Math.floor(diff/6e4)%60;
+              const ds = Math.floor(diff/1e3)%60;
+
+              return (
+                <div className="next-match" style={{ position:"relative", overflow:"hidden" }}>
+                  <div style={{ position:"absolute", right:12, top:"50%", transform:"translateY(-50%)", fontFamily:"'Oswald',sans-serif", fontWeight:800, fontSize:11, color:"var(--t3)", textAlign:"right" }}>
+                    {diff > 0 && (
+                      <div>
+                        <div style={{ fontSize:18, color:"var(--gr)", lineHeight:1 }}>
+                          {dh > 0 ? `${dh}u ${dm}m` : `${dm}m ${ds}s`}
+                        </div>
+                        <div style={{ fontSize:9, color:"var(--t3)", marginTop:2, textTransform:"uppercase", letterSpacing:.5 }}>tot aftrap</div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="nm-label">⚽ Volgende wedstrijd</div>
+                  <div className="nm-teams" style={{ paddingRight:70 }}>
+                    <span className="nm-team">{nextMatch.home}</span>
+                    <span className="nm-vs">vs</span>
+                    <span className="nm-team away">{nextMatch.away}</span>
+                  </div>
+                  <div style={{ fontSize:11, color:"var(--t3)", marginTop:6 }}>
+                    📅 {nextMatch.match_date} · {nextMatch.phase === "group" ? `Groep ${nextMatch.grp}` : KO_PHASES.find(p => p.id === nextMatch.phase)?.full || nextMatch.phase}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             <div className="sec-title">Tussenstand</div>
             <div className="sec-sub">5pt exact · 3pt winnaar · +1pt per team goals · 10pt bonus · 5pt eindstand</div>
