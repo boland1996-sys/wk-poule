@@ -2264,7 +2264,7 @@ export default function App() {
             <div style={{ background:"var(--c2)", border:"1px solid var(--bd)", borderRadius:10, padding:"14px 16px", marginBottom:10 }}>
               <div style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:14, color:"var(--gr)", marginBottom:6 }}>🔄 Auto-refresh uitslagen</div>
               <div style={{ fontSize:12, color:"var(--t3)", marginBottom:10, lineHeight:1.5 }}>
-                Haalt automatisch elke 5 minuten de laatste uitslagen op. Zet aan tijdens het WK!
+                Haalt automatisch elke 15 minuten de laatste uitslagen op. Zet aan tijdens het WK!
                 {lastRefresh && <span style={{ display:"block", marginTop:4, color:"var(--t2)" }}>⏱ Laatste update: {lastRefresh.toLocaleTimeString("nl-NL")} · {refreshCount}/{MAX_REFRESH} refreshes gebruikt</span>}
               </div>
               <div style={{ display:"flex", gap:8, alignItems:"center" }}>
@@ -2284,7 +2284,7 @@ export default function App() {
               <div style={{ fontSize:12, color:"var(--t3)", marginBottom:10, lineHeight:1.5 }}>
                 Vergrendelt alle wedstrijden van vandaag in één klik. Niemand kan meer tippen.
               </div>
-              <div style={{ display:"flex", gap:8 }}>
+              <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
                 <button
                   className="btn btn-green"
                   style={{ flex:1 }}
@@ -2310,7 +2310,7 @@ export default function App() {
                     setLockAllLoading(false);
                   }}
                 >
-                  {lockAllLoading ? <><span className="spin">⚽</span> Bezig...</> : "🔒 Vergrendel wedstrijden van vandaag"}
+                  {lockAllLoading ? <><span className="spin">⚽</span> Bezig...</> : "🔒 Vandaag vergrendelen"}
                 </button>
                 <button
                   className="btn btn-out"
