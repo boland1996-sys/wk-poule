@@ -1065,7 +1065,7 @@ export default function App() {
   const [chatInput,     setChatInput]     = useState("");
   const [chatSending,   setChatSending]   = useState(false);
   const [importLog,     setImportLog]     = useState([]);
-  const [autoRefresh,   setAutoRefresh]   = useState(false);
+  const [autoRefresh,   setAutoRefresh]   = useState(() => { try { return localStorage.getItem("wkp_autorefresh") === "true"; } catch { return false; } });
   const [lastRefresh,   setLastRefresh]   = useState(null);
   const [refreshCount,  setRefreshCount]  = useState(0);
   const MAX_REFRESH = 100;
@@ -1152,6 +1152,7 @@ export default function App() {
   }, []);
 
   useEffect(() => { try { localStorage.setItem("wkp2026", JSON.stringify(session)); } catch {} }, [session]);
+  useEffect(() => { try { localStorage.setItem("wkp_autorefresh", autoRefresh ? "true" : "false"); } catch {} }, [autoRefresh]);
 
   // ── AUTO REFRESH UITSLAGEN ELKE 5 MINUTEN (max 100x) ────────────────
   useEffect(() => {
