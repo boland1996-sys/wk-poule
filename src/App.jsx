@@ -918,11 +918,13 @@ function AuthPage({ mode, setMode, form, setForm, err, loading, onLogin, onRegis
         {/* Hero */}
         <div style={{ textAlign:"center", marginBottom:28 }}>
           <div style={{ position:"relative", display:"inline-block", marginBottom:14 }}>
-            <div style={{ fontSize:64, filter:"drop-shadow(0 0 24px rgba(251,191,36,.5))", lineHeight:1 }}>🏆</div>
-            <div style={{ position:"absolute", inset:-8, borderRadius:"50%", background:"radial-gradient(circle,rgba(251,191,36,.15),transparent 70%)", animation:"pulse2 2s ease-in-out infinite" }} />
+            <div style={{ width:90, height:90, borderRadius:"50%", overflow:"hidden", border:"3px solid var(--gr)", boxShadow:"0 0 24px rgba(255,107,0,.5), 0 0 48px rgba(255,107,0,.2)", margin:"0 auto", animation:"pulse2 2s ease-in-out infinite" }}>
+              <img src="/mascotte.jpg" alt="mascotte" style={{ width:"100%", height:"100%", objectFit:"cover", objectPosition:"center top" }} />
+            </div>
+            <div style={{ position:"absolute", bottom:-4, right:-4, background:"var(--gr)", borderRadius:"50%", width:26, height:26, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, border:"2px solid var(--bg)" }}>👑</div>
           </div>
           <div style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:38, letterSpacing:1, lineHeight:1 }}>
-            WK <span style={{ color:"var(--gr)", textShadow:"0 0 20px rgba(0,201,125,.4)" }}>2026</span>
+            WK <span style={{ color:"var(--gr)", textShadow:"0 0 20px rgba(255,107,0,.4)" }}>2026</span>
           </div>
           <div style={{ fontWeight:900, fontSize:13, color:"var(--am)", letterSpacing:3, textTransform:"uppercase", marginTop:6 }}>Boland's Special</div>
           <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:8, marginTop:12, flexWrap:"wrap" }}>
