@@ -378,6 +378,26 @@ button{cursor:pointer}
 /* Badge op nav tab */
 .bn-badge{position:absolute;top:6px;right:calc(50% - 16px);width:8px;height:8px;background:var(--re);border-radius:50%;border:1.5px solid var(--bg)}
 
+/* CHAT */
+.chat-wrap{display:flex;flex-direction:column;height:calc(100vh - 160px);max-height:600px}
+.chat-msgs{flex:1;overflow-y:auto;padding:8px 0;display:flex;flex-direction:column;gap:6px}
+.chat-msgs::-webkit-scrollbar{width:3px}
+.chat-msgs::-webkit-scrollbar-thumb{background:var(--gr);border-radius:2px}
+.chat-msg{padding:8px 12px;border-radius:10px;max-width:80%;word-break:break-word}
+.chat-msg.mine{background:rgba(255,107,0,.15);border:1px solid rgba(255,107,0,.2);align-self:flex-end}
+.chat-msg.other{background:var(--c2);border:1px solid var(--bd);align-self:flex-start}
+.chat-msg.system{background:rgba(255,255,255,.04);border:1px dashed var(--bd);align-self:center;max-width:90%;text-align:center}
+.chat-name{font-size:10px;font-weight:700;color:var(--gr);margin-bottom:3px}
+.chat-name.other{color:var(--am)}
+.chat-text{font-size:13px;line-height:1.4;color:var(--t1)}
+.chat-time{font-size:10px;color:var(--t3);margin-top:3px;text-align:right}
+.chat-input-wrap{display:flex;gap:8px;padding:10px 0 0;border-top:1px solid var(--bd);margin-top:8px}
+.chat-input{flex:1;background:var(--c2);border:1.5px solid var(--bd);border-radius:22px;color:var(--t1);padding:10px 16px;font-size:14px;outline:none;-webkit-appearance:none}
+.chat-input:focus{border-color:var(--gr)}
+.chat-send{background:var(--gr);border:none;border-radius:50%;width:42px;height:42px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;cursor:pointer;transition:transform .15s}
+.chat-send:active{transform:scale(.9)}
+.chat-send:disabled{opacity:.4}
+
 /* Twin popup */
 @keyframes slide-up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 .twin-popup{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--c1);border:1px solid var(--gr);border-radius:12px;padding:10px 16px;z-index:200;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,.6);animation:slide-up .3s ease both;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--gr)}
@@ -1041,6 +1061,9 @@ export default function App() {
   const [twinPopup,     setTwinPopup]     = useState(null);
   const [ptsPopup,      setPtsPopup]      = useState(null);
   const [importing,     setImporting]     = useState(false);
+  const [chatMsgs,      setChatMsgs]      = useState([]);
+  const [chatInput,     setChatInput]     = useState("");
+  const [chatSending,   setChatSending]   = useState(false);
   const [importLog,     setImportLog]     = useState([]);
   const [autoRefresh,   setAutoRefresh]   = useState(false);
   const [lastRefresh,   setLastRefresh]   = useState(null);
@@ -1177,6 +1200,21 @@ export default function App() {
     return () => clearInterval(id);
   }, [matches.length]);
 
+  // ── CHAT LADEN EN REALTIME ───────────────────────────────────────────
+  useEffect(() => {
+    // Laad laatste 50 berichten
+    sb.from("chat_messages").select("*").order("created_at", { ascending: true }).limit(50).then(({ data }) => {
+      if (data) setChatMsgs(data);
+    });
+    // Realtime luisteren
+    const channel = sb.channel("chat")
+      .on("postgres_changes", { event:"INSERT", schema:"public", table:"chat_messages" }, payload => {
+        setChatMsgs(ms => [...ms, payload.new]);
+      })
+      .subscribe();
+    return () => sb.removeChannel(channel);
+  }, []);
+
   // ── AUTH ──────────────────────────────────────────────────────────────
   const login = async () => {
     const { u, p } = form;
@@ -1295,6 +1333,19 @@ export default function App() {
     showToast("✓ Bonus opgeslagen");
   };
 
+  const sendChat = async () => {
+    if (!chatInput.trim() || !session) return;
+    setChatSending(true);
+    const msg = {
+      user_id: session.id || "admin",
+      username: session.username,
+      message: chatInput.trim(),
+    };
+    await sb.from("chat_messages").insert(msg);
+    setChatInput("");
+    setChatSending(false);
+  };
+
   const saveBonusResults = async (res) => {
     const { data:ex } = await sb.from("bonus_results").select("*").maybeSingle();
     if (ex) await sb.from("bonus_results").update({ answers:res }).eq("id", ex.id);
@@ -1336,8 +1387,8 @@ export default function App() {
   const todayUntiped = !isAdmin && todayMatches.filter(m => !myPreds.find(p => p.match_id === m.id)).length > 0;
 
   const TABS = isAdmin
-    ? [{ id:"stand",ic:"🏆",lb:"Stand" },{ id:"vandaag",ic:"📅",lb:"Vandaag" },{ id:"groepen",ic:"⚽",lb:"Groepen" },{ id:"ko",ic:"🥊",lb:"KO" },{ id:"standen",ic:"📊",lb:"Standen" },{ id:"bonus",ic:"🎯",lb:"Bonus" },{ id:"pot",ic:"💶",lb:"Pot" },{ id:"beheer",ic:"👑",lb:"Beheer" }]
-    : [{ id:"stand",ic:"🏆",lb:"Stand" },{ id:"vandaag",ic:"📅",lb:"Vandaag" },{ id:"groepen",ic:"⚽",lb:"Groepen" },{ id:"ko",ic:"🥊",lb:"KO" },{ id:"standen",ic:"📊",lb:"Standen" },{ id:"bonus",ic:"🎯",lb:"Bonus" },{ id:"pot",ic:"💶",lb:"Pot" },{ id:"mijn",ic:"📋",lb:"Mijn" }];
+    ? [{ id:"stand",ic:"🏆",lb:"Stand" },{ id:"vandaag",ic:"📅",lb:"Vandaag" },{ id:"groepen",ic:"⚽",lb:"Groepen" },{ id:"ko",ic:"🥊",lb:"KO" },{ id:"standen",ic:"📊",lb:"Standen" },{ id:"bonus",ic:"🎯",lb:"Bonus" },{ id:"pot",ic:"💶",lb:"Pot" },{ id:"chat",ic:"💬",lb:"Chat" },{ id:"beheer",ic:"👑",lb:"Beheer" }]
+    : [{ id:"stand",ic:"🏆",lb:"Stand" },{ id:"vandaag",ic:"📅",lb:"Vandaag" },{ id:"groepen",ic:"⚽",lb:"Groepen" },{ id:"ko",ic:"🥊",lb:"KO" },{ id:"standen",ic:"📊",lb:"Standen" },{ id:"bonus",ic:"🎯",lb:"Bonus" },{ id:"pot",ic:"💶",lb:"Pot" },{ id:"chat",ic:"💬",lb:"Chat" },{ id:"mijn",ic:"📋",lb:"Mijn" }];
 
   const myStandingPred = standingPreds.find(s => s.user_id === session?.id && s.group === grp)?.order;
 
@@ -1840,6 +1891,54 @@ export default function App() {
                 }} />
               : <BonusUser myAns={myBonusAns} bonusR={bonusR} onSave={saveBonus} wkStarted={wkStarted || bonusLocked} />
             }
+          </div>
+        )}
+
+        {/* ── CHAT ── */}
+        {tab === "chat" && (
+          <div className="fu">
+            <div className="sec-title">💬 Groepschat</div>
+            <div className="sec-sub">Chat met alle deelnemers · {chatMsgs.length} berichten</div>
+            <div className="card" style={{ padding:"12px 14px" }}>
+              <div className="chat-wrap">
+                <div className="chat-msgs" ref={el => { if (el) el.scrollTop = el.scrollHeight; }}>
+                  {chatMsgs.length === 0 && (
+                    <div className="chat-msg system">
+                      <div className="chat-text" style={{ color:"var(--t3)", fontSize:12 }}>Nog geen berichten. Wees de eerste! 👋</div>
+                    </div>
+                  )}
+                  {chatMsgs.map((msg, i) => {
+                    const isMe = msg.user_id === session?.id || msg.username === session?.username;
+                    const color = avatarColor(msg.username || "?");
+                    const time = new Date(msg.created_at).toLocaleTimeString("nl-NL", { hour:"2-digit", minute:"2-digit" });
+                    return (
+                      <div key={msg.id || i} className={`chat-msg ${isMe ? "mine" : "other"}`}>
+                        {!isMe && (
+                          <div className="chat-name other" style={{ color }}>
+                            {msg.username}
+                          </div>
+                        )}
+                        <div className="chat-text">{msg.message}</div>
+                        <div className="chat-time">{time}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="chat-input-wrap">
+                  <input
+                    className="chat-input"
+                    placeholder="Typ een bericht..."
+                    value={chatInput}
+                    onChange={e => setChatInput(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendChat()}
+                    maxLength={300}
+                  />
+                  <button className="chat-send" disabled={!chatInput.trim() || chatSending} onClick={sendChat}>
+                    {chatSending ? <span className="spin" style={{ fontSize:16 }}>⚽</span> : "➤"}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
