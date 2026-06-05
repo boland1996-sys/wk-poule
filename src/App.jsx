@@ -776,12 +776,30 @@ function BonusUser({ myAns, bonusR, onSave, wkStarted }) {
 }
 
 // ── BONUS ADMIN ───────────────────────────────────────────────────────────
-function BonusAdmin({ bonusR, onSave }) {
+function BonusAdmin({ bonusR, onSave, bonusLocked, onToggleLock }) {
   const [res, setRes] = useState(bonusR || {});
   const [sav, setSav] = useState(false);
   useEffect(() => { setRes(bonusR || {}); }, [bonusR]);
   return (
     <div>
+      {/* Vergrendel knop */}
+      <div style={{ background:"var(--c2)", border:"1px solid var(--bd)", borderRadius:10, padding:"13px 14px", marginBottom:12, display:"flex", alignItems:"center", justifyContent:"space-between", gap:10 }}>
+        <div>
+          <div style={{ fontWeight:700, fontSize:13, color: bonusLocked ? "var(--re)" : "var(--gr)", marginBottom:3 }}>
+            {bonusLocked ? "🔒 Bonusvragen vergrendeld" : "🔓 Bonusvragen open"}
+          </div>
+          <div style={{ fontSize:11, color:"var(--t3)" }}>
+            {bonusLocked ? "Deelnemers kunnen niet meer aanpassen" : "Deelnemers kunnen nog tips invullen"}
+          </div>
+        </div>
+        <button
+          className="btn"
+          style={{ background: bonusLocked ? "rgba(244,63,94,.15)" : "rgba(255,107,0,.15)", border:`1px solid ${bonusLocked ? "rgba(244,63,94,.3)" : "rgba(255,107,0,.3)"}`, color: bonusLocked ? "var(--re)" : "var(--gr)", padding:"9px 14px", fontSize:12, fontWeight:700, borderRadius:8, flexShrink:0 }}
+          onClick={onToggleLock}
+        >
+          {bonusLocked ? "🔓 Openen" : "🔒 Vergrendelen"}
+        </button>
+      </div>
       <div className="infobox">
         <span className="infobox-i">👑</span>
         <div className="infobox-t">Vul de correcte antwoorden in. Punten worden direct bijgewerkt voor alle deelnemers.</div>
@@ -1003,6 +1021,7 @@ export default function App() {
   const [preds,         setPreds]         = useState([]);
   const [bonusA,        setBonusA]        = useState([]);
   const [bonusR,        setBonusR]        = useState(null);
+  const [bonusLocked,   setBonusLocked]   = useState(false);
   const [standingPreds, setStandingPreds] = useState([]);
   const [session,       setSession]       = useState(() => { try { return JSON.parse(localStorage.getItem("wkp2026")); } catch { return null; } });
   const [tab,           setTab]           = useState("stand");
@@ -1101,7 +1120,7 @@ export default function App() {
       if (u)  setUsers(u);
       if (p)  setPreds(p);
       if (ba) setBonusA(ba);
-      if (br) { setBonusR(br?.answers || null); if (br?.answers?._potN) setPotN(br.answers._potN); }
+      if (br) { setBonusR(br?.answers || null); if (br?.answers?._potN) setPotN(br.answers._potN); if (br?.answers?._bonusLocked) setBonusLocked(true); }
       if (sp) setStandingPreds(sp);
       setBooting(false);
     })();
@@ -1748,7 +1767,19 @@ export default function App() {
           <div className="fu">
             <div className="sec-title">🎯 Bonusvragen</div>
             <div className="sec-sub">{BONUS_QS.length} vragen · 10 punten per goed antwoord{wkStarted ? " · 🔒 Gesloten" : " · sluit bij WK-start"}</div>
-            {isAdmin ? <BonusAdmin bonusR={bonusR} onSave={saveBonusResults} /> : <BonusUser myAns={myBonusAns} bonusR={bonusR} onSave={saveBonus} wkStarted={wkStarted} />}
+            {isAdmin
+              ? <BonusAdmin bonusR={bonusR} onSave={saveBonusResults} bonusLocked={bonusLocked} onToggleLock={async () => {
+                  const newLocked = !bonusLocked;
+                  setBonusLocked(newLocked);
+                  const { data:ex } = await sb.from("bonus_results").select("*").maybeSingle();
+                  const updated = { ...(bonusR || {}), _bonusLocked: newLocked };
+                  if (ex) await sb.from("bonus_results").update({ answers: updated }).eq("id", ex.id);
+                  else await sb.from("bonus_results").insert({ answers: updated });
+                  setBonusR(updated);
+                  showToast(newLocked ? "🔒 Bonusvragen vergrendeld" : "🔓 Bonusvragen geopend");
+                }} />
+              : <BonusUser myAns={myBonusAns} bonusR={bonusR} onSave={saveBonus} wkStarted={wkStarted || bonusLocked} />
+            }
           </div>
         )}
 
