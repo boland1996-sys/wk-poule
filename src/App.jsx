@@ -938,8 +938,8 @@ function AuthPage({ mode, setMode, form, setForm, err, loading, onLogin, onRegis
         {/* Hero */}
         <div style={{ textAlign:"center", marginBottom:28 }}>
           <div style={{ position:"relative", display:"inline-block", marginBottom:14 }}>
-            <div style={{ width:150, height:150, borderRadius:"50%", overflow:"hidden", border:"3px solid var(--gr)", boxShadow:"0 0 24px rgba(255,107,0,.5), 0 0 48px rgba(255,107,0,.2)", margin:"0 auto", animation:"pulse2 2s ease-in-out infinite" }}>
-              <img src="/gullit.png" alt="gullit" style={{ width:"100%", height:"100%", objectFit:"cover", objectPosition:"center top" }} onError={e => { e.target.onerror=null; e.target.src="/gullit.jpg"; }} />
+            <div style={{ width:130, height:130, clipPath:"polygon(50% 0%,95% 25%,95% 75%,50% 100%,5% 75%,5% 25%)", overflow:"hidden", margin:"0 auto", border:"none", boxShadow:"0 0 24px rgba(255,107,0,.4)", background:"#ff6b00" }}>
+              <img src="/gullit.jpg" alt="gullit" style={{ width:"100%", height:"100%", objectFit:"cover", objectPosition:"center top" }} />
             </div>
             <div style={{ position:"absolute", bottom:-4, right:-4, background:"var(--gr)", borderRadius:"50%", width:26, height:26, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, border:"2px solid var(--bg)" }}>👑</div>
           </div>
@@ -1062,6 +1062,7 @@ export default function App() {
   const [ptsPopup,      setPtsPopup]      = useState(null);
   const [importing,     setImporting]     = useState(false);
   const [chatMsgs,      setChatMsgs]      = useState([]);
+  const [onlineUsers,   setOnlineUsers]   = useState(new Set());
   const [chatInput,     setChatInput]     = useState("");
   const [chatSending,   setChatSending]   = useState(false);
   const [importLog,     setImportLog]     = useState([]);
@@ -1332,6 +1333,12 @@ export default function App() {
       if (data) setBonusA(bs => [...bs, data]);
     }
     showToast("✓ Bonus opgeslagen");
+  };
+
+  const deleteChat = async (msgId) => {
+    await sb.from("chat_messages").delete().eq("id", msgId);
+    setChatMsgs(ms => ms.filter(m => m.id !== msgId));
+    showToast("🗑️ Bericht verwijderd");
   };
 
   const sendChat = async () => {
@@ -1605,6 +1612,7 @@ export default function App() {
                         <div style={{ display:"flex", alignItems:"center", gap:5, marginBottom:3 }}>
                           <span style={{ fontSize:13, fontWeight:700, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", color: i<3 ? mc[i] : "var(--t1)" }}>{u.username}</span>
                           {isMe && <span style={{ background:"rgba(0,201,125,.15)", color:"var(--gr)", fontSize:9, fontWeight:900, borderRadius:3, padding:"1px 5px", border:"1px solid rgba(255,107,0,.15)", flexShrink:0 }}>JIJ</span>}
+                          {!isMe && onlineUsers.has(u.username) && <span style={{ width:7, height:7, borderRadius:"50%", background:"#22c55e", display:"inline-block", flexShrink:0, boxShadow:"0 0 5px #22c55e" }} title="Online"/>}
                         </div>
                         <div style={{ height:3, background:"var(--c3)", borderRadius:2, overflow:"hidden" }}>
                           <div style={{ width:`${pct}%`, height:"100%", background: i<3 ? mc[i] : color, borderRadius:2, transition:"width 1s ease" }} />
@@ -1899,7 +1907,7 @@ export default function App() {
         {tab === "chat" && (
           <div className="fu">
             <div className="sec-title">💬 Groepschat</div>
-            <div className="sec-sub">Chat met alle deelnemers · {chatMsgs.length} berichten</div>
+            <div className="sec-sub">Chat met alle deelnemers · {chatMsgs.length} berichten · <span style={{ color:"#22c55e", fontWeight:700 }}>🟢 {onlineUsers.size} online</span></div>
             <div className="card" style={{ padding:"12px 14px" }}>
               <div className="chat-wrap">
                 <div className="chat-msgs" ref={el => { if (el) el.scrollTop = el.scrollHeight; }}>
@@ -1913,14 +1921,18 @@ export default function App() {
                     const color = avatarColor(msg.username || "?");
                     const time = new Date(msg.created_at).toLocaleTimeString("nl-NL", { hour:"2-digit", minute:"2-digit" });
                     return (
-                      <div key={msg.id || i} className={`chat-msg ${isMe ? "mine" : "other"}`}>
+                      <div key={msg.id || i} className={`chat-msg ${isMe ? "mine" : "other"}`} style={{ position:"relative" }}>
                         {!isMe && (
-                          <div className="chat-name other" style={{ color }}>
+                          <div className="chat-name other" style={{ color, display:"flex", alignItems:"center", gap:5 }}>
+                            <span style={{ width:7, height:7, borderRadius:"50%", background: onlineUsers.has(msg.username) ? "#22c55e" : "var(--bd)", display:"inline-block", flexShrink:0, boxShadow: onlineUsers.has(msg.username) ? "0 0 4px #22c55e" : "none" }}/>
                             {msg.username}
                           </div>
                         )}
                         <div className="chat-text">{msg.message}</div>
-                        <div className="chat-time">{time}</div>
+                        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginTop:3 }}>
+                          <div className="chat-time" style={{ margin:0 }}>{time}</div>
+                          {isAdmin && <button onClick={() => deleteChat(msg.id)} style={{ background:"none", border:"none", color:"var(--re)", fontSize:12, cursor:"pointer", padding:"0 4px", opacity:.6 }} title="Verwijderen">🗑️</button>}
+                        </div>
                       </div>
                     );
                   })}
