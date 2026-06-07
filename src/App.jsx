@@ -935,21 +935,17 @@ function AuthPage({ mode, setMode, form, setForm, err, loading, onLogin, onRegis
 
       <div style={{ width:"100%", maxWidth:400, position:"relative", zIndex:1 }}>
 
-        {/* Hero */}
-        <div style={{ textAlign:"center", marginBottom:28 }}>
-          <div style={{ position:"relative", display:"inline-block", marginBottom:14 }}>
-            <div style={{ width:130, height:130, clipPath:"polygon(50% 0%,95% 25%,95% 75%,50% 100%,5% 75%,5% 25%)", overflow:"hidden", margin:"0 auto", border:"none", boxShadow:"0 0 24px rgba(255,107,0,.4)", background:"#ff6b00" }}>
-              <img src="/gullit.jpg" alt="gullit" style={{ width:"100%", height:"100%", objectFit:"cover", objectPosition:"center top" }} />
+        {/* Hero — volledig achtergrond foto */}
+        <div style={{ position:"relative", borderRadius:20, overflow:"hidden", marginBottom:24, height:200 }}>
+          <img src="/gullit.jpg" alt="gullit" style={{ width:"100%", height:"100%", objectFit:"cover", objectPosition:"center 15%" }} />
+          <div style={{ position:"absolute", inset:0, background:"rgba(0,0,0,.55)" }} />
+          <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:4 }}>
+            <div style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:40, letterSpacing:1, lineHeight:1, textShadow:"0 2px 12px rgba(0,0,0,.8)" }}>
+              WK <span style={{ color:"var(--gr)" }}>2026</span>
             </div>
-            <div style={{ position:"absolute", bottom:-4, right:-4, background:"var(--gr)", borderRadius:"50%", width:26, height:26, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, border:"2px solid var(--bg)" }}>👑</div>
-          </div>
-          <div style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:38, letterSpacing:1, lineHeight:1 }}>
-            WK <span style={{ color:"var(--gr)", textShadow:"0 0 20px rgba(255,107,0,.4)" }}>2026</span>
-          </div>
-          <div style={{ fontWeight:900, fontSize:13, color:"var(--am)", letterSpacing:3, textTransform:"uppercase", marginTop:6 }}>Boland's Special</div>
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:8, marginTop:12, flexWrap:"wrap" }}>
-            <div style={{ background:"rgba(255,107,0,.1)", border:"1px solid rgba(255,107,0,.25)", borderRadius:20, padding:"6px 16px", fontSize:12, color:"var(--gr)", fontWeight:700, display:"flex", alignItems:"center", gap:6 }}>
-              👑 Georganiseerd door <span style={{color:"#fff8ee", fontWeight:900}}>Ramon Boland</span>
+            <div style={{ fontWeight:900, fontSize:12, color:"var(--am)", letterSpacing:3, textTransform:"uppercase" }}>Boland's Special</div>
+            <div style={{ background:"rgba(255,107,0,.15)", border:"1px solid rgba(255,107,0,.3)", borderRadius:20, padding:"5px 14px", fontSize:11, color:"#fff8ee", fontWeight:700, marginTop:6, display:"flex", alignItems:"center", gap:5 }}>
+              👑 Georganiseerd door <span style={{ color:"var(--gr)" }}>Ramon Boland</span>
             </div>
           </div>
         </div>
