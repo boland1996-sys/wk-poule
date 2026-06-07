@@ -939,7 +939,7 @@ function AuthPage({ mode, setMode, form, setForm, err, loading, onLogin, onRegis
         <div style={{ textAlign:"center", marginBottom:28 }}>
           <div style={{ position:"relative", display:"inline-block", marginBottom:14 }}>
             <div style={{ width:150, height:150, borderRadius:"50%", overflow:"hidden", border:"3px solid var(--gr)", boxShadow:"0 0 24px rgba(255,107,0,.5), 0 0 48px rgba(255,107,0,.2)", margin:"0 auto", animation:"pulse2 2s ease-in-out infinite" }}>
-              <img src="/mascotte.jpg" alt="mascotte" style={{ width:"100%", height:"100%", objectFit:"cover", objectPosition:"center top" }} />
+              <img src="/gullit.png" alt="mascotte" style={{ width:"100%", height:"100%", objectFit:"cover", objectPosition:"center top" }} />
             </div>
             <div style={{ position:"absolute", bottom:-4, right:-4, background:"var(--gr)", borderRadius:"50%", width:26, height:26, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, border:"2px solid var(--bg)" }}>👑</div>
           </div>
