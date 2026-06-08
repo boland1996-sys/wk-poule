@@ -1063,6 +1063,7 @@ export default function App() {
   const [importing,     setImporting]     = useState(false);
   const [chatMsgs,      setChatMsgs]      = useState([]);
   const [onlineUsers,   setOnlineUsers]   = useState(new Set());
+  const [lastSeen,      setLastSeen]      = useState({});
   const [chatInput,     setChatInput]     = useState("");
   const [chatSending,   setChatSending]   = useState(false);
   const [importLog,     setImportLog]     = useState([]);
@@ -1233,6 +1234,12 @@ export default function App() {
         setOnlineUsers(prev => {
           const next = new Set(prev);
           leftPresences.forEach(p => next.delete(p.username));
+          return next;
+        });
+        // Sla laatste gezien op
+        setLastSeen(prev => {
+          const next = {...prev};
+          leftPresences.forEach(p => { next[p.username] = new Date().toISOString(); });
           return next;
         });
       })
@@ -2427,6 +2434,24 @@ export default function App() {
                           {rank > 0 && <span style={{ fontSize:9, color:"var(--t3)", fontWeight:700 }}>#{rank}</span>}
                         </div>
                         <div style={{ fontSize:11, color:"var(--t3)", marginTop:2, display:"flex", alignItems:"center", gap:5, flexWrap:"wrap" }}>
+                          {/* Laatst gezien — alleen voor admin */}
+                          {(() => {
+                            if (onlineUsers.has(u.username)) return null;
+                            const ls = lastSeen[u.username];
+                            if (!ls) return null;
+                            const d = new Date(ls);
+                            const now = new Date();
+                            const diff = now - d;
+                            const mins = Math.floor(diff/60000);
+                            const hours = Math.floor(diff/3600000);
+                            const days = Math.floor(diff/86400000);
+                            let label = "";
+                            if (mins < 1) label = "zojuist";
+                            else if (mins < 60) label = `${mins}m geleden`;
+                            else if (hours < 24) label = `${hours}u geleden`;
+                            else label = `${days}d geleden`;
+                            return <span style={{ color:"var(--t3)", fontStyle:"italic" }}>👁 {label}</span>;
+                          })()}
                           <span>{lb.pc} tips</span>
                           <span>·</span>
                           <span>{lb.exact}× exact</span>
