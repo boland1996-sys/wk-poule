@@ -1202,20 +1202,47 @@ export default function App() {
     return () => clearInterval(id);
   }, [matches.length]);
 
-  // ── CHAT LADEN EN REALTIME ───────────────────────────────────────────
+  // ── CHAT LADEN EN REALTIME + PRESENCE ──────────────────────────────
   useEffect(() => {
+    if (!session) return;
     // Laad laatste 50 berichten
     sb.from("chat_messages").select("*").order("created_at", { ascending: true }).limit(50).then(({ data }) => {
       if (data) setChatMsgs(data);
     });
-    // Realtime luisteren
-    const channel = sb.channel("chat")
+    // Realtime chat + presence (online indicator)
+    const channel = sb.channel("wkpoule_presence")
       .on("postgres_changes", { event:"INSERT", schema:"public", table:"chat_messages" }, payload => {
         setChatMsgs(ms => [...ms, payload.new]);
       })
-      .subscribe();
+      .on("postgres_changes", { event:"DELETE", schema:"public", table:"chat_messages" }, payload => {
+        setChatMsgs(ms => ms.filter(m => m.id !== payload.old.id));
+      })
+      .on("presence", { event:"sync" }, () => {
+        const state = channel.presenceState();
+        const online = new Set(Object.values(state).flat().map(p => p.username));
+        setOnlineUsers(online);
+      })
+      .on("presence", { event:"join" }, ({ newPresences }) => {
+        setOnlineUsers(prev => {
+          const next = new Set(prev);
+          newPresences.forEach(p => next.add(p.username));
+          return next;
+        });
+      })
+      .on("presence", { event:"leave" }, ({ leftPresences }) => {
+        setOnlineUsers(prev => {
+          const next = new Set(prev);
+          leftPresences.forEach(p => next.delete(p.username));
+          return next;
+        });
+      })
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          await channel.track({ username: session.username, online_at: new Date().toISOString() });
+        }
+      });
     return () => sb.removeChannel(channel);
-  }, []);
+  }, [session?.username]);
 
   // ── AUTH ──────────────────────────────────────────────────────────────
   const login = async () => {
@@ -1919,7 +1946,13 @@ export default function App() {
                   {chatMsgs.map((msg, i) => {
                     const isMe = msg.user_id === session?.id || msg.username === session?.username;
                     const color = avatarColor(msg.username || "?");
-                    const time = new Date(msg.created_at).toLocaleTimeString("nl-NL", { hour:"2-digit", minute:"2-digit" });
+                    const msgDate = new Date(msg.created_at);
+                    const now = new Date();
+                    const isToday = msgDate.toDateString() === now.toDateString();
+                    const isYesterday = new Date(now - 864e5).toDateString() === msgDate.toDateString();
+                    const timeStr = msgDate.toLocaleTimeString("nl-NL", { hour:"2-digit", minute:"2-digit" });
+                    const dateStr = isToday ? timeStr : isYesterday ? `gisteren ${timeStr}` : `${msgDate.toLocaleDateString("nl-NL", { day:"numeric", month:"short" })} ${timeStr}`;
+                    const time = dateStr;
                     return (
                       <div key={msg.id || i} className={`chat-msg ${isMe ? "mine" : "other"}`} style={{ position:"relative" }}>
                         {!isMe && (
