@@ -1731,6 +1731,62 @@ export default function App() {
                     </div>
                   </div>
                 )}
+
+                {/* ── BESTE RONDE ── */}
+                {leaderboard.length > 0 && (() => {
+                  // Groepeer wedstrijden per dag
+                  const NL_MONTHS = {"jan":0,"feb":1,"mrt":2,"apr":3,"mei":4,"jun":5,"jul":6,"aug":7,"sep":8,"okt":9,"nov":10,"dec":11};
+                  const dayPts = {};
+                  for (const u of leaderboard) {
+                    const up = preds.filter(p => p.user_id === u.id);
+                    for (const p of up) {
+                      const m = matchMap.get(p.match_id);
+                      if (!m || m.home_goals == null || m.away_goals == null || !m.match_date) continue;
+                      const parts = m.match_date.trim().split(" ");
+                      const dayKey = `${parts[1]} ${parts[2]}`; // "11 jun"
+                      if (!dayPts[u.id]) dayPts[u.id] = {};
+                      if (!dayPts[u.id][dayKey]) dayPts[u.id][dayKey] = 0;
+                      const r = scorePts(p.home_goals, p.away_goals, m.home_goals, m.away_goals);
+                      dayPts[u.id][dayKey] += r.pts;
+                    }
+                  }
+                  // Vind beste ronde per gebruiker
+                  const bestRounds = leaderboard.map(u => {
+                    const days = dayPts[u.id] || {};
+                    const best = Object.entries(days).sort((a,b) => b[1]-a[1])[0];
+                    return { ...u, bestDay: best?.[0] || "—", bestPts: best?.[1] || 0 };
+                  }).sort((a,b) => b.bestPts - a.bestPts);
+
+                  if (bestRounds[0]?.bestPts === 0) return null;
+
+                  return (
+                    <div className="card" style={{ marginBottom:8 }}>
+                      <div className="card-head"><span className="card-title">🔥 Beste speeldag</span><span style={{ fontSize:11, color:"var(--t3)" }}>meeste punten op één dag</span></div>
+                      <div style={{ padding:"4px 14px 10px" }}>
+                        {bestRounds.map(u => {
+                          const color = avatarColor(u.username);
+                          const max = bestRounds[0].bestPts || 1;
+                          const pct = Math.round((u.bestPts / max) * 100);
+                          return (
+                            <div key={u.id} className="stat-row">
+                              <div className="stat-avatar" style={{ background:color+"20", color, border:`1.5px solid ${color}40` }}>{u.username[0].toUpperCase()}</div>
+                              <div className="stat-bar-wrap">
+                                <div className="stat-name">
+                                  <span style={{ display:"flex", alignItems:"center", gap:6 }}>
+                                    {u.username}
+                                    {u.bestDay !== "—" && <span style={{ fontSize:10, color:"var(--t3)", fontWeight:600 }}>op {u.bestDay}</span>}
+                                  </span>
+                                  <span style={{ color:"#f97316", fontWeight:800 }}>{u.bestPts}pt</span>
+                                </div>
+                                <div className="stat-bar"><div className="stat-fill" style={{ width:`${pct}%`, background:color }} /></div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>
