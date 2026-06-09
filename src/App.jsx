@@ -127,6 +127,16 @@ function getStanding(matches, grp) {
 function hashPw(pw) { let h = 0; for (let c of pw) h = Math.imul(31, h) + c.charCodeAt(0) | 0; return h.toString(36); }
 function avatarColor(name) { let h = 0; for (let c of name) h = Math.imul(31, h) + c.charCodeAt(0) | 0; return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length]; }
 
+// Avatar component met foto of kleur
+function Avatar({ userId, username, size=36, profiles={} }) {
+  const profile = profiles[userId] || {};
+  const color = profile.color || avatarColor(username || "?");
+  const photo = profile.photo;
+  const s = { width:size, height:size, borderRadius:"50%", flexShrink:0, overflow:"hidden", border:`2px solid ${color}50` };
+  if (photo) return <div style={s}><img src={photo} alt={username} style={{ width:"100%", height:"100%", objectFit:"cover" }}/></div>;
+  return <div style={{ ...s, background:color+"25", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:Math.round(size*0.4), color }}>{(username||"?")[0].toUpperCase()}</div>;
+}
+
 function useCountdown(target) {
   const [t, setT] = useState({ d: 0, h: 0, m: 0, s: 0, started: false });
   useEffect(() => {
@@ -1063,6 +1073,11 @@ export default function App() {
   const [importing,     setImporting]     = useState(false);
   const [chatMsgs,      setChatMsgs]      = useState([]);
   const [onlineUsers,   setOnlineUsers]   = useState(new Set());
+  const [userProfiles,  setUserProfiles]  = useState({});  // {userId: {color, photo}}
+  const [showProfile,   setShowProfile]   = useState(false);
+  const [profileColor,  setProfileColor]  = useState(null);
+  const [profilePhoto,  setProfilePhoto]  = useState(null);
+  const [savingProfile, setSavingProfile] = useState(false);
   const [lastSeen,      setLastSeen]      = useState({});
   const [chatInput,     setChatInput]     = useState("");
   const [chatSending,   setChatSending]   = useState(false);
@@ -1137,14 +1152,19 @@ export default function App() {
     (async () => {
       const [{ data:m },{ data:u },{ data:p },{ data:ba },{ data:br },{ data:sp }] = await Promise.all([
         sb.from("matches").select("*").order("id"),
-        sb.from("users").select("id,username"),
+        sb.from("users").select("id,username,avatar_color,avatar_photo,last_seen"),
         sb.from("predictions").select("*"),
         sb.from("bonus_answers").select("*"),
         sb.from("bonus_results").select("*").maybeSingle(),
         sb.from("standing_predictions").select("*"),
       ]);
       if (m)  setMatches(m);
-      if (u)  setUsers(u);
+      if (u) {
+        setUsers(u);
+        const profiles = {};
+        u.forEach(usr => { profiles[usr.id] = { color: usr.avatar_color, photo: usr.avatar_photo }; });
+        setUserProfiles(profiles);
+      }
       if (p)  setPreds(p);
       if (ba) setBonusA(ba);
       if (br) { setBonusR(br?.answers || null); if (br?.answers?._potN) setPotN(br.answers._potN); if (br?.answers?._bonusLocked) setBonusLocked(true); }
@@ -1154,6 +1174,13 @@ export default function App() {
   }, []);
 
   useEffect(() => { try { localStorage.setItem("wkp2026", JSON.stringify(session)); } catch {} }, [session]);
+  useEffect(() => {
+    if (!session?.id || session.isAdmin) return;
+    const update = () => sb.from("users").update({ last_seen: new Date().toISOString() }).eq("id", session.id);
+    update();
+    const id = setInterval(update, 5 * 60 * 1000);
+    return () => clearInterval(id);
+  }, [session?.id]);
   useEffect(() => { try { localStorage.setItem("wkp_autorefresh", autoRefresh ? "true" : "false"); } catch {} }, [autoRefresh]);
 
   // ── AUTO REFRESH UITSLAGEN ELKE 5 MINUTEN (max 100x) ────────────────
@@ -1260,6 +1287,8 @@ export default function App() {
     setLoading(false);
     if (!data || data.pw_hash !== hashPw(p)) return setErr("Gebruikersnaam of wachtwoord onjuist.");
     setSession({ id: data.id, username: data.username, isAdmin: data.is_admin === true });
+    // Update last_seen bij inloggen
+    sb.from("users").update({ last_seen: new Date().toISOString() }).eq("id", data.id);
     setErr(""); setForm({ u:"", p:"", p2:"" });
   };
 
@@ -1354,6 +1383,24 @@ export default function App() {
     setModalLoading(false);
     if (!error) { showToast("🔑 Wachtwoord gewijzigd"); setModal(null); }
     else showToast("❌ Fout bij wijzigen", 3000);
+  };
+
+  const saveProfile = async () => {
+    if (!session?.id) return;
+    setSavingProfile(true);
+    const upd = {};
+    if (profileColor) upd.avatar_color = profileColor;
+    if (profilePhoto) upd.avatar_photo = profilePhoto;
+    if (Object.keys(upd).length > 0) {
+      await sb.from("users").update(upd).eq("id", session.id);
+      setUserProfiles(prev => ({ ...prev, [session.id]: { ...prev[session.id], ...upd } }));
+      setUsers(us => us.map(u => u.id === session.id ? { ...u, ...upd } : u));
+      showToast("✓ Profiel opgeslagen!");
+    }
+    setShowProfile(false);
+    setSavingProfile(false);
+    setProfileColor(null);
+    setProfilePhoto(null);
   };
 
   const saveBonus = async (answers) => {
@@ -1470,6 +1517,42 @@ export default function App() {
           </div>
         </Modal>
       )}
+      {/* PROFIEL MODAL */}
+      {showProfile && !isAdmin && (
+        <Modal title="👤 Mijn Profiel" onClose={() => { setShowProfile(false); setProfileColor(null); setProfilePhoto(null); }}>
+          <div style={{ textAlign:"center", marginBottom:16 }}>
+            <Avatar userId={session.id} username={session.username} size={72} profiles={profileColor || userProfiles[session.id]?.photo ? { [session.id]: { color: profileColor || userProfiles[session.id]?.color, photo: profilePhoto || userProfiles[session.id]?.photo }} : userProfiles} />
+            <div style={{ fontWeight:700, fontSize:14, marginTop:8 }}>{session.username}</div>
+          </div>
+          <div style={{ marginBottom:12 }}>
+            <label className="lbl">🎨 Kies jouw kleur</label>
+            <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+              {["#10b981","#ff6b00","#3b82f6","#ec4899","#8b5cf6","#ef4444","#f59e0b","#14b8a6","#84cc16","#f97316","#a855f7","#06b6d4","#d946ef","#e11d48","#eab308","#64748b"].map(color => (
+                <div key={color} onClick={() => setProfileColor(color)} style={{ width:30, height:30, borderRadius:"50%", background:color, cursor:"pointer", border: profileColor===color ? "3px solid white" : "3px solid transparent", transform: profileColor===color ? "scale(1.15)" : "scale(1)", transition:"all .15s" }}/>
+              ))}
+            </div>
+          </div>
+          <div style={{ marginBottom:16 }}>
+            <label className="lbl">📸 Profielfoto uploaden</label>
+            <input type="file" accept="image/*" style={{ display:"none" }} id="photoInput" onChange={e => {
+              const file = e.target.files[0];
+              if (!file) return;
+              if (file.size > 500000) { showToast("❌ Foto max 500KB"); return; }
+              const reader = new FileReader();
+              reader.onload = ev => setProfilePhoto(ev.target.result);
+              reader.readAsDataURL(file);
+            }}/>
+            <button className="btn btn-out" style={{ width:"100%", padding:"10px" }} onClick={() => document.getElementById("photoInput").click()}>
+              {profilePhoto ? "✓ Foto geselecteerd" : "📸 Foto kiezen..."}
+            </button>
+            {profilePhoto && <div style={{ marginTop:8, textAlign:"center" }}><img src={profilePhoto} style={{ width:60, height:60, borderRadius:"50%", objectFit:"cover", border:"2px solid var(--gr)" }}/></div>}
+          </div>
+          <button className="btn btn-green" disabled={savingProfile || (!profileColor && !profilePhoto)} onClick={saveProfile}>
+            {savingProfile ? "Opslaan..." : "✓ Opslaan"}
+          </button>
+        </Modal>
+      )}
+
       {modal?.type === "resetpw" && (
         <Modal title={`🔑 Wachtwoord van ${modal.user.username}`} onClose={() => setModal(null)}>
           <div className="fg">
@@ -1496,6 +1579,7 @@ export default function App() {
           <div style={{ display:"flex", alignItems:"center", gap:6 }}>
             {isAdmin && <span style={{ background:"rgba(0,201,125,.15)", color:"var(--gr)", fontSize:9, fontWeight:900, borderRadius:4, padding:"2px 6px", letterSpacing:.5, border:"1px solid rgba(255,107,0,.15)", flexShrink:0 }}>ADMIN</span>}
             <span style={{ fontSize:11, color:"var(--t3)", fontWeight:700, maxWidth:70, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{session.username}</span>
+            <button className="btn btn-out btn-sm" style={{ padding:"4px 8px", fontSize:11 }} onClick={() => setShowProfile(true)}>👤</button>
             <button className="btn btn-out btn-sm" style={{ padding:"4px 8px", fontSize:11 }} onClick={() => { setSession(null); setTab("stand"); }}>Uit</button>
           </div>
         </div>
@@ -1731,6 +1815,62 @@ export default function App() {
                     </div>
                   </div>
                 )}
+
+                {/* ── BESTE RONDE ── */}
+                {leaderboard.length > 0 && (() => {
+                  // Groepeer wedstrijden per dag
+                  const NL_MONTHS = {"jan":0,"feb":1,"mrt":2,"apr":3,"mei":4,"jun":5,"jul":6,"aug":7,"sep":8,"okt":9,"nov":10,"dec":11};
+                  const dayPts = {};
+                  for (const u of leaderboard) {
+                    const up = preds.filter(p => p.user_id === u.id);
+                    for (const p of up) {
+                      const m = matchMap.get(p.match_id);
+                      if (!m || m.home_goals == null || m.away_goals == null || !m.match_date) continue;
+                      const parts = m.match_date.trim().split(" ");
+                      const dayKey = `${parts[1]} ${parts[2]}`; // "11 jun"
+                      if (!dayPts[u.id]) dayPts[u.id] = {};
+                      if (!dayPts[u.id][dayKey]) dayPts[u.id][dayKey] = 0;
+                      const r = scorePts(p.home_goals, p.away_goals, m.home_goals, m.away_goals);
+                      dayPts[u.id][dayKey] += r.pts;
+                    }
+                  }
+                  // Vind beste ronde per gebruiker
+                  const bestRounds = leaderboard.map(u => {
+                    const days = dayPts[u.id] || {};
+                    const best = Object.entries(days).sort((a,b) => b[1]-a[1])[0];
+                    return { ...u, bestDay: best?.[0] || "—", bestPts: best?.[1] || 0 };
+                  }).sort((a,b) => b.bestPts - a.bestPts);
+
+                  if (bestRounds[0]?.bestPts === 0) return null;
+
+                  return (
+                    <div className="card" style={{ marginBottom:8 }}>
+                      <div className="card-head"><span className="card-title">🔥 Beste speeldag</span><span style={{ fontSize:11, color:"var(--t3)" }}>meeste punten op één dag</span></div>
+                      <div style={{ padding:"4px 14px 10px" }}>
+                        {bestRounds.map(u => {
+                          const color = avatarColor(u.username);
+                          const max = bestRounds[0].bestPts || 1;
+                          const pct = Math.round((u.bestPts / max) * 100);
+                          return (
+                            <div key={u.id} className="stat-row">
+                              <div className="stat-avatar" style={{ background:color+"20", color, border:`1.5px solid ${color}40` }}>{u.username[0].toUpperCase()}</div>
+                              <div className="stat-bar-wrap">
+                                <div className="stat-name">
+                                  <span style={{ display:"flex", alignItems:"center", gap:6 }}>
+                                    {u.username}
+                                    {u.bestDay !== "—" && <span style={{ fontSize:10, color:"var(--t3)", fontWeight:600 }}>op {u.bestDay}</span>}
+                                  </span>
+                                  <span style={{ color:"#f97316", fontWeight:800 }}>{u.bestPts}pt</span>
+                                </div>
+                                <div className="stat-bar"><div className="stat-fill" style={{ width:`${pct}%`, background:color }} /></div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>
@@ -2436,9 +2576,10 @@ export default function App() {
                         <div style={{ fontSize:11, color:"var(--t3)", marginTop:2, display:"flex", alignItems:"center", gap:5, flexWrap:"wrap" }}>
                           {/* Laatst gezien — alleen voor admin */}
                           {(() => {
-                            if (onlineUsers.has(u.username)) return null;
-                            const ls = lastSeen[u.username];
-                            if (!ls) return null;
+                            if (onlineUsers.has(u.username)) return <span style={{ color:"#22c55e", fontWeight:700, fontSize:10 }}>🟢 Nu online</span>;
+                            // Eerst uit presence state, anders uit database
+                            const ls = lastSeen[u.username] || u.last_seen;
+                            if (!ls) return <span style={{ color:"var(--t3)", fontStyle:"italic", fontSize:10 }}>👁 Nog nooit ingelogd</span>;
                             const d = new Date(ls);
                             const now = new Date();
                             const diff = now - d;
@@ -2450,7 +2591,7 @@ export default function App() {
                             else if (mins < 60) label = `${mins}m geleden`;
                             else if (hours < 24) label = `${hours}u geleden`;
                             else label = `${days}d geleden`;
-                            return <span style={{ color:"var(--t3)", fontStyle:"italic" }}>👁 {label}</span>;
+                            return <span style={{ color:"var(--t3)", fontStyle:"italic", fontSize:10 }}>👁 {label}</span>;
                           })()}
                           <span>{lb.pc} tips</span>
                           <span>·</span>
