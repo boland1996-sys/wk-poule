@@ -1580,7 +1580,7 @@ export default function App() {
             {isAdmin && <span style={{ background:"rgba(0,201,125,.15)", color:"var(--gr)", fontSize:9, fontWeight:900, borderRadius:4, padding:"2px 6px", letterSpacing:.5, border:"1px solid rgba(255,107,0,.15)", flexShrink:0 }}>ADMIN</span>}
             <span style={{ fontSize:11, color:"var(--t3)", fontWeight:700, maxWidth:70, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{session.username}</span>
             <button className="btn btn-out btn-sm" style={{ padding:"4px 8px", fontSize:11 }} onClick={() => setShowProfile(true)}>👤</button>
-            <button className="btn btn-out btn-sm" style={{ padding:"4px 8px", fontSize:11 }} onClick={async () => { if (session?.id && !isAdmin) { await sb.from("users").update({ last_seen: new Date().toISOString() }).eq("id", session.id); } setSession(null); setTab("stand"); }}>Uit</button>
+            <button className="btn btn-out btn-sm" style={{ padding:"4px 8px", fontSize:11 }} onClick={() => { setSession(null); setTab("stand"); }}>Uit</button>
           </div>
         </div>
       </header>
