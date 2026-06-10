@@ -1403,7 +1403,10 @@ export default function App() {
     }
     if (Object.keys(upd).length > 0) {
       await sb.from("users").update(upd).eq("id", session.id);
-      setUserProfiles(prev => ({ ...prev, [session.id]: { ...prev[session.id], ...upd } }));
+      const profileUpd = {};
+      if (upd.avatar_color) profileUpd.color = upd.avatar_color;
+      if (upd.avatar_photo) profileUpd.photo = upd.avatar_photo;
+      setUserProfiles(prev => ({ ...prev, [session.id]: { ...prev[session.id], ...profileUpd } }));
       setUsers(us => us.map(u => u.id === session.id ? { ...u, ...upd } : u));
       showToast("✓ Profiel opgeslagen!");
     }
