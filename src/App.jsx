@@ -3,8 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // ── CONFIG ────────────────────────────────────────────────────────────────
 const sb = createClient(
-  "https://lhoeabvsnjprmahsnzzh.supabase.co",
-  "sb_publishable_tbtPN0fnjygO1RcK6tMFxw__4LxEnyq"
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_KEY
 );
 
 const GROUPS = ["A","B","C","D","E","F","G","H","I","J","K","L"];
