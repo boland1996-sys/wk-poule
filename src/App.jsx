@@ -1253,7 +1253,7 @@ export default function App() {
     const update = () => sb.from("users").update({ last_seen: new Date().toISOString() }).eq("id", session.id);
     update();
     const id = setInterval(update, 60 * 1000);
-    const onVisibility = () => { if (document.visibilityState === "hidden") update(); };
+    const onVisibility = () => { update(); };
     document.addEventListener("visibilitychange", onVisibility);
     return () => { clearInterval(id); document.removeEventListener("visibilitychange", onVisibility); };
   }, [session?.id]);
