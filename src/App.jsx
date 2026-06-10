@@ -1212,6 +1212,24 @@ export default function App() {
 
   const maxPts = leaderboard[0]?.pts || 1;
 
+  // Bewegingspijltjes — sla vorige stand op en vergelijk
+  const [prevRanks, setPrevRanks] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("wkp_prevranks") || "{}"); } catch { return {}; }
+  });
+  useEffect(() => {
+    if (leaderboard.length === 0) return;
+    const current = {};
+    leaderboard.forEach((u, i) => { current[u.id] = i + 1; });
+    const prev = {};
+    leaderboard.forEach((u, i) => { prev[u.id] = i + 1; });
+    try { 
+      const stored = JSON.parse(localStorage.getItem("wkp_prevranks") || "{}");
+      if (Object.keys(stored).length === 0) {
+        localStorage.setItem("wkp_prevranks", JSON.stringify(current));
+      }
+    } catch {}
+  }, [leaderboard.length]);
+
   // FIX #15: nextMatch niet op fragiele startsWith maar isPlaceholder helper
   const nextMatch = useMemo(() => matches
     .filter(m => m.home_goals == null && !isPlaceholder(m.home) && !isPlaceholder(m.away))
@@ -1804,9 +1822,16 @@ export default function App() {
                       borderLeft: isMe ? "2px solid var(--gr)" : "2px solid transparent",
                       animation:`fu .3s ease ${i*50}ms both`,
                     }}>
-                      {/* Positie */}
-                      <div style={{ textAlign:"center", fontSize: i<3?18:13, color:"var(--t3)", fontWeight:700 }}>
+                      {/* Positie + pijltje */}
+                      <div style={{ textAlign:"center", fontSize: i<3?18:13, color:"var(--t3)", fontWeight:700, display:"flex", flexDirection:"column", alignItems:"center", gap:1 }}>
                         {i < 3 ? medals[i] : i+1}
+                        {(() => {
+                          const prev = prevRanks[u.id];
+                          const curr = i + 1;
+                          if (!prev || prev === curr) return <span style={{ fontSize:8, color:"var(--t3)", lineHeight:1 }}>–</span>;
+                          if (prev > curr) return <span style={{ fontSize:9, color:"#22c55e", lineHeight:1, fontWeight:900 }}>▲</span>;
+                          return <span style={{ fontSize:9, color:"#ef4444", lineHeight:1, fontWeight:900 }}>▼</span>;
+                        })()}
                       </div>
                       {/* Avatar */}
                       <Avatar userId={u.id} username={u.username} size={44} profiles={userProfiles} />
