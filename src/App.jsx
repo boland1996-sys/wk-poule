@@ -2591,8 +2591,14 @@ export default function App() {
                   disabled={lockAllLoading}
                   onClick={async () => {
                     setLockAllLoading(true);
-                    const today = new Date().toLocaleDateString("nl-NL", { day:"numeric", month:"short" }).toLowerCase();
-                    const todayMs = matches.filter(m => m.match_date && m.match_date.toLowerCase().includes(today.split(" ")[0]) && !m.locked);
+                    const todayDate = new Date();
+                    const todayDay = todayDate.getDate().toString();
+                    const todayMonth = todayDate.toLocaleDateString("nl-NL", { month:"short" }).toLowerCase();
+                    const todayMs = matches.filter(m => {
+                      if (!m.match_date || m.locked) return false;
+                      const d = m.match_date.toLowerCase();
+                      return d.includes(todayDay + " " + todayMonth) || d.includes(todayDay + todayMonth);
+                    });
                     let count = 0;
                     for (const m of todayMs) {
                       const { error } = await sb.from("matches").update({ locked: true }).eq("id", m.id);
