@@ -2598,14 +2598,7 @@ export default function App() {
                       const { error } = await sb.from("matches").update({ locked: true }).eq("id", m.id);
                       if (!error) { setMatches(ms => ms.map(x => x.id === m.id ? { ...x, locked: true } : x)); count++; }
                     }
-                    if (count === 0) {
-                      // Lock all unlocked matches if none found for today
-                      const allUnlocked = matches.filter(m => !m.locked);
-                      for (const m of allUnlocked.slice(0, 10)) {
-                        const { error } = await sb.from("matches").update({ locked: true }).eq("id", m.id);
-                        if (!error) { setMatches(ms => ms.map(x => x.id === m.id ? { ...x, locked: true } : x)); count++; }
-                      }
-                    }
+
                     showToast(`🔒 ${count} wedstrijd(en) vergrendeld`);
                     setLockAllLoading(false);
                   }}
