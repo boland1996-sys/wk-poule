@@ -1392,7 +1392,14 @@ export default function App() {
     setSavingProfile(true);
     const upd = {};
     if (profileColor) upd.avatar_color = profileColor;
-    if (profilePhoto) upd.avatar_photo = profilePhoto;
+    if (profilePhoto && typeof profilePhoto !== "string") {
+      const ext = profilePhoto.name.split(".").pop();
+      const path = `${session.id}.${ext}`;
+      const { error: upErr } = await sb.storage.from("avatars").upload(path, profilePhoto, { upsert: true });
+      if (upErr) { showToast("❌ Foto upload mislukt"); setSavingProfile(false); return; }
+      const { data: urlData } = sb.storage.from("avatars").getPublicUrl(path);
+      upd.avatar_photo = urlData.publicUrl + "?t=" + Date.now();
+    }
     if (Object.keys(upd).length > 0) {
       await sb.from("users").update(upd).eq("id", session.id);
       setUserProfiles(prev => ({ ...prev, [session.id]: { ...prev[session.id], ...upd } }));
@@ -1401,6 +1408,7 @@ export default function App() {
     }
     setShowProfile(false);
     setSavingProfile(false);
+    setProfilePhotoPreview(null);
     setProfileColor(null);
     setProfilePhoto(null);
   };
@@ -1521,7 +1529,7 @@ export default function App() {
       )}
       {/* PROFIEL MODAL */}
       {showProfile && !isAdmin && (
-        <Modal title="👤 Mijn Profiel" onClose={() => { setShowProfile(false); setProfileColor(null); setProfilePhoto(null); }}>
+        <Modal title="👤 Mijn Profiel" onClose={() => { setShowProfile(false); setProfileColor(null); setProfilePhoto(null); setProfilePhotoPreview(null); }}>
           <div style={{ textAlign:"center", marginBottom:16 }}>
             <Avatar userId={session.id} username={session.username} size={72} profiles={profileColor || userProfiles[session.id]?.photo ? { [session.id]: { color: profileColor || userProfiles[session.id]?.color, photo: profilePhoto || userProfiles[session.id]?.photo }} : userProfiles} />
             <div style={{ fontWeight:700, fontSize:14, marginTop:8 }}>{session.username}</div>
@@ -1547,7 +1555,7 @@ export default function App() {
             <button className="btn btn-out" style={{ width:"100%", padding:"10px" }} onClick={() => document.getElementById("photoInput").click()}>
               {profilePhoto ? "✓ Foto geselecteerd" : "📸 Foto kiezen..."}
             </button>
-            {profilePhoto && <div style={{ marginTop:8, textAlign:"center" }}><img src={profilePhoto} style={{ width:60, height:60, borderRadius:"50%", objectFit:"cover", border:"2px solid var(--gr)" }}/></div>}
+            {profilePhotoPreview && <div style={{ marginTop:8, textAlign:"center" }}><img src={profilePhotoPreview} style={{ width:60, height:60, borderRadius:"50%", objectFit:"cover", border:"2px solid var(--gr)" }}/></div>}
           </div>
           <button className="btn btn-green" disabled={savingProfile || (!profileColor && !profilePhoto)} onClick={saveProfile}>
             {savingProfile ? "Opslaan..." : "✓ Opslaan"}
