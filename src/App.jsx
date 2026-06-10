@@ -2439,7 +2439,7 @@ export default function App() {
 
             {/* AUTO IMPORT UITSLAGEN */}
             {(() => {
-              const RAPIDAPI_KEY = "79920f4035msh648856abc33c7bdp1851e1jsn57b705f13bb2";
+              const RAPIDAPI_KEY = import.meta.env.VITE_RAPIDAPI_KEY;
               // Vertaaltabel: Engelse API naam → Nederlandse databasenaam (zonder vlag prefix)
               const TEAM_MAP = {
                 "Mexico":"Mexico","South Africa":"Zuid-Afrika","South Korea":"Zuid-Korea",
