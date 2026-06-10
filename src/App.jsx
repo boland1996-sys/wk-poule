@@ -1216,19 +1216,22 @@ export default function App() {
   const [prevRanks, setPrevRanks] = useState(() => {
     try { return JSON.parse(localStorage.getItem("wkp_prevranks") || "{}"); } catch { return {}; }
   });
+  const [lastLeaderboardPts, setLastLeaderboardPts] = useState("");
   useEffect(() => {
     if (leaderboard.length === 0) return;
+    const currentPtsKey = leaderboard.map(u => u.id + ":" + u.pts).join(",");
+    if (currentPtsKey === lastLeaderboardPts) return;
     const current = {};
     leaderboard.forEach((u, i) => { current[u.id] = i + 1; });
-    const prev = {};
-    leaderboard.forEach((u, i) => { prev[u.id] = i + 1; });
-    try { 
+    try {
       const stored = JSON.parse(localStorage.getItem("wkp_prevranks") || "{}");
-      if (Object.keys(stored).length === 0) {
-        localStorage.setItem("wkp_prevranks", JSON.stringify(current));
+      if (Object.keys(stored).length > 0) {
+        setPrevRanks(stored);
       }
+      localStorage.setItem("wkp_prevranks", JSON.stringify(current));
     } catch {}
-  }, [leaderboard.length]);
+    setLastLeaderboardPts(currentPtsKey);
+  }, [leaderboard]);
 
   // FIX #15: nextMatch niet op fragiele startsWith maar isPlaceholder helper
   const nextMatch = useMemo(() => matches
@@ -1245,10 +1248,10 @@ export default function App() {
       const [{ data:m },{ data:u },{ data:p },{ data:ba },{ data:br },{ data:sp }] = await Promise.all([
         sb.from("matches").select("*").order("id"),
         sb.from("users").select("id,username,avatar_color,avatar_photo,last_seen"),
-        sb.from("predictions").select("*"),
+        sb.from("predictions").select("user_id,match_id,home_goals,away_goals,id"),
         sb.from("bonus_answers").select("*"),
         sb.from("bonus_results").select("*").maybeSingle(),
-        sb.from("standing_predictions").select("*"),
+        sb.from("standing_predictions").select("user_id,group,order,id"),
       ]);
       if (m)  setMatches(m);
       if (u) {
@@ -1328,7 +1331,7 @@ export default function App() {
   useEffect(() => {
     if (!session) return;
     // Laad laatste 50 berichten
-    sb.from("chat_messages").select("*").order("created_at", { ascending: true }).limit(50).then(({ data }) => {
+    sb.from("chat_messages").select("*").order("created_at", { ascending: true }).limit(100).then(({ data }) => {
       if (data) setChatMsgs(data);
     });
     // Realtime chat + presence (online indicator)
