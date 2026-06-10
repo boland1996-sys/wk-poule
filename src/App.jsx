@@ -1342,6 +1342,9 @@ export default function App() {
       .on("postgres_changes", { event:"DELETE", schema:"public", table:"chat_messages" }, payload => {
         setChatMsgs(ms => ms.filter(m => m.id !== payload.old.id));
       })
+      .on("postgres_changes", { event:"UPDATE", schema:"public", table:"matches" }, payload => {
+        setMatches(ms => ms.map(m => m.id === payload.new.id ? { ...m, ...payload.new } : m));
+      })
       .on("presence", { event:"sync" }, () => {
         const state = channel.presenceState();
         const online = new Set(Object.values(state).flat().map(p => p.username));
@@ -2657,7 +2660,12 @@ export default function App() {
                       if (!error) { setMatches(ms => ms.map(x => x.id === m.id ? { ...x, locked: true } : x)); count++; }
                     }
 
-                    showToast(`🔒 ${count} wedstrijd(en) vergrendeld`);
+                    if (count === 0) {
+                      showToast("ℹ️ Geen wedstrijden vandaag om te vergrendelen");
+                    } else {
+                      const names = todayMs.slice(0,3).map(m => m.home.replace(/[^\w\s]/g,"").trim() + " vs " + m.away.replace(/[^\w\s]/g,"").trim()).join(", ");
+                      showToast(`🔒 ${count} vergrendeld: ${names}${count > 3 ? " ..." : ""}`);
+                    }
                     setLockAllLoading(false);
                   }}
                 >
