@@ -1077,6 +1077,7 @@ export default function App() {
   const [showProfile,   setShowProfile]   = useState(false);
   const [profileColor,  setProfileColor]  = useState(null);
   const [profilePhoto,  setProfilePhoto]  = useState(null);
+  const [profilePhotoPreview, setProfilePhotoPreview] = useState(null);
   const [savingProfile, setSavingProfile] = useState(false);
   const [lastSeen,      setLastSeen]      = useState({});
   const [chatInput,     setChatInput]     = useState("");
