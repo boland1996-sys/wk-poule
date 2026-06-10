@@ -1531,7 +1531,7 @@ export default function App() {
       {showProfile && !isAdmin && (
         <Modal title="👤 Mijn Profiel" onClose={() => { setShowProfile(false); setProfileColor(null); setProfilePhoto(null); setProfilePhotoPreview(null); }}>
           <div style={{ textAlign:"center", marginBottom:16 }}>
-            <Avatar userId={session.id} username={session.username} size={72} profiles={profileColor || userProfiles[session.id]?.photo ? { [session.id]: { color: profileColor || userProfiles[session.id]?.color, photo: profilePhoto || userProfiles[session.id]?.photo }} : userProfiles} />
+            <Avatar userId={session.id} username={session.username} size={72} profiles={profileColor || profilePhotoPreview || userProfiles[session.id]?.photo ? { [session.id]: { color: profileColor || userProfiles[session.id]?.color, photo: profilePhotoPreview || userProfiles[session.id]?.photo }} : userProfiles} />
             <div style={{ fontWeight:700, fontSize:14, marginTop:8 }}>{session.username}</div>
           </div>
           <div style={{ marginBottom:12 }}>
@@ -1547,9 +1547,10 @@ export default function App() {
             <input type="file" accept="image/*" style={{ display:"none" }} id="photoInput" onChange={e => {
               const file = e.target.files[0];
               if (!file) return;
-              if (file.size > 500000) { showToast("❌ Foto max 500KB"); return; }
+              if (file.size > 5000000) { showToast("❌ Foto max 5MB"); return; }
+              setProfilePhoto(file);
               const reader = new FileReader();
-              reader.onload = ev => setProfilePhoto(ev.target.result);
+              reader.onload = ev => setProfilePhotoPreview(ev.target.result);
               reader.readAsDataURL(file);
             }}/>
             <button className="btn btn-out" style={{ width:"100%", padding:"10px" }} onClick={() => document.getElementById("photoInput").click()}>
