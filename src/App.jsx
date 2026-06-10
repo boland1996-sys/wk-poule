@@ -1047,6 +1047,78 @@ function AuthPage({ mode, setMode, form, setForm, err, loading, onLogin, onRegis
 }
 
 // ── MAIN APP ──────────────────────────────────────────────────────────────
+// ── CROP TOOL ─────────────────────────────────────────────────────────────
+function CropTool({ src, onCrop, onCancel }) {
+  const canvasRef = useRef(null);
+  const imgRef = useRef(null);
+  const [drag, setDrag] = useState(false);
+  const [start, setStart] = useState({ x: 0, y: 0 });
+  const [crop, setCrop] = useState({ x: 0, y: 0, size: 200 });
+  const [imgLoaded, setImgLoaded] = useState(false);
+
+  const SIZE = 280;
+
+  useEffect(() => {
+    if (!imgLoaded) return;
+    setCrop({ x: SIZE/2 - 100, y: SIZE/2 - 100, size: 200 });
+  }, [imgLoaded]);
+
+  const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+  const onMouseDown = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const cx = (e.clientX || e.touches[0].clientX) - rect.left;
+    const cy = (e.clientY || e.touches[0].clientY) - rect.top;
+    if (cx >= crop.x && cx <= crop.x + crop.size && cy >= crop.y && cy <= crop.y + crop.size) {
+      setDrag(true);
+      setStart({ x: cx - crop.x, y: cy - crop.y });
+    }
+  };
+
+  const onMouseMove = (e) => {
+    if (!drag) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const cx = (e.clientX || e.touches[0].clientX) - rect.left;
+    const cy = (e.clientY || e.touches[0].clientY) - rect.top;
+    setCrop(c => ({
+      ...c,
+      x: clamp(cx - start.x, 0, SIZE - c.size),
+      y: clamp(cy - start.y, 0, SIZE - c.size),
+    }));
+  };
+
+  const applyCrop = () => {
+    const img = imgRef.current;
+    const canvas = document.createElement("canvas");
+    canvas.width = 400;
+    canvas.height = 400;
+    const ctx = canvas.getContext("2d");
+    const scaleX = img.naturalWidth / SIZE;
+    const scaleY = img.naturalHeight / SIZE;
+    ctx.drawImage(img, crop.x * scaleX, crop.y * scaleY, crop.size * scaleX, crop.size * scaleY, 0, 0, 400, 400);
+    canvas.toBlob(blob => onCrop(blob), "image/jpeg", 0.85);
+  };
+
+  return (
+    <div style={{ marginTop:10, background:"var(--c2)", borderRadius:10, padding:12, border:"1px solid var(--bd)" }}>
+      <div style={{ fontSize:12, color:"var(--t3)", marginBottom:8, textAlign:"center" }}>Versleep het kader om bij te snijden</div>
+      <div style={{ position:"relative", width:SIZE, height:SIZE, margin:"0 auto", cursor:"move", userSelect:"none", overflow:"hidden", borderRadius:8, background:"#000" }}
+        onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={() => setDrag(false)} onMouseLeave={() => setDrag(false)}
+        onTouchStart={onMouseDown} onTouchMove={onMouseMove} onTouchEnd={() => setDrag(false)}>
+        <img ref={imgRef} src={src} onLoad={() => setImgLoaded(true)} style={{ width:SIZE, height:SIZE, objectFit:"contain", display:"block", pointerEvents:"none" }} />
+        {imgLoaded && <>
+          <div style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.5)", pointerEvents:"none" }} />
+          <div style={{ position:"absolute", left:crop.x, top:crop.y, width:crop.size, height:crop.size, border:"2px solid #ff6b00", borderRadius:"50%", boxShadow:"0 0 0 9999px rgba(0,0,0,0.5)", background:"transparent", pointerEvents:"none" }} />
+        </>}
+      </div>
+      <div style={{ display:"flex", gap:8, marginTop:10 }}>
+        <button className="btn btn-out" style={{ flex:1, padding:"8px" }} onClick={onCancel}>Annuleren</button>
+        <button className="btn btn-green" style={{ flex:1, padding:"8px" }} onClick={applyCrop}>✓ Bijsnijden</button>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [matches,       setMatches]       = useState([]);
   const [users,         setUsers]         = useState([]);
@@ -1078,6 +1150,7 @@ export default function App() {
   const [profileColor,  setProfileColor]  = useState(null);
   const [profilePhoto,  setProfilePhoto]  = useState(null);
   const [profilePhotoPreview, setProfilePhotoPreview] = useState(null);
+  const [showCrop, setShowCrop] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [lastSeen,      setLastSeen]      = useState({});
   const [chatInput,     setChatInput]     = useState("");
@@ -1551,16 +1624,15 @@ export default function App() {
             <input type="file" accept="image/*" style={{ display:"none" }} id="photoInput" onChange={e => {
               const file = e.target.files[0];
               if (!file) return;
-              if (file.size > 5000000) { showToast("❌ Foto max 5MB"); return; }
-              setProfilePhoto(file);
               const reader = new FileReader();
-              reader.onload = ev => setProfilePhotoPreview(ev.target.result);
+              reader.onload = ev => { setProfilePhotoPreview(ev.target.result); setShowCrop(true); };
               reader.readAsDataURL(file);
             }}/>
             <button className="btn btn-out" style={{ width:"100%", padding:"10px" }} onClick={() => document.getElementById("photoInput").click()}>
-              {profilePhoto ? "✓ Foto geselecteerd" : "📸 Foto kiezen..."}
+              {profilePhoto ? "✓ Foto bijgesneden" : "📸 Foto kiezen..."}
             </button>
-            {profilePhotoPreview && <div style={{ marginTop:8, textAlign:"center" }}><img src={profilePhotoPreview} style={{ width:60, height:60, borderRadius:"50%", objectFit:"cover", border:"2px solid var(--gr)" }}/></div>}
+            {profilePhoto && !showCrop && <div style={{ marginTop:8, textAlign:"center" }}><img src={profilePhotoPreview} style={{ width:60, height:60, borderRadius:"50%", objectFit:"cover", border:"2px solid var(--gr)" }}/></div>}
+            {showCrop && profilePhotoPreview && <CropTool src={profilePhotoPreview} onCrop={blob => { setProfilePhoto(blob); setShowCrop(false); }} onCancel={() => { setShowCrop(false); setProfilePhotoPreview(null); }} />}
           </div>
           <button className="btn btn-green" disabled={savingProfile || (!profileColor && !profilePhoto)} onClick={saveProfile}>
             {savingProfile ? "Opslaan..." : "✓ Opslaan"}
