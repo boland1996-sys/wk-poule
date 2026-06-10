@@ -1096,7 +1096,7 @@ function CropTool({ src, onCrop, onCancel }) {
     const scaleX = img.naturalWidth / SIZE;
     const scaleY = img.naturalHeight / SIZE;
     ctx.drawImage(img, crop.x * scaleX, crop.y * scaleY, crop.size * scaleX, crop.size * scaleY, 0, 0, 400, 400);
-    canvas.toBlob(blob => onCrop(blob), "image/jpeg", 0.85);
+    canvas.toBlob(blob => onCrop(blob), "image/jpeg", 0.7);
   };
 
   return (
@@ -1784,7 +1784,7 @@ export default function App() {
               ? <div className="empty"><div className="empty-i">👥</div><div className="empty-t">Nog geen deelnemers.<br />Deel de link met je vrienden!</div></div>
               : <div className="card">
                 {/* Tabel header */}
-                <div style={{ display:"grid", gridTemplateColumns:"36px 36px 1fr 44px 44px 50px", gap:6, padding:"8px 14px", borderBottom:"1px solid var(--bd)" }}>
+                <div style={{ display:"grid", gridTemplateColumns:"36px 48px 1fr 44px 44px 50px", gap:6, padding:"8px 14px", borderBottom:"1px solid var(--bd)" }}>
                   {["#","","Naam","Exact","Bonus","Totaal"].map((h,i) => (
                     <div key={i} style={{ fontSize:10, fontWeight:700, color:"var(--t3)", textTransform:"uppercase", letterSpacing:.6, textAlign: i<2?"center": i===2?"left":"center", ...(i===5?{textAlign:"right"}:{}) }}>{h}</div>
                   ))}
@@ -1797,7 +1797,7 @@ export default function App() {
                   const pct = maxPts > 0 ? Math.round((u.pts / maxPts) * 100) : 0;
                   return (
                     <div key={u.id} style={{
-                      display:"grid", gridTemplateColumns:"36px 36px 1fr 44px 44px 50px", gap:6,
+                      display:"grid", gridTemplateColumns:"36px 48px 1fr 44px 44px 50px", gap:6,
                       padding:"11px 14px", borderBottom:"1px solid rgba(30,45,74,.4)",
                       alignItems:"center",
                       background: isMe ? "rgba(0,201,125,.06)" : "transparent",
@@ -1809,7 +1809,7 @@ export default function App() {
                         {i < 3 ? medals[i] : i+1}
                       </div>
                       {/* Avatar */}
-                      <Avatar userId={u.id} username={u.username} size={32} profiles={userProfiles} />
+                      <Avatar userId={u.id} username={u.username} size={44} profiles={userProfiles} />
                       {/* Naam + balk */}
                       <div style={{ minWidth:0 }}>
                         <div style={{ display:"flex", alignItems:"center", gap:5, marginBottom:3 }}>
@@ -1848,7 +1848,7 @@ export default function App() {
                       const pct = Math.round((u.exact / max) * 100);
                       return (
                         <div key={u.id} className="stat-row">
-                          <Avatar userId={u.id} username={u.username} size={32} profiles={userProfiles} />
+                          <Avatar userId={u.id} username={u.username} size={44} profiles={userProfiles} />
                           <div className="stat-bar-wrap">
                             <div className="stat-name"><span>{u.username}</span><span style={{ color:"var(--gr)" }}>{u.exact}×</span></div>
                             <div className="stat-bar"><div className="stat-fill" style={{ width:`${pct}%`, background:color }} /></div>
@@ -1868,7 +1868,7 @@ export default function App() {
                         const pct = Math.round((u.bp / max) * 100);
                         return (
                           <div key={u.id} className="stat-row">
-                            <Avatar userId={u.id} username={u.username} size={32} profiles={userProfiles} />
+                            <Avatar userId={u.id} username={u.username} size={44} profiles={userProfiles} />
                             <div className="stat-bar-wrap">
                               <div className="stat-name"><span>{u.username}</span><span style={{ color:"var(--am)" }}>+{u.bp}pt</span></div>
                               <div className="stat-bar"><div className="stat-fill" style={{ width:`${pct}%`, background:"var(--am)" }} /></div>
@@ -1889,7 +1889,7 @@ export default function App() {
                         const pct = Math.round((u.sp / max) * 100);
                         return (
                           <div key={u.id} className="stat-row">
-                            <Avatar userId={u.id} username={u.username} size={32} profiles={userProfiles} />
+                            <Avatar userId={u.id} username={u.username} size={44} profiles={userProfiles} />
                             <div className="stat-bar-wrap">
                               <div className="stat-name"><span>{u.username}</span><span style={{ color:"#60a5fa" }}>+{u.sp}pt</span></div>
                               <div className="stat-bar"><div className="stat-fill" style={{ width:`${pct}%`, background:"#60a5fa" }} /></div>
@@ -1938,7 +1938,7 @@ export default function App() {
                           const pct = Math.round((u.bestPts / max) * 100);
                           return (
                             <div key={u.id} className="stat-row">
-                              <Avatar userId={u.id} username={u.username} size={32} profiles={userProfiles} />
+                              <Avatar userId={u.id} username={u.username} size={44} profiles={userProfiles} />
                               <div className="stat-bar-wrap">
                                 <div className="stat-name">
                                   <span style={{ display:"flex", alignItems:"center", gap:6 }}>
