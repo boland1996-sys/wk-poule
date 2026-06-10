@@ -1865,22 +1865,71 @@ export default function App() {
                 <div className="sec-title" style={{ fontSize:16 }}>📈 Statistieken</div>
                 <div className="sec-sub">Vergelijk prestaties per categorie</div>
                 <div className="card" style={{ marginBottom:8 }}>
-                  <div className="card-head"><span className="card-title">Exacte uitslagen</span></div>
+                  <div className="card-head"><span className="card-title">🏅 Speeldag winnaars</span></div>
                   <div style={{ padding:"4px 14px 10px" }}>
-                    {[...leaderboard].sort((a,b) => b.exact - a.exact).map(u => {
-                      const color = avatarColor(u.username);
-                      const max = leaderboard.reduce((m,x) => Math.max(m, x.exact), 0) || 1;
-                      const pct = Math.round((u.exact / max) * 100);
+                    {(() => {
+                      const NL_MONTHS = {"jan":0,"feb":1,"mrt":2,"apr":3,"mei":4,"jun":5,"jul":6,"aug":7,"sep":8,"okt":9,"nov":10,"dec":11};
+                      const playedMatches = matches.filter(m => m.home_goals != null && m.away_goals != null && m.match_date);
+                      if (playedMatches.length === 0) return <div style={{ fontSize:13, color:"var(--t3)", padding:"8px 0", textAlign:"center" }}>Nog geen gespeelde wedstrijden</div>;
+                      const days = [...new Set(playedMatches.map(m => {
+                        const parts = m.match_date.trim().split(" ");
+                        return parts[1] + " " + parts[2];
+                      }))].sort((a, b) => {
+                        const pa = a.split(" "); const pb = b.split(" ");
+                        return (NL_MONTHS[pa[1]?.toLowerCase()] * 31 + parseInt(pa[0])) - (NL_MONTHS[pb[1]?.toLowerCase()] * 31 + parseInt(pb[0]));
+                      });
+                      const dayWinners = days.map(day => {
+                        const dayMatches = playedMatches.filter(m => {
+                          const parts = m.match_date.trim().split(" ");
+                          return (parts[1] + " " + parts[2]) === day;
+                        });
+                        const scores = {};
+                        for (const u of leaderboard) {
+                          const up = preds.filter(p => p.user_id === u.id && dayMatches.find(m => m.id === p.match_id));
+                          let pts = 0;
+                          for (const p of up) {
+                            const m = dayMatches.find(x => x.id === p.match_id);
+                            if (m) pts += scorePts(p.home_goals, p.away_goals, m.home_goals, m.away_goals).pts;
+                          }
+                          scores[u.id] = pts;
+                        }
+                        const maxPts = Math.max(...Object.values(scores));
+                        const winner = leaderboard.find(u => scores[u.id] === maxPts);
+                        return { day, winner, pts: maxPts };
+                      }).filter(d => d.winner && d.pts > 0);
+                      if (dayWinners.length === 0) return <div style={{ fontSize:13, color:"var(--t3)", padding:"8px 0", textAlign:"center" }}>Nog geen winnaars</div>;
+                      const winCounts = {};
+                      dayWinners.forEach(d => { winCounts[d.winner.id] = (winCounts[d.winner.id] || 0) + 1; });
+                      const mostWins = Math.max(...Object.values(winCounts));
+                      const topWinner = leaderboard.find(u => winCounts[u.id] === mostWins);
                       return (
-                        <div key={u.id} className="stat-row">
-                          <Avatar userId={u.id} username={u.username} size={44} profiles={userProfiles} />
-                          <div className="stat-bar-wrap">
-                            <div className="stat-name"><span>{u.username}</span><span style={{ color:"var(--gr)" }}>{u.exact}×</span></div>
-                            <div className="stat-bar"><div className="stat-fill" style={{ width:`${pct}%`, background:color }} /></div>
-                          </div>
+                        <div>
+                          {dayWinners.map((d, i) => {
+                            const color = userProfiles[d.winner.id]?.color || avatarColor(d.winner.username);
+                            return (
+                              <div key={i} style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 0", borderBottom:"0.5px solid rgba(30,45,74,.3)" }}>
+                                <span style={{ fontSize:18, width:24, textAlign:"center", flexShrink:0 }}>🥇</span>
+                                <Avatar userId={d.winner.id} username={d.winner.username} size={36} profiles={userProfiles} />
+                                <div style={{ flex:1, minWidth:0 }}>
+                                  <div style={{ fontSize:13, fontWeight:700, color:"var(--t1)" }}>{d.winner.username}</div>
+                                  <div style={{ fontSize:11, color:"var(--t3)" }}>dag {i+1} · {d.day}</div>
+                                </div>
+                                <div style={{ fontSize:15, fontWeight:700, color:"var(--gr)", fontFamily:"'Oswald',sans-serif" }}>{d.pts} pt</div>
+                              </div>
+                            );
+                          })}
+                          {topWinner && mostWins > 1 && (
+                            <div style={{ marginTop:10, padding:"8px 12px", background:"rgba(0,201,125,.08)", borderRadius:8, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                              <span style={{ fontSize:12, color:"var(--t3)" }}>Meeste dagwinsten</span>
+                              <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                                <Avatar userId={topWinner.id} username={topWinner.username} size={22} profiles={userProfiles} />
+                                <span style={{ fontSize:13, fontWeight:700, color:"var(--gr)" }}>{topWinner.username} · {mostWins}×</span>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
-                    })}
+                    })()}
                   </div>
                 </div>
                 {leaderboard.some(u => u.bp > 0) && (
