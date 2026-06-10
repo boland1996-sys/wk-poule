@@ -1737,9 +1737,7 @@ export default function App() {
                         {i < 3 ? medals[i] : i+1}
                       </div>
                       {/* Avatar */}
-                      <div style={{ width:32, height:32, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:13, background:color+"25", border:`1.5px solid ${color}50`, color, flexShrink:0 }}>
-                        {u.username[0].toUpperCase()}
-                      </div>
+                      <Avatar userId={u.id} username={u.username} size={32} profiles={userProfiles} />
                       {/* Naam + balk */}
                       <div style={{ minWidth:0 }}>
                         <div style={{ display:"flex", alignItems:"center", gap:5, marginBottom:3 }}>
@@ -1778,7 +1776,7 @@ export default function App() {
                       const pct = Math.round((u.exact / max) * 100);
                       return (
                         <div key={u.id} className="stat-row">
-                          <div className="stat-avatar" style={{ background:color+"20", color, border:`1.5px solid ${color}40` }}>{u.username[0].toUpperCase()}</div>
+                          <Avatar userId={u.id} username={u.username} size={32} profiles={userProfiles} />
                           <div className="stat-bar-wrap">
                             <div className="stat-name"><span>{u.username}</span><span style={{ color:"var(--gr)" }}>{u.exact}×</span></div>
                             <div className="stat-bar"><div className="stat-fill" style={{ width:`${pct}%`, background:color }} /></div>
@@ -1798,7 +1796,7 @@ export default function App() {
                         const pct = Math.round((u.bp / max) * 100);
                         return (
                           <div key={u.id} className="stat-row">
-                            <div className="stat-avatar" style={{ background:color+"20", color, border:`1.5px solid ${color}40` }}>{u.username[0].toUpperCase()}</div>
+                            <Avatar userId={u.id} username={u.username} size={32} profiles={userProfiles} />
                             <div className="stat-bar-wrap">
                               <div className="stat-name"><span>{u.username}</span><span style={{ color:"var(--am)" }}>+{u.bp}pt</span></div>
                               <div className="stat-bar"><div className="stat-fill" style={{ width:`${pct}%`, background:"var(--am)" }} /></div>
@@ -1819,7 +1817,7 @@ export default function App() {
                         const pct = Math.round((u.sp / max) * 100);
                         return (
                           <div key={u.id} className="stat-row">
-                            <div className="stat-avatar" style={{ background:color+"20", color, border:`1.5px solid ${color}40` }}>{u.username[0].toUpperCase()}</div>
+                            <Avatar userId={u.id} username={u.username} size={32} profiles={userProfiles} />
                             <div className="stat-bar-wrap">
                               <div className="stat-name"><span>{u.username}</span><span style={{ color:"#60a5fa" }}>+{u.sp}pt</span></div>
                               <div className="stat-bar"><div className="stat-fill" style={{ width:`${pct}%`, background:"#60a5fa" }} /></div>
@@ -1868,7 +1866,7 @@ export default function App() {
                           const pct = Math.round((u.bestPts / max) * 100);
                           return (
                             <div key={u.id} className="stat-row">
-                              <div className="stat-avatar" style={{ background:color+"20", color, border:`1.5px solid ${color}40` }}>{u.username[0].toUpperCase()}</div>
+                              <Avatar userId={u.id} username={u.username} size={32} profiles={userProfiles} />
                               <div className="stat-bar-wrap">
                                 <div className="stat-name">
                                   <span style={{ display:"flex", alignItems:"center", gap:6 }}>
@@ -2171,9 +2169,7 @@ export default function App() {
                 <>
                   {/* Hero kaart */}
                   <div style={{ background:"var(--c1)", border:"1px solid var(--bd)", borderRadius:14, padding:"16px 14px", marginBottom:12, display:"flex", alignItems:"center", gap:14 }}>
-                    <div style={{ width:52, height:52, borderRadius:"50%", background:color+"25", border:`2px solid ${color}50`, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:22, color, flexShrink:0 }}>
-                      {session.username[0].toUpperCase()}
-                    </div>
+                    <Avatar userId={session.id} username={session.username} size={52} profiles={userProfiles} />
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ fontWeight:800, fontSize:16, color:"var(--t1)", marginBottom:2 }}>{session.username}</div>
                       <div style={{ fontSize:11, color:"var(--t3)" }}>
@@ -2580,9 +2576,7 @@ export default function App() {
                   const rank = leaderboard.findIndex(l => l.id === u.id) + 1;
                   return (
                     <div key={u.id} className="ur">
-                      <div style={{ width:36, height:36, borderRadius:"50%", background:color+"20", border:`2px solid ${color}40`, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:16, color, flexShrink:0 }}>
-                        {u.username[0].toUpperCase()}
-                      </div>
+                      <Avatar userId={u.id} username={u.username} size={36} profiles={userProfiles} />
                       <div style={{ flex:1, minWidth:0 }}>
                         <div style={{ fontWeight:700, fontSize:14, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", display:"flex", alignItems:"center", gap:6 }}>
                           {u.username}
