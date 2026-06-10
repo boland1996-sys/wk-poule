@@ -1178,8 +1178,10 @@ export default function App() {
     if (!session?.id || session.isAdmin) return;
     const update = () => sb.from("users").update({ last_seen: new Date().toISOString() }).eq("id", session.id);
     update();
-    const id = setInterval(update, 5 * 60 * 1000);
-    return () => clearInterval(id);
+    const id = setInterval(update, 60 * 1000);
+    const onVisibility = () => { if (document.visibilityState === "hidden") update(); };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => { clearInterval(id); document.removeEventListener("visibilitychange", onVisibility); };
   }, [session?.id]);
   useEffect(() => { try { localStorage.setItem("wkp_autorefresh", autoRefresh ? "true" : "false"); } catch {} }, [autoRefresh]);
 
