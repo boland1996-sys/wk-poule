@@ -1467,7 +1467,7 @@ export default function App() {
     const upd = {};
     if (profileColor) upd.avatar_color = profileColor;
     if (profilePhoto && typeof profilePhoto !== "string") {
-      const ext = profilePhoto.name.split(".").pop();
+      const ext = profilePhoto.name ? profilePhoto.name.split(".").pop() : "jpg";
       const path = `${session.id}.${ext}`;
       const { error: upErr } = await sb.storage.from("avatars").upload(path, profilePhoto, { upsert: true });
       if (upErr) { showToast("❌ Foto upload mislukt"); setSavingProfile(false); return; }
