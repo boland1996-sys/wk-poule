@@ -1350,7 +1350,7 @@ export default function App() {
       const [{ data:m },{ data:u },{ data:p },{ data:ba },{ data:br },{ data:sp }] = await Promise.all([
         sb.from("matches").select("*").order("id"),
         sb.from("users").select("id,username,avatar_color,avatar_photo,last_seen"),
-        sb.from("predictions").select("user_id,match_id,home_goals,away_goals,id"),
+        sb.from("predictions").select("user_id,match_id,home_goals,away_goals,id").limit(100000),
         sb.from("bonus_answers").select("*"),
         sb.from("bonus_results").select("*").maybeSingle(),
         sb.from("standing_predictions").select("user_id,group,order,id"),
@@ -1518,15 +1518,14 @@ export default function App() {
     if (mGuard?.locked || (start && new Date() >= start)) {
       showToast("🔒 Te laat — wedstrijd is begonnen", 3000); return false;
     }
-    const ex = preds.find(p => p.user_id === session.id && p.match_id === mid);
 
-    // Beide velden leeg → tip verwijderen (i.p.v. een lege score wegschrijven)
+    // Beide velden leeg → tip verwijderen (op user_id+match_id, niet op geheugen-id)
     const bothEmpty = (hg == null || Number.isNaN(hg)) && (ag == null || Number.isNaN(ag));
     if (bothEmpty) {
-      if (!ex) return true; // niets ingevuld én geen bestaande tip: niets te doen
-      const { error } = await sb.from("predictions").delete().eq("id", ex.id);
+      const { error } = await sb.from("predictions").delete()
+        .eq("user_id", session.id).eq("match_id", mid);
       if (error) { showToast("❌ Verwijderen mislukt", 3000); return false; }
-      setPreds(ps => ps.filter(p => p.id !== ex.id));
+      setPreds(ps => ps.filter(p => !(p.user_id === session.id && p.match_id === mid)));
       showToast("🗑️ Tip verwijderd");
       return true;
     }
@@ -1536,14 +1535,18 @@ export default function App() {
       showToast("❌ Vul beide scores in", 3000); return false;
     }
 
-    if (ex) {
-      const { error } = await sb.from("predictions").update({ home_goals:hg, away_goals:ag }).eq("id", ex.id);
-      if (error) { showToast("❌ Opslaan mislukt", 3000); return false; }
-      setPreds(ps => ps.map(p => p.id === ex.id ? { ...p, home_goals:hg, away_goals:ag } : p));
-    } else {
-      const { data, error } = await sb.from("predictions").insert({ user_id:session.id, match_id:mid, home_goals:hg, away_goals:ag }).select().single();
-      if (error) { showToast("❌ Opslaan mislukt", 3000); return false; }
-      if (data) setPreds(ps => [...ps, data]);
+    // Upsert op de unieke index (user_id, match_id): werkt ongeacht of de tip
+    // al in het geheugen geladen is. Lost de 409 Conflict op bij grote datasets.
+    const { data, error } = await sb.from("predictions")
+      .upsert({ user_id:session.id, match_id:mid, home_goals:hg, away_goals:ag },
+              { onConflict: "user_id,match_id" })
+      .select().single();
+    if (error) { showToast("❌ Opslaan mislukt", 3000); return false; }
+    if (data) {
+      setPreds(ps => {
+        const found = ps.some(p => p.id === data.id);
+        return found ? ps.map(p => p.id === data.id ? data : p) : [...ps, data];
+      });
     }
     // Check voor exacte uitslag — confetti!
     const m = matchMap.get(mid);
