@@ -55,6 +55,19 @@ const isPlaceholder = name => !name || KO_PLACEHOLDERS.some(p => name.startsWith
 
 const WK_START = new Date("2026-06-11T21:00:00+02:00");
 
+// Eén centrale parser voor "do 11 jun 21:00" — voorheen 6x gedupliceerd
+const NL_MONTHS = {jan:0,feb:1,mrt:2,apr:3,mei:4,jun:5,jul:6,aug:7,sep:8,okt:9,nov:10,dec:11};
+function parseMatchDate(md) {
+  if (!md) return null;
+  const parts = md.trim().split(" ");
+  if (parts.length < 3) return null;
+  const day = parseInt(parts[1], 10);
+  const month = NL_MONTHS[parts[2]?.toLowerCase()];
+  if (isNaN(day) || month === undefined) return null;
+  const [hh, mm] = (parts[3] || "00:00").split(":").map(n => parseInt(n, 10));
+  return new Date(2026, month, day, hh || 0, mm || 0);
+}
+
 // ── PUNTENSYSTEEM (Vindicat) ──────────────────────────────────────────────
 // 3pt winnaar/gelijkspel goed + 1pt thuisgoals goed + 1pt uitgoals goed = max 5pt
 function scorePts(ph, pa, mh, ma) {
@@ -142,7 +155,7 @@ function useCountdown(target) {
   useEffect(() => {
     const tick = () => {
       const diff = target - new Date();
-      if (diff <= 0) { setT({ d: 0, h: 0, m: 0, s: 0, started: true }); return; }
+      if (diff <= 0) { setT(t => t.started ? t : { d: 0, h: 0, m: 0, s: 0, started: true }); return; }
       setT({ d: Math.floor(diff/864e5), h: Math.floor(diff/36e5)%24, m: Math.floor(diff/6e4)%60, s: Math.floor(diff/1e3)%60, started: false });
     };
     tick();
@@ -230,7 +243,7 @@ button{cursor:pointer}
 .card-head{padding:12px 14px 10px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;gap:6px}
 .card-title{font-family:'Oswald',sans-serif;font-weight:600;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:var(--gr)}
 
-.lb-row{display:flex;align-items:center;gap:11px;padding:12px 14px;border-bottom:1px solid rgba(30,45,74,.6);transition:background .15s;position:relative}
+.lb-row{display:flex;align-items:center;gap:11px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.07);transition:background .15s;position:relative}
 .lb-row:last-child{border-bottom:none}
 .lb-row.me{background:linear-gradient(90deg,rgba(255,107,0,.08),transparent 60%)}
 .lb-row.me::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--gr)}
@@ -240,7 +253,7 @@ button{cursor:pointer}
 .lb-sub{font-size:11px;color:var(--t3);margin-top:2px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
 
 /* FIX #5/#16 - wedstrijdrij mobiel: teamnamen correct afkappen */
-.mr{padding:11px 14px;border-bottom:1px solid rgba(30,45,74,.5)}
+.mr{padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.06)}
 .mr:last-child{border-bottom:none}
 .mr-teams{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center}
 .mr-home{font-size:12px;font-weight:700;text-align:right;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -310,14 +323,14 @@ button{cursor:pointer}
 .ptab{flex-shrink:0;padding:7px 13px;border-radius:20px;border:1.5px solid var(--bd);background:var(--c1);color:var(--t3);font-size:12px;font-weight:700;transition:all .15s;white-space:nowrap}
 .ptab.on{background:var(--gr);border-color:var(--gr);color:#fff}
 
-.stand-row{display:grid;grid-template-columns:14px 1fr 22px 22px 22px 22px 22px 26px;gap:3px;align-items:center;padding:7px 0;border-bottom:1px solid rgba(30,45,74,.4)}
+.stand-row{display:grid;grid-template-columns:14px 1fr 22px 22px 22px 22px 22px 26px;gap:3px;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06)}
 .stand-row:last-child{border-bottom:none}
 .stand-num{font-size:10px;font-weight:700;text-align:center}
 .stand-team{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .stand-cell{font-size:11px;text-align:center;color:var(--t3);font-variant-numeric:tabular-nums}
 .stand-pts{font-family:'Oswald',sans-serif;font-weight:700;font-size:14px;text-align:center}
 
-.stat-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(30,45,74,.4)}
+.stat-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)}
 .stat-row:last-child{border-bottom:none}
 .stat-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;font-weight:700;font-size:13px;flex-shrink:0}
 .stat-bar-wrap{flex:1;min-width:0}
@@ -325,7 +338,7 @@ button{cursor:pointer}
 .stat-bar{height:5px;background:var(--c3);border-radius:3px;overflow:hidden}
 .stat-fill{height:100%;border-radius:3px;transition:width .8s ease}
 
-.ur{display:flex;align-items:center;gap:11px;padding:12px 14px;border-bottom:1px solid rgba(30,45,74,.5)}
+.ur{display:flex;align-items:center;gap:11px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06)}
 .ur:last-child{border-bottom:none}
 
 .bq{background:var(--c2);border:1px solid var(--bd);border-radius:10px;padding:13px;margin-bottom:9px;transition:border-color .2s}
@@ -366,7 +379,7 @@ button{cursor:pointer}
 
 .stand-pred{background:var(--c2);border:1px solid var(--bd);border-radius:10px;padding:12px 14px;margin-bottom:8px}
 .stand-pred-title{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
-.stand-pred-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(30,45,74,.3)}
+.stand-pred-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05)}
 .stand-pred-row:last-child{border-bottom:none}
 .stand-pred-pos{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0}
 
@@ -736,8 +749,9 @@ function KOCard({ phase, matches, isAdmin, myPreds, allPreds, onScore, onLock, o
                 <input type="number" min="0" max="20" className="ni" value={tp.a} onChange={e => setTp(p => ({ ...p, a: e.target.value }))} />
                 <button className="btn-confirm" disabled={sav} onClick={async () => {
                   setSav(true);
-                  await onPred(m.id, parseInt(tp.h, 10), parseInt(tp.a, 10));
-                  setSav(false); setPe(null);
+                  const ok = await onPred(m.id, parseInt(tp.h, 10), parseInt(tp.a, 10));
+                  setSav(false);
+                  if (ok !== false) setPe(null);
                 }}>{sav ? "..." : "✓"}</button>
                 <button className="btn btn-out btn-sm" onClick={() => setPe(null)}>✕</button>
               </div>
@@ -965,15 +979,15 @@ function AuthPage({ mode, setMode, form, setForm, err, loading, onLogin, onRegis
         </div>
 
         {/* Card */}
-        <div style={{ background:"var(--c1)", border:"1px solid rgba(255,107,0,.15)", borderRadius:20, padding:"22px 20px", boxShadow:"0 20px 60px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.03), 0 0 40px rgba(0,201,125,.08)" }}>
+        <div style={{ background:"var(--c1)", border:"1px solid rgba(255,107,0,.15)", borderRadius:20, padding:"22px 20px", boxShadow:"0 20px 60px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.03), 0 0 40px rgba(255,107,0,.08)" }}>
           {/* Tabs */}
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", background:"var(--bg)", borderRadius:12, padding:3, gap:3, marginBottom:20 }}>
             {["login","register"].map(m => (
               <button key={m} onClick={() => setMode(m)} style={{
                 padding:"11px 8px", border:"none", borderRadius:10, fontSize:13, fontWeight:700, cursor:"pointer", transition:"all .2s",
                 background: mode===m ? "var(--gr)" : "transparent",
-                color: mode===m ? "#000" : "var(--t3)",
-                boxShadow: mode===m ? "0 2px 8px rgba(0,201,125,.3)" : "none",
+                color: mode===m ? "#fff" : "var(--t3)",
+                boxShadow: mode===m ? "0 2px 8px rgba(255,107,0,.3)" : "none",
               }}>
                 {m==="login" ? "🔑 Inloggen" : "✨ Aanmaken"}
               </button>
@@ -1018,7 +1032,7 @@ function AuthPage({ mode, setMode, form, setForm, err, loading, onLogin, onRegis
           {err && <div className="errbox" style={{ marginBottom:14 }}>{err}</div>}
 
           <button className="btn btn-green" disabled={loading} onClick={mode==="login" ? onLogin : onRegister}
-            style={{ fontSize:15, fontWeight:800, letterSpacing:.5, boxShadow:"0 4px 20px rgba(0,201,125,.35)", height:52 }}>
+            style={{ fontSize:15, fontWeight:800, letterSpacing:.5, boxShadow:"0 4px 20px rgba(255,107,0,.35)", height:52 }}>
             {loading ? <span className="spin">⚽</span> : mode==="login" ? "Inloggen →" : "Account aanmaken →"}
           </button>
 
@@ -1042,6 +1056,88 @@ function AuthPage({ mode, setMode, form, setForm, err, loading, onLogin, onRegis
         @keyframes tickerV { from{transform:translateY(0)} to{transform:translateY(-50%)} }
         @keyframes tickerV2 { from{transform:translateY(-50%)} to{transform:translateY(0)} }
       `}</style>
+    </div>
+  );
+}
+
+// ── COUNTDOWN CARD (eigen component zodat alleen dit blok per seconde rendert) ──
+function CountdownCard() {
+  const c = useCountdown(WK_START);
+  if (c.started) return null;
+  return (
+    <div className="countdown">
+      <div className="cd-title">⏱ Aftellen tot het WK begint</div>
+      <div className="cd-boxes">
+        {[{n:c.d,l:"Dagen"},{n:c.h,l:"Uur"},{n:c.m,l:"Min"},{n:c.s,l:"Sec"}].map((x,i) => (
+          <div key={i} className="cd-box">
+            <span className="cd-num">{String(x.n).padStart(2,"0")}</span>
+            <span className="cd-lbl">{x.l}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── LIVE / VOLGENDE WEDSTRIJD (tikt elke seconde, zonder hele app mee te slepen) ──
+function LiveOrNext({ matches, nextMatch }) {
+  const [, setTick] = useState(0);
+  useEffect(() => { const id = setInterval(() => setTick(t => t + 1), 1000); return () => clearInterval(id); }, []);
+  const now = new Date();
+
+  const liveMatches = matches.filter(m => {
+    if (m.home_goals != null) return false;
+    const start = parseMatchDate(m.match_date);
+    if (!start) return false;
+    const end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
+    return now >= start && now <= end;
+  });
+
+  if (liveMatches.length > 0) return (
+    <div style={{ background:"linear-gradient(135deg,rgba(34,197,94,.08),rgba(34,197,94,.04))", border:"1px solid rgba(34,197,94,.25)", borderRadius:"var(--r)", padding:"14px 16px", marginBottom:12 }}>
+      <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
+        <span className="live"/>
+        <span style={{ fontSize:12, fontWeight:800, color:"#22c55e", textTransform:"uppercase", letterSpacing:1 }}>Live nu</span>
+        <span style={{ fontSize:11, color:"var(--t3)" }}>{liveMatches.length} wedstrijd{liveMatches.length>1?"en":""} bezig</span>
+      </div>
+      {liveMatches.map(m => (
+        <div key={m.id} style={{ display:"flex", alignItems:"center", gap:8, padding:"7px 0", borderBottom:"1px solid rgba(34,197,94,.1)" }}>
+          <div style={{ flex:1, fontSize:12, fontWeight:700, textAlign:"right", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{m.home}</div>
+          <div style={{ background:"rgba(34,197,94,.15)", border:"1.5px solid rgba(34,197,94,.3)", borderRadius:7, padding:"4px 10px", fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:14, color:"#22c55e", flexShrink:0 }}>LIVE</div>
+          <div style={{ flex:1, fontSize:12, fontWeight:700, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{m.away}</div>
+        </div>
+      ))}
+    </div>
+  );
+
+  if (!nextMatch) return null;
+  const matchTime = parseMatchDate(nextMatch.match_date);
+  const diff = matchTime ? matchTime - now : 0;
+  const dh = Math.floor(diff/36e5);
+  const dm = Math.floor(diff/6e4)%60;
+  const ds = Math.floor(diff/1e3)%60;
+
+  return (
+    <div className="next-match" style={{ position:"relative", overflow:"hidden" }}>
+      <div style={{ position:"absolute", right:12, top:"50%", transform:"translateY(-50%)", fontFamily:"'Oswald',sans-serif", fontWeight:800, fontSize:11, color:"var(--t3)", textAlign:"right" }}>
+        {diff > 0 && (
+          <div>
+            <div style={{ fontSize:18, color:"var(--gr)", lineHeight:1 }}>
+              {dh > 0 ? `${dh}u ${dm}m` : `${dm}m ${ds}s`}
+            </div>
+            <div style={{ fontSize:9, color:"var(--t3)", marginTop:2, textTransform:"uppercase", letterSpacing:.5 }}>tot aftrap</div>
+          </div>
+        )}
+      </div>
+      <div className="nm-label">⚽ Volgende wedstrijd</div>
+      <div className="nm-teams" style={{ paddingRight:70 }}>
+        <span className="nm-team">{nextMatch.home}</span>
+        <span className="nm-vs">vs</span>
+        <span className="nm-team away">{nextMatch.away}</span>
+      </div>
+      <div style={{ fontSize:11, color:"var(--t3)", marginTop:6 }}>
+        📅 {nextMatch.match_date} · {nextMatch.phase === "group" ? `Groep ${nextMatch.grp}` : KO_PHASES.find(p => p.id === nextMatch.phase)?.full || nextMatch.phase}
+      </div>
     </div>
   );
 }
@@ -1154,6 +1250,7 @@ export default function App() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [lastSeen,      setLastSeen]      = useState({});
   const [chatInput,     setChatInput]     = useState("");
+  const chatListRef = useRef(null);
   const [chatSending,   setChatSending]   = useState(false);
   const [importLog,     setImportLog]     = useState([]);
   const [autoRefresh,   setAutoRefresh]   = useState(() => { try { return localStorage.getItem("wkp_autorefresh") === "true"; } catch { return false; } });
@@ -1169,8 +1266,13 @@ export default function App() {
   const isAdmin  = session?.isAdmin === true;
   const myPreds  = useMemo(() => preds.filter(p => p.user_id === session?.id), [preds, session?.id]);
   const myBonusAns = useMemo(() => bonusA.find(b => b.user_id === session?.id)?.answers || {}, [bonusA, session?.id]);
-  const countdown  = useCountdown(WK_START);
-  const wkStarted  = countdown.started;
+  // Geen per-seconde re-render van de hele app meer: één flag die eenmalig omklapt
+  const [wkStarted, setWkStarted] = useState(() => Date.now() >= WK_START.getTime());
+  useEffect(() => {
+    if (wkStarted) return;
+    const id = setInterval(() => { if (Date.now() >= WK_START.getTime()) setWkStarted(true); }, 1000);
+    return () => clearInterval(id);
+  }, [wkStarted]);
 
   // FIX #10: Map voor O(1) lookups
   const matchMap = useMemo(() => new Map(matches.map(m => [m.id, m])), [matches]);
@@ -1216,26 +1318,29 @@ export default function App() {
   const [prevRanks, setPrevRanks] = useState(() => {
     try { return JSON.parse(localStorage.getItem("wkp_prevranks") || "{}"); } catch { return {}; }
   });
+  const [lastLeaderboardPts, setLastLeaderboardPts] = useState("");
   useEffect(() => {
     if (leaderboard.length === 0) return;
+    const currentPtsKey = leaderboard.map(u => u.id + ":" + u.pts).join(",");
+    if (currentPtsKey === lastLeaderboardPts) return;
     const current = {};
     leaderboard.forEach((u, i) => { current[u.id] = i + 1; });
-    const prev = {};
-    leaderboard.forEach((u, i) => { prev[u.id] = i + 1; });
-    try { 
+    try {
       const stored = JSON.parse(localStorage.getItem("wkp_prevranks") || "{}");
-      if (Object.keys(stored).length === 0) {
-        localStorage.setItem("wkp_prevranks", JSON.stringify(current));
+      if (Object.keys(stored).length > 0) {
+        setPrevRanks(stored);
       }
+      localStorage.setItem("wkp_prevranks", JSON.stringify(current));
     } catch {}
-  }, [leaderboard.length]);
+    setLastLeaderboardPts(currentPtsKey);
+  }, [leaderboard]);
 
   // FIX #15: nextMatch niet op fragiele startsWith maar isPlaceholder helper
   const nextMatch = useMemo(() => matches
     .filter(m => m.home_goals == null && !isPlaceholder(m.home) && !isPlaceholder(m.away))
     .sort((a,b) => {
-      const da = a.match_date ? new Date(a.match_date.split(" ")[0]) : new Date(9e15);
-      const db = b.match_date ? new Date(b.match_date.split(" ")[0]) : new Date(9e15);
+      const da = parseMatchDate(a.match_date)?.getTime() ?? 9e15;
+      const db = parseMatchDate(b.match_date)?.getTime() ?? 9e15;
       return da - db || a.id - b.id;
     })[0], [matches]);
 
@@ -1245,10 +1350,10 @@ export default function App() {
       const [{ data:m },{ data:u },{ data:p },{ data:ba },{ data:br },{ data:sp }] = await Promise.all([
         sb.from("matches").select("*").order("id"),
         sb.from("users").select("id,username,avatar_color,avatar_photo,last_seen"),
-        sb.from("predictions").select("*"),
+        sb.from("predictions").select("user_id,match_id,home_goals,away_goals,id").limit(100000),
         sb.from("bonus_answers").select("*"),
         sb.from("bonus_results").select("*").maybeSingle(),
-        sb.from("standing_predictions").select("*"),
+        sb.from("standing_predictions").select("user_id,group,order,id"),
       ]);
       if (m)  setMatches(m);
       if (u) {
@@ -1276,6 +1381,10 @@ export default function App() {
     return () => { clearInterval(id); document.removeEventListener("visibilitychange", onVisibility); };
   }, [session?.id]);
   useEffect(() => { try { localStorage.setItem("wkp_autorefresh", autoRefresh ? "true" : "false"); } catch {} }, [autoRefresh]);
+  // Scroll chat alleen naar onderen bij nieuw bericht of bij openen van de tab
+  useEffect(() => {
+    if (tab === "chat" && chatListRef.current) chatListRef.current.scrollTop = chatListRef.current.scrollHeight;
+  }, [chatMsgs.length, tab]);
 
   // ── AUTO REFRESH UITSLAGEN ELKE 5 MINUTEN (max 100x) ────────────────
   useEffect(() => {
@@ -1300,20 +1409,13 @@ export default function App() {
 
   // ── AUTO VERGRENDELEN BIJ AANVANG WEDSTRIJD ──────────────────────────
   useEffect(() => {
-    if (!matches.length) return;
-    const NL_MONTHS = {"jan":0,"feb":1,"mrt":2,"apr":3,"mei":4,"jun":5,"jul":6,"aug":7,"sep":8,"okt":9,"nov":10,"dec":11};
+    if (!matches.length || !isAdmin) return; // alleen admin-client schrijft locks weg
     const checkLocks = async () => {
       const now = new Date();
       for (const m of matches) {
-        if (m.locked || !m.match_date) continue;
-        const parts = m.match_date.trim().split(" ");
-        if (parts.length < 4) continue;
-        const day = parseInt(parts[1]);
-        const month = NL_MONTHS[parts[2]?.toLowerCase()];
-        const timeParts = parts[3].split(":");
-        if (isNaN(day) || month === undefined || timeParts.length < 2) continue;
-        const matchTime = new Date(now.getFullYear(), month, day, parseInt(timeParts[0]), parseInt(timeParts[1]));
-        if (now >= matchTime) {
+        if (m.locked) continue;
+        const matchTime = parseMatchDate(m.match_date);
+        if (matchTime && now >= matchTime) {
           await sb.from("matches").update({ locked: true }).eq("id", m.id);
           setMatches(ms => ms.map(x => x.id === m.id ? { ...x, locked: true } : x));
         }
@@ -1322,13 +1424,13 @@ export default function App() {
     checkLocks();
     const id = setInterval(checkLocks, 60 * 1000);
     return () => clearInterval(id);
-  }, [matches.length]);
+  }, [matches.length, isAdmin]);
 
   // ── CHAT LADEN EN REALTIME + PRESENCE ──────────────────────────────
   useEffect(() => {
     if (!session) return;
     // Laad laatste 50 berichten
-    sb.from("chat_messages").select("*").order("created_at", { ascending: true }).limit(50).then(({ data }) => {
+    sb.from("chat_messages").select("*").order("created_at", { ascending: true }).limit(100).then(({ data }) => {
       if (data) setChatMsgs(data);
     });
     // Realtime chat + presence (online indicator)
@@ -1338,6 +1440,9 @@ export default function App() {
       })
       .on("postgres_changes", { event:"DELETE", schema:"public", table:"chat_messages" }, payload => {
         setChatMsgs(ms => ms.filter(m => m.id !== payload.old.id));
+      })
+      .on("postgres_changes", { event:"UPDATE", schema:"public", table:"matches" }, payload => {
+        setMatches(ms => ms.map(m => m.id === payload.new.id ? { ...m, ...payload.new } : m));
       })
       .on("presence", { event:"sync" }, () => {
         const state = channel.presenceState();
@@ -1408,19 +1513,39 @@ export default function App() {
   // ── DATA ACTIONS — FIX #14: error handling ────────────────────────────
   const savePred = async (mid, hg, ag) => {
     if (!session?.id) return false;
-    const { data, error } = await sb
-      .from("predictions")
-      .upsert(
-        { user_id: session.id, match_id: mid, home_goals: hg, away_goals: ag },
-        { onConflict: "user_id,match_id" }
-      )
-      .select()
-      .single();
+    const mGuard = matchMap.get(mid);
+    const start = mGuard ? parseMatchDate(mGuard.match_date) : null;
+    if (mGuard?.locked || (start && new Date() >= start)) {
+      showToast("🔒 Te laat — wedstrijd is begonnen", 3000); return false;
+    }
+
+    // Beide velden leeg → tip verwijderen (op user_id+match_id, niet op geheugen-id)
+    const bothEmpty = (hg == null || Number.isNaN(hg)) && (ag == null || Number.isNaN(ag));
+    if (bothEmpty) {
+      const { error } = await sb.from("predictions").delete()
+        .eq("user_id", session.id).eq("match_id", mid);
+      if (error) { showToast("❌ Verwijderen mislukt", 3000); return false; }
+      setPreds(ps => ps.filter(p => !(p.user_id === session.id && p.match_id === mid)));
+      showToast("🗑️ Tip verwijderd");
+      return true;
+    }
+
+    // Eén veld leeg of ongeldig getal → duidelijke melding i.p.v. cryptische DB-fout
+    if (!Number.isInteger(hg) || !Number.isInteger(ag) || hg < 0 || ag < 0) {
+      showToast("❌ Vul beide scores in", 3000); return false;
+    }
+
+    // Upsert op de unieke index (user_id, match_id): werkt ongeacht of de tip
+    // al in het geheugen geladen is. Lost de 409 Conflict op bij grote datasets.
+    const { data, error } = await sb.from("predictions")
+      .upsert({ user_id:session.id, match_id:mid, home_goals:hg, away_goals:ag },
+              { onConflict: "user_id,match_id" })
+      .select().single();
     if (error) { showToast("❌ Opslaan mislukt", 3000); return false; }
     if (data) {
       setPreds(ps => {
-        const exists = ps.some(p => p.id === data.id);
-        return exists ? ps.map(p => p.id === data.id ? data : p) : [...ps, data];
+        const found = ps.some(p => p.id === data.id);
+        return found ? ps.map(p => p.id === data.id ? data : p) : [...ps, data];
       });
     }
     // Check voor exacte uitslag — confetti!
@@ -1517,10 +1642,12 @@ export default function App() {
     if (!session?.id) return;
     const ex = bonusA.find(b => b.user_id === session.id);
     if (ex) {
-      await sb.from("bonus_answers").update({ answers }).eq("user_id", session.id);
+      const { error } = await sb.from("bonus_answers").update({ answers }).eq("user_id", session.id);
+      if (error) { showToast("❌ Opslaan mislukt", 3000); return; }
       setBonusA(bs => bs.map(b => b.user_id === session.id ? { ...b, answers } : b));
     } else {
-      const { data } = await sb.from("bonus_answers").insert({ user_id:session.id, answers }).select().single();
+      const { data, error } = await sb.from("bonus_answers").insert({ user_id:session.id, answers }).select().single();
+      if (error) { showToast("❌ Opslaan mislukt", 3000); return; }
       if (data) setBonusA(bs => [...bs, data]);
     }
     showToast("✓ Bonus opgeslagen");
@@ -1540,9 +1667,10 @@ export default function App() {
       username: session.username,
       message: chatInput.trim(),
     };
-    await sb.from("chat_messages").insert(msg);
-    setChatInput("");
+    const { error } = await sb.from("chat_messages").insert(msg);
     setChatSending(false);
+    if (error) { showToast("❌ Bericht niet verzonden", 3000); return; }
+    setChatInput("");
   };
 
   const saveBonusResults = async (res) => {
@@ -1554,12 +1682,15 @@ export default function App() {
 
   const saveStandingPred = async (group, order) => {
     if (!session?.id) return;
+    if (wkStarted) { showToast("🔒 WK is begonnen", 3000); return; }
     const ex = standingPreds.find(s => s.user_id === session.id && s.group === group);
     if (ex) {
-      await sb.from("standing_predictions").update({ order }).eq("id", ex.id);
+      const { error } = await sb.from("standing_predictions").update({ order }).eq("id", ex.id);
+      if (error) { showToast("❌ Opslaan mislukt", 3000); return; }
       setStandingPreds(sp => sp.map(s => s.id === ex.id ? { ...s, order } : s));
     } else {
-      const { data } = await sb.from("standing_predictions").insert({ user_id:session.id, group, order }).select().single();
+      const { data, error } = await sb.from("standing_predictions").insert({ user_id:session.id, group, order }).select().single();
+      if (error) { showToast("❌ Opslaan mislukt", 3000); return; }
       if (data) setStandingPreds(sp => [...sp, data]);
     }
     showToast("✓ Eindstand opgeslagen");
@@ -1569,19 +1700,20 @@ export default function App() {
   if (!session) return <AuthPage mode={authMode} setMode={setAuthMode} form={form} setForm={setForm} err={err} loading={loading} onLogin={login} onRegister={register} />;
 
   if (booting) return (
-    <div style={{ minHeight:"100vh", background:"#080b12", display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:14 }}>
+    <div style={{ minHeight:"100vh", background:"var(--bg)", display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:14 }}>
       <style>{CSS}</style>
       <div className="spin" style={{ fontSize:28 }}>⚽</div>
-      <div style={{ color:"#455575", fontSize:13, fontWeight:600 }}>Laden...</div>
+      <div style={{ color:"var(--t3)", fontSize:13, fontWeight:600 }}>Laden...</div>
     </div>
   );
 
   // Badge: wedstrijden vandaag zonder tip
-  const today = new Date().toISOString().split("T")[0];
   const todayMatches = matches.filter(m => {
-    if (!m.match_date) return false;
-    const d = m.match_date.split(" ")[0];
-    return d === today && m.home_goals == null && !m.locked;
+    const d = parseMatchDate(m.match_date);
+    if (!d) return false;
+    const now = new Date();
+    return d.getDate() === now.getDate() && d.getMonth() === now.getMonth()
+      && m.home_goals == null && !m.locked;
   });
   const todayUntiped = !isAdmin && todayMatches.filter(m => !myPreds.find(p => p.match_id === m.id)).length > 0;
 
@@ -1592,7 +1724,7 @@ export default function App() {
   const myStandingPred = standingPreds.find(s => s.user_id === session?.id && s.group === grp)?.order;
 
   return (
-    <div style={{ background:"#080b12", minHeight:"100vh" }}>
+    <div style={{ background:"var(--bg)", minHeight:"100vh" }}>
       <style>{CSS}</style>
 
       {toast && <div className={`toast${toast.startsWith("❌") ? " err" : ""}`}>{toast}</div>}
@@ -1687,7 +1819,7 @@ export default function App() {
             <span className="logo-chip" style={{ fontSize:8 }}>BOLAND'S SPECIAL</span>
           </div>
           <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-            {isAdmin && <span style={{ background:"rgba(0,201,125,.15)", color:"var(--gr)", fontSize:9, fontWeight:900, borderRadius:4, padding:"2px 6px", letterSpacing:.5, border:"1px solid rgba(255,107,0,.15)", flexShrink:0 }}>ADMIN</span>}
+            {isAdmin && <span style={{ background:"rgba(255,107,0,.15)", color:"var(--gr)", fontSize:9, fontWeight:900, borderRadius:4, padding:"2px 6px", letterSpacing:.5, border:"1px solid rgba(255,107,0,.15)", flexShrink:0 }}>ADMIN</span>}
             <span style={{ fontSize:11, color:"var(--t3)", fontWeight:700, maxWidth:70, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{session.username}</span>
             <button className="btn btn-out btn-sm" style={{ padding:"4px 8px", fontSize:11 }} onClick={() => setShowProfile(true)}>👤</button>
             <button className="btn btn-out btn-sm" style={{ padding:"4px 8px", fontSize:11 }} onClick={async () => { if (session?.id && !isAdmin) { await sb.from("users").update({ last_seen: new Date().toISOString() }).eq("id", session.id); } setSession(null); setTab("stand"); }}>Uit</button>
@@ -1704,7 +1836,7 @@ export default function App() {
               <div style={{ position:"relative", zIndex:1 }}>
                 <div className="banner-flags"><span>🇺🇸</span><span>🇲🇽</span><span>🇨🇦</span></div>
                 <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:6 }}>
-                  <span style={{ fontSize:32, filter:"drop-shadow(0 0 10px rgba(0,201,125,.4))" }}>🏆</span>
+                  <span style={{ fontSize:32, filter:"drop-shadow(0 0 10px rgba(255,107,0,.4))" }}>🏆</span>
                   <div>
                     <div style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:28, letterSpacing:.5, lineHeight:1 }}>WK <span style={{ color:"var(--gr)" }}>2026</span></div>
                     <div style={{ fontWeight:800, fontSize:13, color:"var(--am)", letterSpacing:2, textTransform:"uppercase", marginTop:2 }}>Boland's Special</div>
@@ -1714,91 +1846,9 @@ export default function App() {
               </div>
             </div>
 
-            {!countdown.started && (
-              <div className="countdown">
-                <div className="cd-title">⏱ Aftellen tot het WK begint</div>
-                <div className="cd-boxes">
-                  {[{n:countdown.d,l:"Dagen"},{n:countdown.h,l:"Uur"},{n:countdown.m,l:"Min"},{n:countdown.s,l:"Sec"}].map((c,i) => (
-                    <div key={i} className="cd-box">
-                      <span className="cd-num">{String(c.n).padStart(2,"0")}</span>
-                      <span className="cd-lbl">{c.l}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            <CountdownCard />
 
-            {countdown.started && (() => {
-              const NL_MONTHS = {"jan":0,"feb":1,"mrt":2,"apr":3,"mei":4,"jun":5,"jul":6,"aug":7,"sep":8,"okt":9,"nov":10,"dec":11};
-              const now = new Date();
-
-              // Wedstrijden die nu LIVE zijn
-              const liveMatches = matches.filter(m => {
-                if (!m.match_date || m.home_goals != null) return false;
-                const parts = m.match_date.trim().split(" ");
-                if (parts.length < 4) return false;
-                const day = parseInt(parts[1]);
-                const month = NL_MONTHS[parts[2]?.toLowerCase()];
-                const timeParts = parts[3].split(":");
-                if (isNaN(day) || month === undefined) return false;
-                const matchStart = new Date(now.getFullYear(), month, day, parseInt(timeParts[0]), parseInt(timeParts[1]));
-                const matchEnd = new Date(matchStart.getTime() + 2 * 60 * 60 * 1000); // +2 uur
-                return now >= matchStart && now <= matchEnd;
-              });
-
-              if (liveMatches.length > 0) return (
-                <div style={{ background:"linear-gradient(135deg,rgba(34,197,94,.08),rgba(34,197,94,.04))", border:"1px solid rgba(34,197,94,.25)", borderRadius:"var(--r)", padding:"14px 16px", marginBottom:12 }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
-                    <span className="live"/>
-                    <span style={{ fontSize:12, fontWeight:800, color:"#22c55e", textTransform:"uppercase", letterSpacing:1 }}>Live nu</span>
-                    <span style={{ fontSize:11, color:"var(--t3)" }}>{liveMatches.length} wedstrijd{liveMatches.length>1?"en":""} bezig</span>
-                  </div>
-                  {liveMatches.map(m => (
-                    <div key={m.id} style={{ display:"flex", alignItems:"center", gap:8, padding:"7px 0", borderBottom:"1px solid rgba(34,197,94,.1)" }}>
-                      <div style={{ flex:1, fontSize:12, fontWeight:700, textAlign:"right", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{m.home}</div>
-                      <div style={{ background:"rgba(34,197,94,.15)", border:"1.5px solid rgba(34,197,94,.3)", borderRadius:7, padding:"4px 10px", fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:14, color:"#22c55e", flexShrink:0 }}>LIVE</div>
-                      <div style={{ flex:1, fontSize:12, fontWeight:700, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{m.away}</div>
-                    </div>
-                  ))}
-                </div>
-              );
-
-              // Geen live wedstrijden — toon volgende wedstrijd met countdown
-              if (!nextMatch) return null;
-              const parts = nextMatch.match_date.trim().split(" ");
-              const day = parseInt(parts[1]);
-              const month = NL_MONTHS[parts[2]?.toLowerCase()];
-              const timeParts = (parts[3] || "00:00").split(":");
-              const matchTime = new Date(now.getFullYear(), month, day, parseInt(timeParts[0]), parseInt(timeParts[1]));
-              const diff = matchTime - now;
-              const dh = Math.floor(diff/36e5);
-              const dm = Math.floor(diff/6e4)%60;
-              const ds = Math.floor(diff/1e3)%60;
-
-              return (
-                <div className="next-match" style={{ position:"relative", overflow:"hidden" }}>
-                  <div style={{ position:"absolute", right:12, top:"50%", transform:"translateY(-50%)", fontFamily:"'Oswald',sans-serif", fontWeight:800, fontSize:11, color:"var(--t3)", textAlign:"right" }}>
-                    {diff > 0 && (
-                      <div>
-                        <div style={{ fontSize:18, color:"var(--gr)", lineHeight:1 }}>
-                          {dh > 0 ? `${dh}u ${dm}m` : `${dm}m ${ds}s`}
-                        </div>
-                        <div style={{ fontSize:9, color:"var(--t3)", marginTop:2, textTransform:"uppercase", letterSpacing:.5 }}>tot aftrap</div>
-                      </div>
-                    )}
-                  </div>
-                  <div className="nm-label">⚽ Volgende wedstrijd</div>
-                  <div className="nm-teams" style={{ paddingRight:70 }}>
-                    <span className="nm-team">{nextMatch.home}</span>
-                    <span className="nm-vs">vs</span>
-                    <span className="nm-team away">{nextMatch.away}</span>
-                  </div>
-                  <div style={{ fontSize:11, color:"var(--t3)", marginTop:6 }}>
-                    📅 {nextMatch.match_date} · {nextMatch.phase === "group" ? `Groep ${nextMatch.grp}` : KO_PHASES.find(p => p.id === nextMatch.phase)?.full || nextMatch.phase}
-                  </div>
-                </div>
-              );
-            })()}
+            {wkStarted && <LiveOrNext matches={matches} nextMatch={nextMatch} />}
 
             <div className="sec-title">Tussenstand</div>
             <div className="sec-sub">5pt exact · 3pt winnaar · +1pt per team goals · 10pt bonus · 5pt eindstand</div>
@@ -1821,9 +1871,9 @@ export default function App() {
                   return (
                     <div key={u.id} style={{
                       display:"grid", gridTemplateColumns:"36px 48px 1fr 44px 44px 50px", gap:6,
-                      padding:"11px 14px", borderBottom:"1px solid rgba(30,45,74,.4)",
+                      padding:"11px 14px", borderBottom:"1px solid rgba(255,255,255,.06)",
                       alignItems:"center",
-                      background: isMe ? "rgba(0,201,125,.06)" : "transparent",
+                      background: isMe ? "rgba(255,107,0,.06)" : "transparent",
                       borderLeft: isMe ? "2px solid var(--gr)" : "2px solid transparent",
                       animation:`fu .3s ease ${i*50}ms both`,
                     }}>
@@ -1844,7 +1894,7 @@ export default function App() {
                       <div style={{ minWidth:0 }}>
                         <div style={{ display:"flex", alignItems:"center", gap:5, marginBottom:3 }}>
                           <span style={{ fontSize:13, fontWeight:700, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", color: i<3 ? mc[i] : "var(--t1)" }}>{u.username}</span>
-                          {isMe && <span style={{ background:"rgba(0,201,125,.15)", color:"var(--gr)", fontSize:9, fontWeight:900, borderRadius:3, padding:"1px 5px", border:"1px solid rgba(255,107,0,.15)", flexShrink:0 }}>JIJ</span>}
+                          {isMe && <span style={{ background:"rgba(255,107,0,.15)", color:"var(--gr)", fontSize:9, fontWeight:900, borderRadius:3, padding:"1px 5px", border:"1px solid rgba(255,107,0,.15)", flexShrink:0 }}>JIJ</span>}
                           {!isMe && onlineUsers.has(u.username) && <span style={{ width:7, height:7, borderRadius:"50%", background:"#22c55e", display:"inline-block", flexShrink:0, boxShadow:"0 0 5px #22c55e" }} title="Online"/>}
                         </div>
                         <div style={{ height:3, background:"var(--c3)", borderRadius:2, overflow:"hidden" }}>
@@ -1870,22 +1920,70 @@ export default function App() {
                 <div className="sec-title" style={{ fontSize:16 }}>📈 Statistieken</div>
                 <div className="sec-sub">Vergelijk prestaties per categorie</div>
                 <div className="card" style={{ marginBottom:8 }}>
-                  <div className="card-head"><span className="card-title">Exacte uitslagen</span></div>
+                  <div className="card-head"><span className="card-title">🏅 Speeldag winnaars</span></div>
                   <div style={{ padding:"4px 14px 10px" }}>
-                    {[...leaderboard].sort((a,b) => b.exact - a.exact).map(u => {
-                      const color = avatarColor(u.username);
-                      const max = leaderboard.reduce((m,x) => Math.max(m, x.exact), 0) || 1;
-                      const pct = Math.round((u.exact / max) * 100);
+                    {(() => {
+                      const playedMatches = matches.filter(m => m.home_goals != null && m.away_goals != null && m.match_date);
+                      if (playedMatches.length === 0) return <div style={{ fontSize:13, color:"var(--t3)", padding:"8px 0", textAlign:"center" }}>Nog geen gespeelde wedstrijden</div>;
+                      const days = [...new Set(playedMatches.map(m => {
+                        const parts = m.match_date.trim().split(" ");
+                        return parts[1] + " " + parts[2];
+                      }))].sort((a, b) => {
+                        const pa = a.split(" "); const pb = b.split(" ");
+                        return (NL_MONTHS[pa[1]?.toLowerCase()] * 31 + parseInt(pa[0])) - (NL_MONTHS[pb[1]?.toLowerCase()] * 31 + parseInt(pb[0]));
+                      });
+                      const dayWinners = days.map(day => {
+                        const dayMatches = playedMatches.filter(m => {
+                          const parts = m.match_date.trim().split(" ");
+                          return (parts[1] + " " + parts[2]) === day;
+                        });
+                        const scores = {};
+                        for (const u of leaderboard) {
+                          const up = preds.filter(p => p.user_id === u.id && dayMatches.find(m => m.id === p.match_id));
+                          let pts = 0;
+                          for (const p of up) {
+                            const m = dayMatches.find(x => x.id === p.match_id);
+                            if (m) pts += scorePts(p.home_goals, p.away_goals, m.home_goals, m.away_goals).pts;
+                          }
+                          scores[u.id] = pts;
+                        }
+                        const maxPts = Math.max(...Object.values(scores));
+                        const winner = leaderboard.find(u => scores[u.id] === maxPts);
+                        return { day, winner, pts: maxPts };
+                      }).filter(d => d.winner && d.pts > 0);
+                      if (dayWinners.length === 0) return <div style={{ fontSize:13, color:"var(--t3)", padding:"8px 0", textAlign:"center" }}>Nog geen winnaars</div>;
+                      const winCounts = {};
+                      dayWinners.forEach(d => { winCounts[d.winner.id] = (winCounts[d.winner.id] || 0) + 1; });
+                      const mostWins = Math.max(...Object.values(winCounts));
+                      const topWinner = leaderboard.find(u => winCounts[u.id] === mostWins);
                       return (
-                        <div key={u.id} className="stat-row">
-                          <Avatar userId={u.id} username={u.username} size={44} profiles={userProfiles} />
-                          <div className="stat-bar-wrap">
-                            <div className="stat-name"><span>{u.username}</span><span style={{ color:"var(--gr)" }}>{u.exact}×</span></div>
-                            <div className="stat-bar"><div className="stat-fill" style={{ width:`${pct}%`, background:color }} /></div>
-                          </div>
+                        <div>
+                          {dayWinners.map((d, i) => {
+                            const color = userProfiles[d.winner.id]?.color || avatarColor(d.winner.username);
+                            return (
+                              <div key={i} style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 0", borderBottom:"0.5px solid rgba(255,255,255,.05)" }}>
+                                <span style={{ fontSize:18, width:24, textAlign:"center", flexShrink:0 }}>🥇</span>
+                                <Avatar userId={d.winner.id} username={d.winner.username} size={36} profiles={userProfiles} />
+                                <div style={{ flex:1, minWidth:0 }}>
+                                  <div style={{ fontSize:13, fontWeight:700, color:"var(--t1)" }}>{d.winner.username}</div>
+                                  <div style={{ fontSize:11, color:"var(--t3)" }}>dag {i+1} · {d.day}</div>
+                                </div>
+                                <div style={{ fontSize:15, fontWeight:700, color:"var(--gr)", fontFamily:"'Oswald',sans-serif" }}>{d.pts} pt</div>
+                              </div>
+                            );
+                          })}
+                          {topWinner && mostWins > 1 && (
+                            <div style={{ marginTop:10, padding:"8px 12px", background:"rgba(255,107,0,.08)", borderRadius:8, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                              <span style={{ fontSize:12, color:"var(--t3)" }}>Meeste dagwinsten</span>
+                              <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                                <Avatar userId={topWinner.id} username={topWinner.username} size={22} profiles={userProfiles} />
+                                <span style={{ fontSize:13, fontWeight:700, color:"var(--gr)" }}>{topWinner.username} · {mostWins}×</span>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
-                    })}
+                    })()}
                   </div>
                 </div>
                 {leaderboard.some(u => u.bp > 0) && (
@@ -1934,7 +2032,6 @@ export default function App() {
                 {/* ── BESTE RONDE ── */}
                 {leaderboard.length > 0 && (() => {
                   // Groepeer wedstrijden per dag
-                  const NL_MONTHS = {"jan":0,"feb":1,"mrt":2,"apr":3,"mei":4,"jun":5,"jul":6,"aug":7,"sep":8,"okt":9,"nov":10,"dec":11};
                   const dayPts = {};
                   for (const u of leaderboard) {
                     const up = preds.filter(p => p.user_id === u.id);
@@ -2024,7 +2121,6 @@ export default function App() {
             <div className="sec-sub">{new Date().toLocaleDateString("nl-NL", { weekday:"long", day:"numeric", month:"long" })} · 🔒 automatisch vergrendeld bij aanvang</div>
             {(() => {
               const now = new Date();
-              const NL_MONTHS = {"jan":0,"feb":1,"mrt":2,"apr":3,"mei":4,"jun":5,"jul":6,"aug":7,"sep":8,"okt":9,"nov":10,"dec":11};
               const todayMs = matches.filter(m => {
                 if (!m.match_date) return false;
                 const parts = m.match_date.trim().split(" ");
@@ -2058,9 +2154,8 @@ export default function App() {
                     const mp = myPreds.find(p => p.match_id === m.id);
                     const done = m.home_goals != null && m.away_goals != null;
                     const parts = m.match_date.trim().split(" ");
-                    const NL_M = {"jan":0,"feb":1,"mrt":2,"apr":3,"mei":4,"jun":5,"jul":6,"aug":7,"sep":8,"okt":9,"nov":10,"dec":11};
                     const day = parseInt(parts[1]);
-                    const month = NL_M[parts[2]?.toLowerCase()];
+                    const month = NL_MONTHS[parts[2]?.toLowerCase()];
                     const timeParts = (parts[3] || "00:00").split(":");
                     const matchTime = new Date(now.getFullYear(), month, day, parseInt(timeParts[0]), parseInt(timeParts[1]));
                     const started = now >= matchTime;
@@ -2199,7 +2294,7 @@ export default function App() {
             <div className="sec-sub">Chat met alle deelnemers · {chatMsgs.length} berichten · <span style={{ color:"#22c55e", fontWeight:700 }}>🟢 {onlineUsers.size} online</span></div>
             <div className="card" style={{ padding:"12px 14px" }}>
               <div className="chat-wrap">
-                <div className="chat-msgs" ref={el => { if (el) el.scrollTop = el.scrollHeight; }}>
+                <div className="chat-msgs" ref={chatListRef}>
                   {chatMsgs.length === 0 && (
                     <div className="chat-msg system">
                       <div className="chat-text" style={{ color:"var(--t3)", fontSize:12 }}>Nog geen berichten. Wees de eerste! 👋</div>
@@ -2320,7 +2415,7 @@ export default function App() {
                         let cls = "", lbl = "—";
                         if (done) { const r = scorePts(pred.home_goals, pred.away_goals, m.home_goals, m.away_goals); cls = r.cls; lbl = r.label; }
                         return (
-                          <div key={pred.match_id} style={{ display:"grid", gridTemplateColumns:"1fr 54px 54px 40px", gap:4, alignItems:"center", padding:"10px 12px", borderBottom:"1px solid rgba(30,45,74,.4)" }}>
+                          <div key={pred.match_id} style={{ display:"grid", gridTemplateColumns:"1fr 54px 54px 40px", gap:4, alignItems:"center", padding:"10px 12px", borderBottom:"1px solid rgba(255,255,255,.06)" }}>
                             <div style={{ fontSize:12, fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", color:"var(--t1)" }}>
                               {m.home || "?"} vs {m.away || "?"}
                             </div>
@@ -2356,7 +2451,7 @@ export default function App() {
                         { lbl:"Exacte treffers %", mine:myExactPct, avg:avgExactPct, max:maxPct, color:"var(--am)", suffix:"%" },
                       ];
                       return rows.map((r,i) => (
-                        <div key={i} style={{ padding:"12px 14px", borderBottom: i<rows.length-1?"1px solid rgba(30,45,74,.4)":"none" }}>
+                        <div key={i} style={{ padding:"12px 14px", borderBottom: i<rows.length-1?"1px solid rgba(255,255,255,.06)":"none" }}>
                           <div style={{ fontSize:11, fontWeight:700, color:"var(--t3)", textTransform:"uppercase", letterSpacing:.5, marginBottom:8 }}>{r.lbl}</div>
                           <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
                             {[{lbl:"Jij", val:r.mine, c:r.color},{lbl:"Gem.", val:r.avg, c:"var(--t3)"}].map((b,j) => (
@@ -2366,7 +2461,7 @@ export default function App() {
                                   <div style={{ width:`${Math.round(b.val/r.max*100)}%`, height:"100%", background:b.c, borderRadius:4, transition:"width .8s ease", opacity: j===1?.6:1 }} />
                                 </div>
                                 <div style={{ fontSize:12, fontWeight:700, color:b.c, minWidth:28, textAlign:"right" }}>{b.val}{r.suffix}</div>
-                                {j===0 && b.val > r.avg && <span style={{ fontSize:9, fontWeight:700, background:"rgba(0,201,125,.15)", color:"var(--gr)", borderRadius:3, padding:"1px 5px", border:"1px solid rgba(255,107,0,.15)", flexShrink:0 }}>↑ boven gem.</span>}
+                                {j===0 && b.val > r.avg && <span style={{ fontSize:9, fontWeight:700, background:"rgba(255,107,0,.15)", color:"var(--gr)", borderRadius:3, padding:"1px 5px", border:"1px solid rgba(255,107,0,.15)", flexShrink:0 }}>↑ boven gem.</span>}
                                 {j===0 && b.val < r.avg && <span style={{ fontSize:9, fontWeight:700, background:"rgba(244,63,94,.1)", color:"var(--re)", borderRadius:3, padding:"1px 5px", border:"1px solid rgba(244,63,94,.2)", flexShrink:0 }}>↓ onder gem.</span>}
                                 {j===0 && b.val === Math.round(r.avg) && <span style={{ fontSize:9, color:"var(--t3)", flexShrink:0 }}>= gem.</span>}
                               </div>
@@ -2449,7 +2544,7 @@ export default function App() {
                     ))}
                   </div>
 
-                  <div style={{ background:"rgba(0,201,125,.06)", border:"1px solid rgba(0,201,125,.15)", borderRadius:10, padding:"12px 14px", marginTop:4 }}>
+                  <div style={{ background:"rgba(255,107,0,.06)", border:"1px solid rgba(255,107,0,.15)", borderRadius:10, padding:"12px 14px", marginTop:4 }}>
                     <div style={{ fontSize:12, color:"var(--t2)", lineHeight:1.6 }}>
                       💡 Bij <b style={{ color:"var(--t1)" }}>{n} deelnemers</b> is de pot <b style={{ color:"var(--gr)" }}>€{pot}</b>.
                       De winnaar krijgt <b style={{ color:"#f59e0b" }}>€{Math.round(pot*0.5)}</b>, nummer 2 krijgt <b style={{ color:"#94a3b8" }}>€{Math.round(pot*0.3)}</b> en nummer 3 krijgt <b style={{ color:"#cd7f32" }}>€{Math.round(pot*0.2)}</b>.
@@ -2610,7 +2705,12 @@ export default function App() {
                       if (!error) { setMatches(ms => ms.map(x => x.id === m.id ? { ...x, locked: true } : x)); count++; }
                     }
 
-                    showToast(`🔒 ${count} wedstrijd(en) vergrendeld`);
+                    if (count === 0) {
+                      showToast("ℹ️ Geen wedstrijden vandaag om te vergrendelen");
+                    } else {
+                      const names = todayMs.slice(0,3).map(m => m.home.replace(/[^\w\s]/g,"").trim() + " vs " + m.away.replace(/[^\w\s]/g,"").trim()).join(", ");
+                      showToast(`🔒 ${count} vergrendeld: ${names}${count > 3 ? " ..." : ""}`);
+                    }
                     setLockAllLoading(false);
                   }}
                 >
@@ -2645,7 +2745,7 @@ export default function App() {
               <button
                 className="btn btn-green"
                 onClick={() => {
-                  const lines = ["🏆 WK 2026 Poule — Dinxperlo Boys", "━━━━━━━━━━━━━━━━━━━━", ""];
+                  const lines = ["🏆 WK 2026 — Boland\'s Special", "━━━━━━━━━━━━━━━━━━━━", ""];
                   leaderboard.forEach((u, i) => {
                     const medals = ["🥇","🥈","🥉"];
                     const rank = i < 3 ? medals[i] : `${i+1}.`;
