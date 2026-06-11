@@ -1408,15 +1408,20 @@ export default function App() {
   // ── DATA ACTIONS — FIX #14: error handling ────────────────────────────
   const savePred = async (mid, hg, ag) => {
     if (!session?.id) return false;
-    const ex = preds.find(p => p.user_id === session.id && p.match_id === mid);
-    if (ex) {
-      const { error } = await sb.from("predictions").update({ home_goals:hg, away_goals:ag }).eq("id", ex.id);
-      if (error) { showToast("❌ Opslaan mislukt", 3000); return false; }
-      setPreds(ps => ps.map(p => p.id === ex.id ? { ...p, home_goals:hg, away_goals:ag } : p));
-    } else {
-      const { data, error } = await sb.from("predictions").insert({ user_id:session.id, match_id:mid, home_goals:hg, away_goals:ag }).select().single();
-      if (error) { showToast("❌ Opslaan mislukt", 3000); return false; }
-      if (data) setPreds(ps => [...ps, data]);
+    const { data, error } = await sb
+      .from("predictions")
+      .upsert(
+        { user_id: session.id, match_id: mid, home_goals: hg, away_goals: ag },
+        { onConflict: "user_id,match_id" }
+      )
+      .select()
+      .single();
+    if (error) { showToast("❌ Opslaan mislukt", 3000); return false; }
+    if (data) {
+      setPreds(ps => {
+        const exists = ps.some(p => p.id === data.id);
+        return exists ? ps.map(p => p.id === data.id ? data : p) : [...ps, data];
+      });
     }
     // Check voor exacte uitslag — confetti!
     const m = matchMap.get(mid);
