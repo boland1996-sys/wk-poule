@@ -1223,7 +1223,7 @@ export default function App() {
   const [bonusR,        setBonusR]        = useState(null);
   const [bonusLocked,   setBonusLocked]   = useState(false);
   const [standingPreds, setStandingPreds] = useState([]);
-  const [session,       setSession]       = useState(() => { try { return JSON.parse(localStorage.getItem("wkp2026")); } catch { return null; } });
+  const [session,       setSession]       = useState(() => { try { const s = JSON.parse(localStorage.getItem("wkp2026")); return (s && s.id) ? s : null; } catch { return null; } });
   const [tab,           setTab]           = useState("stand");
   const [authMode,      setAuthMode]      = useState("login");
   const [form,          setForm]          = useState({ u:"", p:"", p2:"" });
@@ -1370,7 +1370,7 @@ export default function App() {
     })();
   }, []);
 
-  useEffect(() => { try { localStorage.setItem("wkp2026", JSON.stringify(session)); } catch {} }, [session]);
+  useEffect(() => { try { if (session && session.id) localStorage.setItem("wkp2026", JSON.stringify(session)); else localStorage.removeItem("wkp2026"); } catch {} }, [session]);
   useEffect(() => {
     if (!session?.id || session.isAdmin) return;
     const update = () => sb.from("users").update({ last_seen: new Date().toISOString() }).eq("id", session.id);
