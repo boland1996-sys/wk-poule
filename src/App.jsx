@@ -2582,7 +2582,6 @@ export default function App() {
 
             {/* AUTO IMPORT UITSLAGEN */}
             {(() => {
-              const RAPIDAPI_KEY = import.meta.env.VITE_RAPIDAPI_KEY;
               // Vertaaltabel: Engelse API naam → Nederlandse databasenaam (zonder vlag prefix)
               const TEAM_MAP = {
                 "Mexico":"Mexico","South Africa":"Zuid-Afrika","South Korea":"Zuid-Korea",
@@ -2606,31 +2605,33 @@ export default function App() {
                 setImporting(true);
                 setImportLog(["🔄 Uitslagen ophalen via API..."]);
                 try {
-                  // Haal vandaag's wedstrijden op via AllSportsApi
-                  const today = new Date().toISOString().split("T")[0];
-                  const res = await fetch(
-                    `https://allsportsapi2.p.rapidapi.com/api/football/matches/${today}`,
-                    { headers: { "x-rapidapi-key": RAPIDAPI_KEY, "x-rapidapi-host": "allsportsapi2.p.rapidapi.com" } }
-                  );
+                  const res = await fetch("/api/football-scores");
+                  if (!res.ok) throw new Error(`API antwoordde met status ${res.status}`);
                   const data = await res.json();
-                  const events = data?.events || [];
-                  // Filter op WK wedstrijden
-                  const wkMatches = events.filter(e =>
-                    e.tournament?.name?.toLowerCase().includes("world cup") ||
-                    e.tournament?.name?.toLowerCase().includes("fifa")
-                  );
+                  const events = data?.matches || [];
+                  // Filter op WK wedstrijden (naam of categorie bevat world cup / fifa)
+                  const wkMatches = events.filter(e => {
+                    const t = (e.tournament || "").toLowerCase();
+                    const c = (e.category || "").toLowerCase();
+                    return t.includes("world cup") || t.includes("fifa") || c.includes("world cup") || c.includes("fifa");
+                  });
                   if (wkMatches.length === 0) {
-                    setImportLog(["⚠️ Geen WK-wedstrijden gevonden voor vandaag.", "Controleer of het WK al begonnen is."]);
+                    const tournamentInfo = (data?.tournamentNames || []).slice(0, 10).join(" · ") || "geen";
+                    setImportLog([
+                      "⚠️ Geen WK-wedstrijden gevonden voor vandaag.",
+                      `📋 Gevonden toernooien: ${tournamentInfo}`,
+                      "Pas het filter aan als het WK een andere naam heeft."
+                    ]);
                     setImporting(false); return;
                   }
                   let updated = 0, skipped = 0;
                   const log = [];
                   for (const e of wkMatches) {
-                    if (e.status?.type !== "finished") { skipped++; continue; }
-                    const apiHome = e.homeTeam?.name;
-                    const apiAway = e.awayTeam?.name;
-                    const hg = e.homeScore?.current;
-                    const ag = e.awayScore?.current;
+                    if (e.status !== "finished") { skipped++; continue; }
+                    const apiHome = e.homeTeam;
+                    const apiAway = e.awayTeam;
+                    const hg = e.homeScore;
+                    const ag = e.awayScore;
                     if (hg == null || ag == null) { skipped++; continue; }
                     // Zoek match in database via teamnaam
                     const nlHome = TEAM_MAP[apiHome];
