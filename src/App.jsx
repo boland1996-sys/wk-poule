@@ -2606,7 +2606,10 @@ export default function App() {
                 setImportLog(["🔄 Uitslagen ophalen via API..."]);
                 try {
                   const res = await fetch("/api/football-scores");
-                  if (!res.ok) throw new Error(`API antwoordde met status ${res.status}`);
+                  if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(`Status ${res.status}: ${errData.body || errData.error || "onbekend"}`);
+                  }
                   const data = await res.json();
                   const events = data?.matches || [];
                   // Filter op WK wedstrijden (naam of categorie bevat world cup / fifa)

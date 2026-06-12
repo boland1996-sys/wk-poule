@@ -11,7 +11,10 @@ export default async function handler(req, res) {
     { headers: { "x-rapidapi-key": key, "x-rapidapi-host": "allsportsapi2.p.rapidapi.com" } }
   );
 
-  if (!apiRes.ok) return res.status(apiRes.status).json({ error: "API error" });
+  if (!apiRes.ok) {
+    const body = await apiRes.text();
+    return res.status(apiRes.status).json({ error: "API error", status: apiRes.status, body });
+  }
 
   const data = await apiRes.json();
   const events = data?.events || [];
