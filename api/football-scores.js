@@ -5,19 +5,25 @@ export default async function handler(req, res) {
   const key = process.env.RAPIDAPI_KEY;
   if (!key) return res.status(500).json({ error: "RAPIDAPI_KEY not configured" });
 
-  const today = new Date().toISOString().split("T")[0].replace(/-/g, "");
-  const apiRes = await fetch(
-    `https://free-api-live-football-data.p.rapidapi.com/football-get-matches-by-date?date=${today}`,
-    { headers: { "x-rapidapi-key": key, "x-rapidapi-host": "free-api-live-football-data.p.rapidapi.com" } }
-  );
+  const getDate = (daysAgo) => {
+    const d = new Date();
+    d.setDate(d.getDate() - daysAgo);
+    return d.toISOString().split("T")[0].replace(/-/g, "");
+  };
 
-  if (!apiRes.ok) {
-    const body = await apiRes.text();
-    return res.status(apiRes.status).json({ error: "API error", status: apiRes.status, body });
+  const dates = [getDate(2), getDate(1), getDate(0)];
+  let fixtures = [];
+
+  for (const date of dates) {
+    const apiRes = await fetch(
+      `https://free-api-live-football-data.p.rapidapi.com/football-get-matches-by-date?date=${date}`,
+      { headers: { "x-rapidapi-key": key, "x-rapidapi-host": "free-api-live-football-data.p.rapidapi.com" } }
+    );
+    if (!apiRes.ok) continue;
+    const data = await apiRes.json();
+    const day = data?.response?.matches || data?.matches || data?.response || [];
+    fixtures = fixtures.concat(day);
   }
-
-  const data = await apiRes.json();
-  const fixtures = data?.response?.matches || data?.matches || data?.response || [];
 
   const matches = fixtures.map(f => ({
     id: f.id,
