@@ -2612,29 +2612,25 @@ export default function App() {
                   }
                   const data = await res.json();
                   const events = data?.matches || [];
-                  // Filter op WK wedstrijden (naam of categorie bevat world cup / fifa)
-                  const wkMatches = events.filter(e => {
-                    const t = (e.tournament || "").toLowerCase();
-                    const c = (e.category || "").toLowerCase();
-                    return t.includes("world cup") || t.includes("fifa") || c.includes("world cup") || c.includes("fifa");
-                  });
+                  // Filter: beide teams moeten in TEAM_MAP zitten (= WK-teams)
+                  const wkMatches = events.filter(e => TEAM_MAP[e.homeTeam] && TEAM_MAP[e.awayTeam]);
                   if (wkMatches.length === 0) {
-                    const tournamentInfo = (data?.tournamentNames || []).slice(0, 10).join(" · ") || "geen";
-                    setImportLog([
-                      "⚠️ Geen WK-wedstrijden gevonden voor vandaag.",
-                      `📋 Gevonden toernooien: ${tournamentInfo}`,
-                      "Pas het filter aan als het WK een andere naam heeft."
-                    ]);
+                    setImportLog(["⚠️ Geen WK-wedstrijden gevonden voor vandaag.", "Controleer of het WK al begonnen is."]);
                     setImporting(false); return;
                   }
                   let updated = 0, skipped = 0;
                   const log = [];
                   for (const e of wkMatches) {
-                    if (e.status !== "finished") { skipped++; continue; }
+                    if (!e.finished) { skipped++; continue; }
                     const apiHome = e.homeTeam;
                     const apiAway = e.awayTeam;
-                    const hg = e.homeScore;
-                    const ag = e.awayScore;
+                    // Score uit scoreStr ("2 - 0") als homeScore/awayScore ontbreekt
+                    let hg = e.homeScore;
+                    let ag = e.awayScore;
+                    if ((hg == null || ag == null) && e.scoreStr) {
+                      const parts = e.scoreStr.split("-").map(s => parseInt(s.trim(), 10));
+                      if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) { hg = parts[0]; ag = parts[1]; }
+                    }
                     if (hg == null || ag == null) { skipped++; continue; }
                     // Zoek match in database via teamnaam
                     const nlHome = TEAM_MAP[apiHome];
