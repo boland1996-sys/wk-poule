@@ -1399,6 +1399,14 @@ export default function App() {
     return () => { clearInterval(id); document.removeEventListener("visibilitychange", onVisibility); };
   }, [session?.id]);
   useEffect(() => { try { localStorage.setItem("wkp_autorefresh", autoRefresh ? "true" : "false"); } catch {} }, [autoRefresh]);
+  useEffect(() => {
+    if (!isAdmin) return;
+    const id = setInterval(async () => {
+      const { data } = await sb.from("users").select("id,username,avatar_color,avatar_photo,last_seen");
+      if (data) setUsers(data);
+    }, 60 * 1000);
+    return () => clearInterval(id);
+  }, [isAdmin]);
   // Scroll chat alleen naar onderen bij nieuw bericht of bij openen van de tab
   useEffect(() => {
     if (tab === "chat" && chatListRef.current) chatListRef.current.scrollTop = chatListRef.current.scrollHeight;
