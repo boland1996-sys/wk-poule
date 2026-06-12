@@ -5,10 +5,11 @@ export default async function handler(req, res) {
   const key = process.env.RAPIDAPI_KEY;
   if (!key) return res.status(500).json({ error: "RAPIDAPI_KEY not configured" });
 
-  const today = new Date().toISOString().split("T")[0];
+  // Format: YYYYMMDD
+  const today = new Date().toISOString().split("T")[0].replace(/-/g, "");
   const apiRes = await fetch(
-    `https://allsportsapi2.p.rapidapi.com/api/football/matches/${today}`,
-    { headers: { "x-rapidapi-key": key, "x-rapidapi-host": "allsportsapi2.p.rapidapi.com" } }
+    `https://free-api-live-football-data.p.rapidapi.com/football-get-matches-by-date?date=${today}`,
+    { headers: { "x-rapidapi-key": key, "x-rapidapi-host": "free-api-live-football-data.p.rapidapi.com" } }
   );
 
   if (!apiRes.ok) {
@@ -17,21 +18,20 @@ export default async function handler(req, res) {
   }
 
   const data = await apiRes.json();
-  const events = data?.events || [];
+  const fixtures = data?.response?.matches || data?.matches || data?.response || [];
 
-  // Return all events with only the fields we need, plus unique tournament names for debugging
-  const tournamentNames = [...new Set(events.map(e => e.tournament?.name).filter(Boolean))];
+  const tournamentNames = [...new Set(fixtures.map(f => f.tournament?.name || f.league?.name || f.competition?.name).filter(Boolean))];
 
-  const matches = events.map(e => ({
-    id: e.id,
-    tournament: e.tournament?.name,
-    category: e.tournament?.category?.name,
-    status: e.status?.type,
-    homeTeam: e.homeTeam?.name,
-    awayTeam: e.awayTeam?.name,
-    homeScore: e.homeScore?.current,
-    awayScore: e.awayScore?.current,
+  const matches = fixtures.map(f => ({
+    id: f.id || f.fixture?.id,
+    tournament: f.tournament?.name || f.league?.name || f.competition?.name || "",
+    category: f.tournament?.category?.name || f.league?.country || f.country?.name || "",
+    status: f.status?.type || f.fixture?.status?.short || f.status || "",
+    homeTeam: f.homeTeam?.name || f.teams?.home?.name || f.home?.name || "",
+    awayTeam: f.awayTeam?.name || f.teams?.away?.name || f.away?.name || "",
+    homeScore: f.homeScore?.current ?? f.goals?.home ?? f.score?.home ?? null,
+    awayScore: f.awayScore?.current ?? f.goals?.away ?? f.score?.away ?? null,
   }));
 
-  res.json({ matches, tournamentNames });
+  res.json({ matches, tournamentNames, _raw: fixtures.slice(0, 2) });
 }
