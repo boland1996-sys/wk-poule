@@ -1347,10 +1347,28 @@ export default function App() {
   // ── LOAD ──────────────────────────────────────────────────────────────
   useEffect(() => {
     (async () => {
-      const [{ data:m },{ data:u },{ data:p },{ data:ba },{ data:br },{ data:sp }] = await Promise.all([
+      // Voorspellingen in batches van 1000 ophalen (Supabase geeft standaard max 1000 per query)
+      const fetchAllPreds = async () => {
+        const all = [];
+        let from = 0;
+        const STEP = 1000;
+        while (true) {
+          const { data, error } = await sb
+            .from("predictions")
+            .select("user_id,match_id,home_goals,away_goals,id")
+            .order("id")
+            .range(from, from + STEP - 1);
+          if (error || !data) break;
+          all.push(...data);
+          if (data.length < STEP) break;
+          from += STEP;
+        }
+        return all;
+      };
+      const [{ data:m },{ data:u },p,{ data:ba },{ data:br },{ data:sp }] = await Promise.all([
         sb.from("matches").select("*").order("id"),
         sb.from("users").select("id,username,avatar_color,avatar_photo,last_seen"),
-        sb.from("predictions").select("user_id,match_id,home_goals,away_goals,id").range(0, 99999),
+        fetchAllPreds(),
         sb.from("bonus_answers").select("*"),
         sb.from("bonus_results").select("*").maybeSingle(),
         sb.from("standing_predictions").select("user_id,group,order,id"),
