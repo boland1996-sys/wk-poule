@@ -1350,7 +1350,7 @@ export default function App() {
       const [{ data:m },{ data:u },{ data:p },{ data:ba },{ data:br },{ data:sp }] = await Promise.all([
         sb.from("matches").select("*").order("id"),
         sb.from("users").select("id,username,avatar_color,avatar_photo,last_seen"),
-        sb.from("predictions").select("user_id,match_id,home_goals,away_goals,id").limit(100000),
+        sb.from("predictions").select("user_id,match_id,home_goals,away_goals,id").range(0, 99999),
         sb.from("bonus_answers").select("*"),
         sb.from("bonus_results").select("*").maybeSingle(),
         sb.from("standing_predictions").select("user_id,group,order,id"),
