@@ -1421,7 +1421,7 @@ export default function App() {
       setRefreshCount(count);
     };
     doRefresh();
-    const id = setInterval(doRefresh, 15 * 60 * 1000);
+    const id = setInterval(doRefresh, 60 * 60 * 1000);
     return () => clearInterval(id);
   }, [autoRefresh]);
 
@@ -2682,7 +2682,7 @@ export default function App() {
             <div style={{ background:"var(--c2)", border:"1px solid var(--bd)", borderRadius:10, padding:"14px 16px", marginBottom:10 }}>
               <div style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:14, color:"var(--gr)", marginBottom:6 }}>🔄 Auto-refresh uitslagen</div>
               <div style={{ fontSize:12, color:"var(--t3)", marginBottom:10, lineHeight:1.5 }}>
-                Haalt automatisch elke 15 minuten de laatste uitslagen op. Zet aan tijdens het WK!
+                Haalt automatisch elk uur de laatste uitslagen op. Zet aan tijdens het WK!
                 {lastRefresh && <span style={{ display:"block", marginTop:4, color:"var(--t2)" }}>⏱ Laatste update: {lastRefresh.toLocaleTimeString("nl-NL")} · {refreshCount}/{MAX_REFRESH} refreshes gebruikt</span>}
               </div>
               <div style={{ display:"flex", gap:8, alignItems:"center" }}>
