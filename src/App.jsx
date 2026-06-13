@@ -189,6 +189,86 @@ function Modal({ title, children, onClose }) {
   );
 }
 
+// ── WEDSTRIJD VOORSPELLINGEN MODAL ────────────────────────────────────────
+// Toont per wedstrijd wat iedereen heeft ingevuld. Andermans tips zichtbaar
+// zodra de wedstrijd vergrendeld of begonnen is (anti-afkijken vóór de deadline).
+function MatchPredsModal({ match, users, allPreds, userProfiles, myId, onClose }) {
+  const done = match.home_goals != null && match.away_goals != null;
+  const startDate = parseMatchDate(match.match_date);
+  const started = startDate ? new Date() >= startDate : false;
+  const reveal = match.locked || started || done;
+  const participants = users.filter(u => u.username.toLowerCase() !== "admin");
+  const mp = allPreds.filter(p => p.match_id === match.id && p.home_goals != null);
+
+  const rows = participants.map(u => {
+    const p = mp.find(x => x.user_id === u.id);
+    let pts = null, cls = "", lbl = "";
+    if (p && done) { const r = scorePts(p.home_goals, p.away_goals, match.home_goals, match.away_goals); pts = r.pts; cls = r.cls; lbl = r.label; }
+    return { u, p, pts, cls, lbl };
+  });
+  rows.sort((a, b) => {
+    if (!!a.p !== !!b.p) return a.p ? -1 : 1;
+    if (done && a.p && b.p) return b.pts - a.pts;
+    return a.u.username.localeCompare(b.u.username);
+  });
+
+  const parts = (match.match_date || "").split(" ");
+  const dateLabel = parts.length >= 4 ? `${parts[0]} ${parts[1]} ${parts[2]} ${parts[3]}` : match.match_date;
+
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.75)", zIndex:500, display:"flex", alignItems:"center", justifyContent:"center", padding:16 }} onClick={onClose}>
+      <div style={{ background:"var(--c1)", border:"1px solid var(--bd)", borderRadius:14, width:"100%", maxWidth:360, overflow:"hidden", maxHeight:"85vh", display:"flex", flexDirection:"column" }} onClick={e => e.stopPropagation()}>
+        <div style={{ padding:"16px 16px 14px", borderBottom:"1px solid var(--c3)" }}>
+          <div style={{ fontFamily:"'Oswald',sans-serif", fontWeight:600, fontSize:11, letterSpacing:1, textTransform:"uppercase", color:"var(--gr)", marginBottom:10 }}>
+            {match.grp ? `Groep ${match.grp} · ` : ""}{dateLabel}
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr auto 1fr", gap:10, alignItems:"center" }}>
+            <div style={{ textAlign:"right", fontSize:14, fontWeight:700, color:"var(--t1)" }}>{match.home}</div>
+            <div style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:20, color:"var(--gr)", background:"rgba(255,107,0,.1)", border:"1px solid rgba(255,107,0,.3)", borderRadius:8, padding:"3px 12px", whiteSpace:"nowrap", textAlign:"center" }}>
+              {done ? `${match.home_goals} – ${match.away_goals}` : (parts[3] || "vs")}
+            </div>
+            <div style={{ textAlign:"left", fontSize:14, fontWeight:700, color:"var(--t1)" }}>{match.away}</div>
+          </div>
+          <div style={{ textAlign:"center", fontSize:10, color:"var(--t3)", fontWeight:600, marginTop:8, textTransform:"uppercase", letterSpacing:.5 }}>
+            {done ? "Eindstand" : reveal ? "Vergrendeld" : "Nog niet begonnen"} · {mp.length} ingevuld
+          </div>
+        </div>
+
+        {!reveal ? (
+          <div style={{ padding:"30px 22px", textAlign:"center", color:"var(--t3)", fontSize:13, lineHeight:1.6 }}>
+            🔒 De voorspellingen van anderen worden zichtbaar zodra de wedstrijd vergrendeld is of begint.
+          </div>
+        ) : (
+          <div style={{ overflowY:"auto" }}>
+            {rows.map(({ u, p, cls, lbl }) => {
+              const isMe = u.id === myId;
+              return (
+                <div key={u.id} style={{ display:"flex", alignItems:"center", gap:11, padding:"10px 14px", borderBottom:"1px solid rgba(255,255,255,.06)", background: isMe ? "linear-gradient(90deg,rgba(255,107,0,.08),transparent 60%)" : "transparent", borderLeft: isMe ? "2px solid var(--gr)" : "2px solid transparent" }}>
+                  <Avatar userId={u.id} username={u.username} size={32} profiles={userProfiles} />
+                  <div style={{ flex:1, minWidth:0, display:"flex", alignItems:"center", gap:5 }}>
+                    <span style={{ fontWeight:700, fontSize:13, color: p ? "var(--t1)" : "var(--t3)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{u.username}</span>
+                    {isMe && <span style={{ fontSize:9, fontWeight:900, background:"rgba(255,107,0,.15)", color:"var(--gr)", borderRadius:3, padding:"1px 5px", border:"1px solid rgba(255,107,0,.2)", flexShrink:0 }}>JIJ</span>}
+                  </div>
+                  {p ? (
+                    <span style={{ fontFamily:"'Oswald',sans-serif", fontWeight:600, fontSize:15, color:"var(--t1)", minWidth:44, textAlign:"center" }}>{p.home_goals}–{p.away_goals}</span>
+                  ) : (
+                    <span style={{ fontSize:11, fontStyle:"italic", color:"var(--t3)" }}>niet ingevuld</span>
+                  )}
+                  {done && p && <span className={`pts-badge ${cls}`}>{lbl}</span>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <div style={{ padding:"11px 14px", borderTop:"1px solid var(--c3)", textAlign:"center", cursor:"pointer" }} onClick={onClose}>
+          <span style={{ fontSize:13, fontWeight:700, color:"var(--t2)" }}>Sluiten</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── CSS ───────────────────────────────────────────────────────────────────
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800;900&family=Oswald:wght@500;600;700&display=swap');
@@ -497,7 +577,7 @@ function PredDist({ matchId, preds }) {
 }
 
 // ── GROUP CARD ────────────────────────────────────────────────────────────
-function GroupCard({ group, matches, isAdmin, myPreds, allPreds, onScore, onLock, onPred, toast }) {
+function GroupCard({ group, matches, isAdmin, myPreds, allPreds, onScore, onLock, onPred, toast, onShowPreds }) {
   const gm = matches.filter(m => m.grp === group && m.phase === "group");
   const [ed, setEd] = useState(null);
   const [ts, setTs] = useState({ h:"", a:"" });
@@ -589,6 +669,7 @@ function GroupCard({ group, matches, isAdmin, myPreds, allPreds, onScore, onLock
                 {m.locked && !isAdmin && <span className="lock-tag">🔒</span>}
                 {!isAdmin && mp && done && <span className={`pts-badge ${cls}`}>{lbl}</span>}
                 {!isAdmin && mp && !isP && <span className="pill">{mp.home_goals}–{mp.away_goals}</span>}
+                {onShowPreds && <button className="btn btn-out btn-sm" title="Wie tipte wat?" onClick={() => onShowPreds(m)}>👥</button>}
                 {canP && !isP && (
                   <button className="btn btn-out btn-sm" onClick={() => { setPe(m.id); setTp({ h: mp?.home_goals ?? "", a: mp?.away_goals ?? "" }); }}>
                     {mp ? "✏️" : "⚽ Tip"}
@@ -627,7 +708,7 @@ function GroupCard({ group, matches, isAdmin, myPreds, allPreds, onScore, onLock
 }
 
 // ── KO CARD ───────────────────────────────────────────────────────────────
-function KOCard({ phase, matches, isAdmin, myPreds, allPreds, onScore, onLock, onPred, allTeams }) {
+function KOCard({ phase, matches, isAdmin, myPreds, allPreds, onScore, onLock, onPred, allTeams, onShowPreds }) {
   const km = matches.filter(m => m.phase === phase);
   const [ed, setEd] = useState(null);
   const [ts, setTs] = useState({ h:"", a:"", home:"", away:"", homeCustom:"", awayCustom:"" });
@@ -730,6 +811,7 @@ function KOCard({ phase, matches, isAdmin, myPreds, allPreds, onScore, onLock, o
                 {m.locked && !isAdmin && <span className="lock-tag">🔒</span>}
                 {!isAdmin && mp && done && <span className={`pts-badge ${cls}`}>{lbl}</span>}
                 {!isAdmin && mp && !isP && <span className="pill">{mp.home_goals}–{mp.away_goals}</span>}
+                {onShowPreds && hasTeams && <button className="btn btn-out btn-sm" title="Wie tipte wat?" onClick={() => onShowPreds(m)}>👥</button>}
                 {canP && !isP && (
                   <button className="btn btn-out btn-sm" onClick={() => { setPe(m.id); setTp({ h: mp?.home_goals ?? "", a: mp?.away_goals ?? "" }); }}>
                     {mp ? "✏️ Wijzig" : "⚽ Voorspel"}
@@ -1234,6 +1316,7 @@ export default function App() {
   const [kphase,        setKphase]        = useState("r32");
   const [modal,         setModal]         = useState(null);
   const [modalInput,    setModalInput]    = useState("");
+  const [predsModal,    setPredsModal]    = useState(null);  // wedstrijd waarvan ieders tip getoond wordt
   const [modalLoading,  setModalLoading]  = useState(false);
   const [potN,          setPotN]          = useState(10);
   const [twinPopup,     setTwinPopup]     = useState(null);
@@ -1772,6 +1855,10 @@ export default function App() {
       )}
 
       {/* MODALS */}
+      {predsModal && (
+        <MatchPredsModal match={predsModal} users={users} allPreds={preds} userProfiles={userProfiles} myId={session?.id} onClose={() => setPredsModal(null)} />
+      )}
+
       {modal?.type === "delete" && (
         <Modal title={`🗑️ ${modal.user.username} verwijderen?`} onClose={() => setModal(null)}>
           <div style={{ fontSize:13, color:"var(--t2)", marginBottom:16, lineHeight:1.5 }}>
@@ -2136,7 +2223,7 @@ export default function App() {
                 })}
               </div>
             </div>
-            <GroupCard group={grp} matches={matches} isAdmin={isAdmin} myPreds={myPreds} allPreds={preds} onScore={setScore} onLock={toggleLock} onPred={savePred} />
+            <GroupCard group={grp} matches={matches} isAdmin={isAdmin} myPreds={myPreds} allPreds={preds} onScore={setScore} onLock={toggleLock} onPred={savePred} onShowPreds={setPredsModal} />
           </div>
         )}
 
@@ -2224,6 +2311,7 @@ export default function App() {
                             {!isAdmin && mp && <span className="pill">{mp.home_goals}–{mp.away_goals}</span>}
                             {!isAdmin && !mp && !m.locked && !started && <span style={{ fontSize:11, color:"var(--re)", fontWeight:700 }}>⚠️ Nog geen tip!</span>}
                             {!isAdmin && !mp && (m.locked || started) && <span className="too-late">Te laat</span>}
+                            <button className="btn btn-out btn-sm" title="Wie tipte wat?" onClick={() => setPredsModal(m)}>👥</button>
                           </div>
                         </div>
                       </div>
@@ -2245,7 +2333,7 @@ export default function App() {
                 {KO_PHASES.map(p => <button key={p.id} className={`ptab${kphase===p.id?" on":""}`} onClick={() => setKphase(p.id)}>{p.full}</button>)}
               </div>
             </div>
-            <KOCard phase={kphase} matches={matches} isAdmin={isAdmin} myPreds={myPreds} allPreds={preds} onScore={setScore} onLock={toggleLock} onPred={savePred} allTeams={ALL_TEAMS} />
+            <KOCard phase={kphase} matches={matches} isAdmin={isAdmin} myPreds={myPreds} allPreds={preds} onScore={setScore} onLock={toggleLock} onPred={savePred} allTeams={ALL_TEAMS} onShowPreds={setPredsModal} />
           </div>
         )}
 
