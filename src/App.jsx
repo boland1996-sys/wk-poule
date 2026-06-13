@@ -1926,8 +1926,8 @@ export default function App() {
   const todayUntiped = !isAdmin && todayMatches.filter(m => !myPreds.find(p => p.match_id === m.id)).length > 0;
 
   const TABS = isAdmin
-    ? [{ id:"stand",ic:"🏆",lb:"Stand" },{ id:"vandaag",ic:"📅",lb:"Vandaag" },{ id:"groepen",ic:"⚽",lb:"Groepen" },{ id:"ko",ic:"🥊",lb:"KO" },{ id:"standen",ic:"📊",lb:"Standen" },{ id:"bonus",ic:"🎯",lb:"Bonus" },{ id:"pot",ic:"💶",lb:"Pot" },{ id:"chat",ic:"💬",lb:"Chat" },{ id:"beheer",ic:"👑",lb:"Beheer" }]
-    : [{ id:"stand",ic:"🏆",lb:"Stand" },{ id:"vandaag",ic:"📅",lb:"Vandaag" },{ id:"groepen",ic:"⚽",lb:"Groepen" },{ id:"ko",ic:"🥊",lb:"KO" },{ id:"standen",ic:"📊",lb:"Standen" },{ id:"bonus",ic:"🎯",lb:"Bonus" },{ id:"pot",ic:"💶",lb:"Pot" },{ id:"chat",ic:"💬",lb:"Chat" },{ id:"mijn",ic:"📋",lb:"Mijn" }];
+    ? [{ id:"stand",ic:"🏆",lb:"Stand" },{ id:"vandaag",ic:"📅",lb:"Vandaag" },{ id:"groepen",ic:"⚽",lb:"Groepen" },{ id:"ko",ic:"🥊",lb:"KO" },{ id:"standen",ic:"📊",lb:"Standen" },{ id:"bonus",ic:"🎯",lb:"Bonus" },{ id:"pot",ic:"💶",lb:"Pot" },{ id:"beheer",ic:"👑",lb:"Beheer" }]
+    : [{ id:"stand",ic:"🏆",lb:"Stand" },{ id:"vandaag",ic:"📅",lb:"Vandaag" },{ id:"groepen",ic:"⚽",lb:"Groepen" },{ id:"ko",ic:"🥊",lb:"KO" },{ id:"standen",ic:"📊",lb:"Standen" },{ id:"bonus",ic:"🎯",lb:"Bonus" },{ id:"pot",ic:"💶",lb:"Pot" },{ id:"mijn",ic:"📋",lb:"Mijn" }];
 
   const myStandingPred = standingPreds.find(s => s.user_id === session?.id && s.group === grp)?.order;
 
@@ -2557,63 +2557,6 @@ export default function App() {
         )}
 
         {/* ── CHAT ── */}
-        {tab === "chat" && (
-          <div className="fu">
-            <div className="sec-title">💬 Groepschat</div>
-            <div className="sec-sub">Chat met alle deelnemers · {chatMsgs.length} berichten · <span style={{ color:"#22c55e", fontWeight:700 }}>🟢 {onlineUsers.size} online</span></div>
-            <div className="card" style={{ padding:"12px 14px" }}>
-              <div className="chat-wrap">
-                <div className="chat-msgs" ref={chatListRef}>
-                  {chatMsgs.length === 0 && (
-                    <div className="chat-msg system">
-                      <div className="chat-text" style={{ color:"var(--t3)", fontSize:12 }}>Nog geen berichten. Wees de eerste! 👋</div>
-                    </div>
-                  )}
-                  {chatMsgs.map((msg, i) => {
-                    const isMe = msg.user_id === session?.id || msg.username === session?.username;
-                    const color = avatarColor(msg.username || "?");
-                    const msgDate = new Date(msg.created_at);
-                    const now = new Date();
-                    const isToday = msgDate.toDateString() === now.toDateString();
-                    const isYesterday = new Date(now - 864e5).toDateString() === msgDate.toDateString();
-                    const timeStr = msgDate.toLocaleTimeString("nl-NL", { hour:"2-digit", minute:"2-digit" });
-                    const dateStr = isToday ? timeStr : isYesterday ? `gisteren ${timeStr}` : `${msgDate.toLocaleDateString("nl-NL", { day:"numeric", month:"short" })} ${timeStr}`;
-                    const time = dateStr;
-                    return (
-                      <div key={msg.id || i} className={`chat-msg ${isMe ? "mine" : "other"}`} style={{ position:"relative" }}>
-                        {!isMe && (
-                          <div className="chat-name other" style={{ color, display:"flex", alignItems:"center", gap:5 }}>
-                            <span style={{ width:7, height:7, borderRadius:"50%", background: onlineUsers.has(msg.username) ? "#22c55e" : "var(--bd)", display:"inline-block", flexShrink:0, boxShadow: onlineUsers.has(msg.username) ? "0 0 4px #22c55e" : "none" }}/>
-                            {msg.username}
-                          </div>
-                        )}
-                        <div className="chat-text">{msg.message}</div>
-                        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginTop:3 }}>
-                          <div className="chat-time" style={{ margin:0 }}>{time}</div>
-                          {isAdmin && <button onClick={() => deleteChat(msg.id)} style={{ background:"none", border:"none", color:"var(--re)", fontSize:12, cursor:"pointer", padding:"0 4px", opacity:.6 }} title="Verwijderen">🗑️</button>}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="chat-input-wrap">
-                  <input
-                    className="chat-input"
-                    placeholder="Typ een bericht..."
-                    value={chatInput}
-                    onChange={e => setChatInput(e.target.value)}
-                    onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendChat()}
-                    maxLength={300}
-                  />
-                  <button className="chat-send" disabled={!chatInput.trim() || chatSending} onClick={sendChat}>
-                    {chatSending ? <span className="spin" style={{ fontSize:16 }}>⚽</span> : "➤"}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* ── MIJN ── */}
         {tab === "mijn" && !isAdmin && (
           <div className="fu">
