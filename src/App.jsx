@@ -2425,7 +2425,9 @@ export default function App() {
                       </div>
                       <div className="mr-teams" style={{ margin:0 }}>
                         <div className="mr-home">{m.home || "?"}</div>
-                        <div className="score-btn" style={{ fontSize:11, minWidth:40, padding:"5px 6px", cursor:"default" }}>vs</div>
+                        {!isAdmin && mp
+                          ? <div className="score-btn" title="Jouw tip" style={{ fontSize:13, minWidth:44, padding:"5px 6px", cursor:"default", color:"var(--am)", borderColor:"rgba(255,179,71,.4)", background:"rgba(255,179,71,.12)" }}>{mp.home_goals}–{mp.away_goals}</div>
+                          : <div className="score-btn" style={{ fontSize:11, minWidth:40, padding:"5px 6px", cursor:"default" }}>vs</div>}
                         <div className="mr-away">{m.away || "?"}</div>
                       </div>
                     </div>
@@ -2433,7 +2435,6 @@ export default function App() {
                       <span></span>
                       <div className="mr-actions">
                         {!isAdmin && mp && done && <span className={`pts-badge ${cls}`}>{lbl}</span>}
-                        {!isAdmin && mp && <span className="pill">{mp.home_goals}–{mp.away_goals}</span>}
                         {!isAdmin && !mp && !m.locked && !started && <span style={{ fontSize:11, color:"var(--re)", fontWeight:700 }}>⚠️ Nog geen tip!</span>}
                         {!isAdmin && !mp && (m.locked || started) && <span className="too-late">Te laat</span>}
                         <button className="btn btn-out btn-sm" title="Wie tipte wat?" onClick={() => setPredsModal(m)}>👥</button>
