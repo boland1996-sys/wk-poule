@@ -1600,7 +1600,18 @@ export default function App() {
           await channel.track({ username: session.username, online_at: new Date().toISOString() });
         }
       });
-    return () => sb.removeChannel(channel);
+    // Schrijf elke minuut last_seen weg voor ALLE online deelnemers, gezien via
+    // presence. Sommige toestellen (mobiel) krijgen hun eigen REST-update niet
+    // weggeschreven, maar presence werkt daar wél — dus laat elk draaiend
+    // toestel de online gebruikers bijwerken. RLS staat uit, dus dit mag.
+    const persistOnline = () => {
+      const state = channel.presenceState();
+      const names = [...new Set(Object.values(state).flat().map(p => p.username).filter(Boolean))];
+      const now = new Date().toISOString();
+      names.forEach(name => sb.from("users").update({ last_seen: now }).eq("username", name));
+    };
+    const persistId = setInterval(persistOnline, 60 * 1000);
+    return () => { clearInterval(persistId); sb.removeChannel(channel); };
   }, [session?.username]);
 
   // ── AUTH ──────────────────────────────────────────────────────────────
