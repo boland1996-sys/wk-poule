@@ -2967,12 +2967,6 @@ export default function App() {
                       </div>
                       <div style={{ display:"flex", gap:5, flexShrink:0 }}>
                         <button className="btn btn-out btn-sm btn-ic" title="Wachtwoord resetten" onClick={() => { setModal({ type:"resetpw", user:u }); setModalInput(""); }}>🔑</button>
-                        <button className="btn btn-out btn-sm btn-ic" title="Tips wissen" style={{color:"var(--am)",borderColor:"rgba(255,179,71,.3)"}} onClick={async () => {
-                          if (!confirm(`Alle tips van ${u.username} wissen?`)) return;
-                          await sb.from("predictions").delete().eq("user_id", u.id);
-                          setPreds(ps => ps.filter(p => p.user_id !== u.id));
-                          showToast(`🧹 Tips van ${u.username} gewist`);
-                        }}>🧹</button>
                         <button className="btn btn-del btn-sm btn-ic" title="Definitief verwijderen" onClick={() => setModal({ type:"delete", user:u })}>🗑️</button>
                       </div>
                     </div>
