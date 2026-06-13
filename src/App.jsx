@@ -1524,6 +1524,25 @@ export default function App() {
     }, 30 * 1000);
     return () => clearInterval(id);
   }, [isAdmin]);
+  // Versie-check: herlaad automatisch zodra er een nieuwere versie live staat, zodat
+  // niemand op oude gecachte code blijft hangen (lost o.a. 'laatst gezien' structureel op).
+  useEffect(() => {
+    const current = document.querySelector('script[type="module"][src*="/assets/"]')?.getAttribute("src");
+    if (!current) return;
+    let reloading = false;
+    const check = async () => {
+      if (reloading || document.hidden) return;
+      try {
+        const html = await fetch("/?v=" + Date.now(), { cache: "no-store" }).then(r => r.text());
+        const m = html.match(/\/assets\/index-[A-Za-z0-9_-]+\.js/);
+        if (m && m[0] !== current) { reloading = true; location.reload(); }
+      } catch {}
+    };
+    const onVis = () => { if (!document.hidden) check(); };
+    const id = setInterval(check, 10 * 60 * 1000);
+    document.addEventListener("visibilitychange", onVis);
+    return () => { clearInterval(id); document.removeEventListener("visibilitychange", onVis); };
+  }, []);
   // Scroll chat alleen naar onderen bij nieuw bericht of bij openen van de tab
   useEffect(() => {
     if (tab === "chat" && chatListRef.current) chatListRef.current.scrollTop = chatListRef.current.scrollHeight;
