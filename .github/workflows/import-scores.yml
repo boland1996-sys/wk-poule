@@ -1,0 +1,17 @@
+name: Auto-import WK uitslagen
+
+# Roept elke 15 minuten de server-functie aan die uitslagen ophaalt en wegschrijft.
+# Draait op GitHub (gratis), dus ook als niemand de app open heeft.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger import endpoint
+        run: |
+          curl -fsS -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "https://www.ramonboland.com/api/cron-import"
