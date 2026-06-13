@@ -1192,7 +1192,6 @@ function CountdownCard() {
 // ── LIVE / VOLGENDE WEDSTRIJD (tikt elke seconde, zonder hele app mee te slepen) ──
 function LiveOrNext({ matches, nextMatch }) {
   const [, setTick] = useState(0);
-  const [liveData, setLiveData] = useState([]);
   useEffect(() => { const id = setInterval(() => setTick(t => t + 1), 1000); return () => clearInterval(id); }, []);
   const now = new Date();
 
@@ -1203,51 +1202,21 @@ function LiveOrNext({ matches, nextMatch }) {
     const end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
     return now >= start && now <= end;
   });
-  const hasLive = liveMatches.length > 0;
 
-  // Haal live tussenstand + speelminuut op via de API zolang er iets bezig is.
-  useEffect(() => {
-    if (!hasLive) { setLiveData([]); return; }
-    let cancelled = false;
-    const fetchLive = async () => {
-      try {
-        const res = await fetch("/api/football-scores?days=1");
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!cancelled) setLiveData(data?.matches || []);
-      } catch {}
-    };
-    fetchLive();
-    const id = setInterval(fetchLive, 30 * 1000);
-    return () => { cancelled = true; clearInterval(id); };
-  }, [hasLive]);
-
-  const fmtMin = (mn) => mn == null ? null : (/^\d+$/.test(String(mn)) ? `${mn}'` : String(mn));
-
-  if (hasLive) return (
+  if (liveMatches.length > 0) return (
     <div style={{ background:"linear-gradient(135deg,rgba(34,197,94,.08),rgba(34,197,94,.04))", border:"1px solid rgba(34,197,94,.25)", borderRadius:"var(--r)", padding:"14px 16px", marginBottom:12 }}>
       <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
         <span className="live"/>
         <span style={{ fontSize:12, fontWeight:800, color:"#22c55e", textTransform:"uppercase", letterSpacing:1 }}>Live nu</span>
         <span style={{ fontSize:11, color:"var(--t3)" }}>{liveMatches.length} wedstrijd{liveMatches.length>1?"en":""} bezig</span>
       </div>
-      {liveMatches.map(m => {
-        const api = liveMatchFor(m, liveData);
-        const hasScore = api && api.homeScore != null && api.awayScore != null;
-        const minute = fmtMin(api?.minute);
-        return (
-          <div key={m.id} style={{ display:"flex", alignItems:"center", gap:8, padding:"7px 0", borderBottom:"1px solid rgba(34,197,94,.1)" }}>
-            <div style={{ flex:1, fontSize:12, fontWeight:700, textAlign:"right", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{m.home}</div>
-            <div style={{ flexShrink:0, textAlign:"center", minWidth:54 }}>
-              <div style={{ background:"rgba(34,197,94,.15)", border:"1.5px solid rgba(34,197,94,.3)", borderRadius:7, padding:"3px 10px", fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:15, color:"#22c55e" }}>
-                {hasScore ? `${api.homeScore}–${api.awayScore}` : "LIVE"}
-              </div>
-              {minute && <div style={{ fontSize:9, color:"#22c55e", fontWeight:700, marginTop:2 }}>⏱ {minute}</div>}
-            </div>
-            <div style={{ flex:1, fontSize:12, fontWeight:700, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{m.away}</div>
-          </div>
-        );
-      })}
+      {liveMatches.map(m => (
+        <div key={m.id} style={{ display:"flex", alignItems:"center", gap:8, padding:"7px 0", borderBottom:"1px solid rgba(34,197,94,.1)" }}>
+          <div style={{ flex:1, fontSize:12, fontWeight:700, textAlign:"right", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{m.home}</div>
+          <div style={{ background:"rgba(34,197,94,.15)", border:"1.5px solid rgba(34,197,94,.3)", borderRadius:7, padding:"4px 10px", fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:14, color:"#22c55e", flexShrink:0 }}>LIVE</div>
+          <div style={{ flex:1, fontSize:12, fontWeight:700, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{m.away}</div>
+        </div>
+      ))}
     </div>
   );
 
