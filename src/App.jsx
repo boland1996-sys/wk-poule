@@ -1477,9 +1477,19 @@ export default function App() {
     const update = () => sb.from("users").update({ last_seen: new Date().toISOString() }).eq("id", session.id);
     update();
     const id = setInterval(update, 60 * 1000);
+    // Schrijf last_seen op de momenten die mobiel altijd vuren: voorgrond halen én wegswipen.
     const onVisibility = () => { update(); };
     document.addEventListener("visibilitychange", onVisibility);
-    return () => { clearInterval(id); document.removeEventListener("visibilitychange", onVisibility); };
+    window.addEventListener("focus", update);
+    window.addEventListener("pageshow", update);
+    window.addEventListener("pagehide", update);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("focus", update);
+      window.removeEventListener("pageshow", update);
+      window.removeEventListener("pagehide", update);
+    };
   }, [session?.id]);
   useEffect(() => { try { localStorage.setItem("wkp_autorefresh", autoRefresh ? "true" : "false"); } catch {} }, [autoRefresh]);
   useEffect(() => {
