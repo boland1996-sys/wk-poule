@@ -1581,7 +1581,7 @@ export default function App() {
     // Realtime chat + presence (online indicator)
     const channel = sb.channel("wkpoule_presence")
       .on("postgres_changes", { event:"INSERT", schema:"public", table:"chat_messages" }, payload => {
-        setChatMsgs(ms => [...ms, payload.new]);
+        setChatMsgs(ms => ms.some(m => m.id === payload.new.id) ? ms : [...ms, payload.new]);
       })
       .on("postgres_changes", { event:"DELETE", schema:"public", table:"chat_messages" }, payload => {
         setChatMsgs(ms => ms.filter(m => m.id !== payload.old.id));
@@ -1873,9 +1873,11 @@ export default function App() {
       username: session.username,
       message: chatInput.trim(),
     };
-    const { error } = await sb.from("chat_messages").insert(msg);
+    const { data, error } = await sb.from("chat_messages").insert(msg).select().single();
     setChatSending(false);
     if (error) { showToast("❌ Bericht niet verzonden", 3000); return; }
+    // Direct lokaal tonen (niet wachten op realtime-echo); dubbele voorkomen via id.
+    if (data) setChatMsgs(ms => ms.some(m => m.id === data.id) ? ms : [...ms, data]);
     setChatInput("");
   };
 
