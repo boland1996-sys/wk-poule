@@ -1365,10 +1365,6 @@ export default function App() {
   const chatListRef = useRef(null);
   const [chatSending,   setChatSending]   = useState(false);
   const [importLog,     setImportLog]     = useState([]);
-  const [autoRefresh,   setAutoRefresh]   = useState(() => { try { return localStorage.getItem("wkp_autorefresh") === "true"; } catch { return false; } });
-  const [lastRefresh,   setLastRefresh]   = useState(null);
-  const [refreshCount,  setRefreshCount]  = useState(0);
-  const MAX_REFRESH = 100;
   const [lockAllLoading,setLockAllLoading]= useState(false);
   const [exportText,    setExportText]    = useState(null);
 
@@ -1520,7 +1516,6 @@ export default function App() {
       window.removeEventListener("pagehide", update);
     };
   }, [session?.id]);
-  useEffect(() => { try { localStorage.setItem("wkp_autorefresh", autoRefresh ? "true" : "false"); } catch {} }, [autoRefresh]);
   useEffect(() => {
     if (!isAdmin) return;
     const id = setInterval(async () => {
@@ -1534,37 +1529,8 @@ export default function App() {
     if (tab === "chat" && chatListRef.current) chatListRef.current.scrollTop = chatListRef.current.scrollHeight;
   }, [chatMsgs.length, tab]);
 
-  // ── AUTO REFRESH UITSLAGEN ELKE 5 MINUTEN (max 100x) ────────────────
-  useEffect(() => {
-    if (!autoRefresh) return;
-    // Slim: elke 5 min kijken of er een wedstrijd nét is afgelopen zonder uitslag.
-    // Alleen dán de API aanroepen — scheelt enorm veel verzoeken t.o.v. continu pollen.
-    let first = true;
-    const tick = async () => {
-      const now = new Date();
-      // Bij openen één keer een inhaalslag; daarna alleen als er iets recent eindigde.
-      const recentlyEnded = matchesRef.current.some(m => {
-        if (m.home_goals != null) return false;
-        const start = parseMatchDate(m.match_date);
-        if (!start) return false;
-        const ended = new Date(start.getTime() + 105 * 60 * 1000);          // ~einde wedstrijd
-        const windowEnd = new Date(ended.getTime() + 4 * 60 * 60 * 1000);   // tot 4u erna blijven proberen
-        return now >= ended && now <= windowEnd;
-      });
-      if (first || recentlyEnded) {
-        try {
-          const { updated } = await runImport();
-          setLastRefresh(new Date());
-          setRefreshCount(c => c + 1);
-          if (updated > 0) showToast(`✅ ${updated} uitslag(en) automatisch binnengehaald`);
-        } catch {}
-      }
-      first = false;
-    };
-    tick();
-    const id = setInterval(tick, 5 * 60 * 1000);
-    return () => clearInterval(id);
-  }, [autoRefresh]);
+  // Auto-import draait nu server-side via GitHub Actions (elke 15 min), ook zonder
+  // dat iemand is ingelogd — de in-app variant is daardoor overbodig en verwijderd.
 
   // ── AUTO VERGRENDELEN BIJ AANVANG WEDSTRIJD ──────────────────────────
   useEffect(() => {
@@ -2879,24 +2845,6 @@ export default function App() {
                 </div>
               );
             })()}
-
-            {/* ── AUTO REFRESH TOGGLE ── */}
-            <div style={{ background:"var(--c2)", border:"1px solid var(--bd)", borderRadius:10, padding:"14px 16px", marginBottom:10 }}>
-              <div style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:14, color:"var(--gr)", marginBottom:6 }}>🔄 Auto-import uitslagen</div>
-              <div style={{ fontSize:12, color:"var(--t3)", marginBottom:10, lineHeight:1.5 }}>
-                Haalt de uitslag automatisch binnen kort nadat een wedstrijd is afgelopen (checkt elke 5 min, alleen als er net iets is geëindigd). Laat dit aan staan tijdens het WK terwijl je de app open hebt.
-                {lastRefresh && <span style={{ display:"block", marginTop:4, color:"var(--t2)" }}>⏱ Laatste auto-import: {lastRefresh.toLocaleTimeString("nl-NL")}</span>}
-              </div>
-              <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-                <button
-                  className="btn"
-                  style={{ flex:1, background: autoRefresh ? "var(--gr)" : "var(--c3)", color: autoRefresh ? "#fff" : "var(--t2)", border:"1px solid var(--bd)", padding:"10px", borderRadius:8, fontWeight:700, fontSize:13 }}
-                  onClick={() => { setAutoRefresh(v => !v); if (!autoRefresh) setLastRefresh(null); }}
-                >
-                  {autoRefresh ? "🟢 Auto-import AAN" : "⚫ Auto-import UIT"}
-                </button>
-              </div>
-            </div>
 
             {/* ── ALLES VERGRENDELEN ── */}
             <div style={{ background:"var(--c2)", border:"1px solid var(--bd)", borderRadius:10, padding:"14px 16px", marginBottom:10 }}>
