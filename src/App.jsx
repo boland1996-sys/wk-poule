@@ -2500,6 +2500,40 @@ export default function App() {
           <div className="fu">
             <div className="sec-title">📊 Alle Groepsstanden</div>
             <div className="sec-sub">Top 2 + 8 beste nummers 3 gaan door naar knockout</div>
+            {(() => {
+              // Nummer 3 van elke groep, gerangschikt (punten → doelsaldo → doelpunten). Top 8 gaat door.
+              const thirds = GROUPS
+                .map(g => { const r = groupStandings[g]?.[2]; return r ? { ...r, grp: g } : null; })
+                .filter(Boolean)
+                .sort((a,b) => b.pts - a.pts || (b.gf - b.ga) - (a.gf - a.ga) || b.gf - a.gf);
+              if (thirds.length === 0) return null;
+              return (
+                <div className="card">
+                  <div className="card-head">
+                    <span className="card-title">🥉 Beste nummers 3</span>
+                    <span style={{ fontSize:11, color:"var(--t3)" }}>top 8 gaat door</span>
+                  </div>
+                  <div style={{ padding:"2px 14px 10px" }}>
+                    <div className="stand-row" style={{ padding:"4px 0", borderBottom:"1px solid var(--bd)" }}>
+                      <div /><div style={{ fontSize:9, color:"var(--t3)", fontWeight:700, letterSpacing:.5 }}>TEAM</div>
+                      {["W","G","V","DV","DA","Pnt"].map(h => <div key={h} className="stand-cell" style={{ fontSize:9, fontWeight:700, color:"var(--t3)" }}>{h}</div>)}
+                    </div>
+                    {thirds.map((r,i) => (
+                      <div key={r.grp} className="stand-row" style={{ borderBottom: i===7 ? "2px solid var(--gr)" : undefined, opacity: i<8 ? 1 : .45 }}>
+                        <div className="stand-num" style={{ color: i<8 ? "var(--gr)" : "var(--t3)" }}>{i+1}</div>
+                        <div className="stand-team">{r.team} <span style={{ color:"var(--t3)", fontSize:9, fontWeight:600 }}>({r.grp})</span></div>
+                        <div className="stand-cell">{r.w}</div>
+                        <div className="stand-cell">{r.d}</div>
+                        <div className="stand-cell">{r.l}</div>
+                        <div className="stand-cell">{r.gf}</div>
+                        <div className="stand-cell">{r.ga}</div>
+                        <div className="stand-pts" style={{ color: i<8 ? "var(--gr)" : "var(--t1)" }}>{r.pts}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
             {GROUPS.map(g => {
               // FIX #16: toon de actuele top 2, niet hardcoded eerste 2 teams
               const standing = groupStandings[g];
