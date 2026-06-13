@@ -2101,7 +2101,7 @@ export default function App() {
             {wkStarted && <LiveOrNext matches={matches} nextMatch={nextMatch} />}
 
             <div className="sec-title">Tussenstand</div>
-            <div className="sec-sub">7pt exact · 3pt winnaar · +1pt per team goals · 10pt bonus · 5pt eindstand</div>
+            <div className="sec-sub">3pt winnaar · +1pt per team-goals · +2 bonus bij exact (= 7pt) · 10pt bonusvragen · 5pt eindstand</div>
 
             {leaderboard.length === 0
               ? <div className="empty"><div className="empty-i">👥</div><div className="empty-t">Nog geen deelnemers.<br />Deel de link met je vrienden!</div></div>
