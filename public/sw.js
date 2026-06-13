@@ -1,4 +1,4 @@
-const CACHE = "wkpoule-v2";
+const CACHE = "wkpoule-v3";
 
 self.addEventListener("install", e => {
   self.skipWaiting();
