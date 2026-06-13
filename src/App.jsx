@@ -97,7 +97,7 @@ function parseMatchDate(md) {
 }
 
 // ── PUNTENSYSTEEM (Vindicat) ──────────────────────────────────────────────
-// 3pt winnaar/gelijkspel goed + 1pt thuisgoals goed + 1pt uitgoals goed = max 5pt
+// 3pt winnaar/gelijkspel goed + 1pt thuisgoals goed + 1pt uitgoals goed = 5pt; exacte uitslag +2 bonus = 7pt
 function scorePts(ph, pa, mh, ma) {
   ph = +ph; pa = +pa; mh = +mh; ma = +ma;
   const predOut = ph > pa ? 1 : ph < pa ? -1 : 0;
@@ -106,7 +106,7 @@ function scorePts(ph, pa, mh, ma) {
   if (predOut === realOut) pts += 3;
   if (ph === mh) pts += 1;
   if (pa === ma) pts += 1;
-  if (pts === 5) return { pts: 5, label: "+5 ✓", cls: "pts-exact" };
+  if (pts === 5) return { pts: 7, label: "+7 ✓", cls: "pts-exact", exact: true };  // exacte uitslag: 5 + 2 bonus
   if (pts === 4) return { pts: 4, label: "+4", cls: "pts-high" };
   if (pts === 3) return { pts: 3, label: "+3", cls: "pts-mid" };
   if (pts === 2) return { pts: 2, label: "+2", cls: "pts-low" };
@@ -122,7 +122,7 @@ function calcMatchPts(preds, matchMap) {
     if (!m || m.home_goals == null || m.away_goals == null) continue;
     const r = scorePts(p.home_goals, p.away_goals, m.home_goals, m.away_goals);
     pts += r.pts;
-    if (r.pts === 5) exact++;
+    if (r.exact) exact++;
   }
   return { pts, exact };
 }
@@ -1760,9 +1760,9 @@ export default function App() {
     const m = matchMap.get(mid);
     if (m && m.home_goals != null) {
       const r = scorePts(hg, ag, m.home_goals, m.away_goals);
-      if (r.pts === 5) {
+      if (r.exact) {
         fireConfetti();
-        setPtsPopup("+5 Exact! 🎯");
+        setPtsPopup("+7 Exact! 🎯");
         setTimeout(() => setPtsPopup(null), 2500);
       }
     }
@@ -2101,7 +2101,7 @@ export default function App() {
             {wkStarted && <LiveOrNext matches={matches} nextMatch={nextMatch} />}
 
             <div className="sec-title">Tussenstand</div>
-            <div className="sec-sub">5pt exact · 3pt winnaar · +1pt per team goals · 10pt bonus · 5pt eindstand</div>
+            <div className="sec-sub">7pt exact · 3pt winnaar · +1pt per team goals · 10pt bonus · 5pt eindstand</div>
 
             {leaderboard.length === 0
               ? <div className="empty"><div className="empty-i">👥</div><div className="empty-t">Nog geen deelnemers.<br />Deel de link met je vrienden!</div></div>
@@ -2637,7 +2637,7 @@ export default function App() {
                   {/* Stats blokken */}
                   <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8, marginBottom:12 }}>
                     {[
-                      { val:`${exact}×`, lbl:"Exact", sub:`+${exact*5}pt`, c:"var(--gr)" },
+                      { val:`${exact}×`, lbl:"Exact", sub:`+${exact*7}pt`, c:"var(--gr)" },
                       { val:`${bp}pt`, lbl:"Bonus", sub:`${BONUS_QS.filter(q => bonusR?.[q.id] && myBonusAns[q.id]?.toString().toLowerCase().trim() === bonusR[q.id].toString().toLowerCase().trim()).length}/${BONUS_QS.length} goed`, c:"var(--am)" },
                       { val:`${winPct}%`, lbl:"Winnaar goed", sub:`${winnerOk}/${donePreds.length}`, c:"#60a5fa" },
                     ].map((s,i) => (
