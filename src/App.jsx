@@ -1499,7 +1499,8 @@ export default function App() {
   useEffect(() => { try { if (session && session.id) localStorage.setItem("wkp2026", JSON.stringify(session)); else localStorage.removeItem("wkp2026"); } catch {} }, [session]);
   useEffect(() => {
     if (!session?.id || session.isAdmin) return;
-    const update = () => sb.from("users").update({ last_seen: new Date().toISOString() }).eq("id", session.id);
+    // BELANGRIJK: .then() is nodig, anders verstuurt Supabase het verzoek niet (lazy query).
+    const update = () => { sb.from("users").update({ last_seen: new Date().toISOString() }).eq("id", session.id).then(() => {}, () => {}); };
     update();
     const id = setInterval(update, 60 * 1000);
     // Schrijf last_seen op de momenten die mobiel altijd vuren: voorgrond halen én wegswipen.
@@ -1595,7 +1596,7 @@ export default function App() {
         // Direct last_seen wegschrijven voor wie nu online is — vangnet voor toestellen
         // die hun eigen tijd niet wegschrijven (oude code). RLS staat uit, dus dit mag.
         const now = new Date().toISOString();
-        names.forEach(name => sb.from("users").update({ last_seen: now }).eq("username", name));
+        names.forEach(name => { sb.from("users").update({ last_seen: now }).eq("username", name).then(() => {}, () => {}); });
       })
       .on("presence", { event:"join" }, ({ newPresences }) => {
         setOnlineUsers(prev => {
@@ -1621,7 +1622,7 @@ export default function App() {
         // Het toestel dat wegswipet kan dit zelf vaak niet meer afmaken, een
         // ander online toestel wél. RLS staat uit, dus elke rij mag bijgewerkt.
         leftPresences.forEach(p => {
-          if (p.username) sb.from("users").update({ last_seen: now }).eq("username", p.username);
+          if (p.username) sb.from("users").update({ last_seen: now }).eq("username", p.username).then(() => {}, () => {});
         });
       })
       .subscribe(async (status) => {
@@ -1637,7 +1638,7 @@ export default function App() {
       const state = channel.presenceState();
       const names = [...new Set(Object.values(state).flat().map(p => p.username).filter(Boolean))];
       const now = new Date().toISOString();
-      names.forEach(name => sb.from("users").update({ last_seen: now }).eq("username", name));
+      names.forEach(name => { sb.from("users").update({ last_seen: now }).eq("username", name).then(() => {}, () => {}); });
     };
     persistOnline();
     const persistId = setInterval(persistOnline, 30 * 1000);
@@ -1653,8 +1654,8 @@ export default function App() {
     setLoading(false);
     if (!data || data.pw_hash !== hashPw(p)) return setErr("Gebruikersnaam of wachtwoord onjuist.");
     setSession({ id: data.id, username: data.username, isAdmin: data.is_admin === true });
-    // Update last_seen bij inloggen
-    sb.from("users").update({ last_seen: new Date().toISOString() }).eq("id", data.id);
+    // Update last_seen bij inloggen (.then() nodig anders wordt het verzoek niet verstuurd)
+    sb.from("users").update({ last_seen: new Date().toISOString() }).eq("id", data.id).then(() => {}, () => {});
     setErr(""); setForm({ u:"", p:"", p2:"" });
   };
 
