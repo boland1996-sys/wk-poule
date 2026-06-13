@@ -1474,7 +1474,16 @@ export default function App() {
   useEffect(() => { try { if (session && session.id) localStorage.setItem("wkp2026", JSON.stringify(session)); else localStorage.removeItem("wkp2026"); } catch {} }, [session]);
   useEffect(() => {
     if (!session?.id || session.isAdmin) return;
-    const update = () => sb.from("users").update({ last_seen: new Date().toISOString() }).eq("id", session.id);
+    // TIJDELIJKE DIAGNOSE: toon het resultaat van de last_seen-schrijfactie op het scherm.
+    const update = async () => {
+      const { data, error } = await sb.from("users")
+        .update({ last_seen: new Date().toISOString() })
+        .eq("id", session.id)
+        .select();
+      if (error) showToast("❌ LS-fout: " + error.message);
+      else if (!data || data.length === 0) showToast("⚠️ LS: 0 rijen — id=" + String(session.id).slice(0, 8));
+      else showToast("✅ LS bijgewerkt");
+    };
     update();
     const id = setInterval(update, 60 * 1000);
     // Schrijf last_seen op de momenten die mobiel altijd vuren: voorgrond halen én wegswipen.
