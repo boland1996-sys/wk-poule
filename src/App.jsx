@@ -1521,7 +1521,7 @@ export default function App() {
     const id = setInterval(async () => {
       const { data } = await sb.from("users").select("id,username,avatar_color,avatar_photo,last_seen");
       if (data) setUsers(data);
-    }, 60 * 1000);
+    }, 30 * 1000);
     return () => clearInterval(id);
   }, [isAdmin]);
   // Scroll chat alleen naar onderen bij nieuw bericht of bij openen van de tab
@@ -1571,8 +1571,12 @@ export default function App() {
       })
       .on("presence", { event:"sync" }, () => {
         const state = channel.presenceState();
-        const online = new Set(Object.values(state).flat().map(p => p.username));
-        setOnlineUsers(online);
+        const names = [...new Set(Object.values(state).flat().map(p => p.username).filter(Boolean))];
+        setOnlineUsers(new Set(names));
+        // Direct last_seen wegschrijven voor wie nu online is — vangnet voor toestellen
+        // die hun eigen tijd niet wegschrijven (oude code). RLS staat uit, dus dit mag.
+        const now = new Date().toISOString();
+        names.forEach(name => sb.from("users").update({ last_seen: now }).eq("username", name));
       })
       .on("presence", { event:"join" }, ({ newPresences }) => {
         setOnlineUsers(prev => {
@@ -1616,7 +1620,8 @@ export default function App() {
       const now = new Date().toISOString();
       names.forEach(name => sb.from("users").update({ last_seen: now }).eq("username", name));
     };
-    const persistId = setInterval(persistOnline, 60 * 1000);
+    persistOnline();
+    const persistId = setInterval(persistOnline, 30 * 1000);
     return () => { clearInterval(persistId); sb.removeChannel(channel); };
   }, [session?.username]);
 
