@@ -57,6 +57,34 @@ const WK_START = new Date("2026-06-11T21:00:00+02:00");
 
 // Eén centrale parser voor "do 11 jun 21:00" — voorheen 6x gedupliceerd
 const NL_MONTHS = {jan:0,feb:1,mrt:2,apr:3,mei:4,jun:5,jul:6,aug:7,sep:8,okt:9,nov:10,dec:11};
+
+// Vertaaltabel: Engelse API naam → Nederlandse databasenaam (zonder vlag prefix)
+const TEAM_MAP = {
+  "Mexico":"Mexico","South Africa":"Zuid-Afrika","South Korea":"Zuid-Korea",
+  "Czech Republic":"Tsjechië","Czechia":"Tsjechië",
+  "Canada":"Canada","Bosnia and Herzegovina":"Bosnië-Herz.","Qatar":"Qatar","Switzerland":"Zwitserland",
+  "Brazil":"Brazilië","Morocco":"Marokko","Haiti":"Haïti","Scotland":"Schotland",
+  "United States":"USA","USA":"USA","Paraguay":"Paraguay","Australia":"Australië","Turkey":"Turkije",
+  "Germany":"Duitsland","Curacao":"Curaçao","Ivory Coast":"Ivoorkust","Côte d'Ivoire":"Ivoorkust","Ecuador":"Ecuador",
+  "Netherlands":"Nederland","Japan":"Japan","Sweden":"Zweden","Tunisia":"Tunesië",
+  "Belgium":"België","Egypt":"Egypte","Iran":"Iran","New Zealand":"Nieuw-Zeeland",
+  "Spain":"Spanje","Cape Verde":"Kaapverdië","Saudi Arabia":"Saoedi-Arabië","Uruguay":"Uruguay",
+  "France":"Frankrijk","Senegal":"Senegal","Iraq":"Irak","Norway":"Noorwegen",
+  "Argentina":"Argentinië","Algeria":"Algerije","Austria":"Oostenrijk","Jordan":"Jordanië",
+  "Portugal":"Portugal","DR Congo":"DR Congo","Uzbekistan":"Oezbekistan","Colombia":"Colombia",
+  "England":"Engeland","Croatia":"Kroatië","Ghana":"Ghana","Panama":"Panama",
+};
+
+// Koppel een API-wedstrijd aan een database-wedstrijd via de vertaaltabel.
+function liveMatchFor(dbMatch, apiMatches) {
+  const homeNl = dbMatch.home || "";
+  const awayNl = dbMatch.away || "";
+  return apiMatches.find(a => {
+    const h = TEAM_MAP[a.homeTeam], w = TEAM_MAP[a.awayTeam];
+    return h && w && homeNl.includes(h) && awayNl.includes(w);
+  });
+}
+
 function parseMatchDate(md) {
   if (!md) return null;
   const parts = md.trim().split(" ");
@@ -1164,6 +1192,7 @@ function CountdownCard() {
 // ── LIVE / VOLGENDE WEDSTRIJD (tikt elke seconde, zonder hele app mee te slepen) ──
 function LiveOrNext({ matches, nextMatch }) {
   const [, setTick] = useState(0);
+  const [liveData, setLiveData] = useState([]);
   useEffect(() => { const id = setInterval(() => setTick(t => t + 1), 1000); return () => clearInterval(id); }, []);
   const now = new Date();
 
@@ -1174,21 +1203,51 @@ function LiveOrNext({ matches, nextMatch }) {
     const end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
     return now >= start && now <= end;
   });
+  const hasLive = liveMatches.length > 0;
 
-  if (liveMatches.length > 0) return (
+  // Haal live tussenstand + speelminuut op via de API zolang er iets bezig is.
+  useEffect(() => {
+    if (!hasLive) { setLiveData([]); return; }
+    let cancelled = false;
+    const fetchLive = async () => {
+      try {
+        const res = await fetch("/api/football-scores?days=1");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) setLiveData(data?.matches || []);
+      } catch {}
+    };
+    fetchLive();
+    const id = setInterval(fetchLive, 30 * 1000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [hasLive]);
+
+  const fmtMin = (mn) => mn == null ? null : (/^\d+$/.test(String(mn)) ? `${mn}'` : String(mn));
+
+  if (hasLive) return (
     <div style={{ background:"linear-gradient(135deg,rgba(34,197,94,.08),rgba(34,197,94,.04))", border:"1px solid rgba(34,197,94,.25)", borderRadius:"var(--r)", padding:"14px 16px", marginBottom:12 }}>
       <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
         <span className="live"/>
         <span style={{ fontSize:12, fontWeight:800, color:"#22c55e", textTransform:"uppercase", letterSpacing:1 }}>Live nu</span>
         <span style={{ fontSize:11, color:"var(--t3)" }}>{liveMatches.length} wedstrijd{liveMatches.length>1?"en":""} bezig</span>
       </div>
-      {liveMatches.map(m => (
-        <div key={m.id} style={{ display:"flex", alignItems:"center", gap:8, padding:"7px 0", borderBottom:"1px solid rgba(34,197,94,.1)" }}>
-          <div style={{ flex:1, fontSize:12, fontWeight:700, textAlign:"right", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{m.home}</div>
-          <div style={{ background:"rgba(34,197,94,.15)", border:"1.5px solid rgba(34,197,94,.3)", borderRadius:7, padding:"4px 10px", fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:14, color:"#22c55e", flexShrink:0 }}>LIVE</div>
-          <div style={{ flex:1, fontSize:12, fontWeight:700, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{m.away}</div>
-        </div>
-      ))}
+      {liveMatches.map(m => {
+        const api = liveMatchFor(m, liveData);
+        const hasScore = api && api.homeScore != null && api.awayScore != null;
+        const minute = fmtMin(api?.minute);
+        return (
+          <div key={m.id} style={{ display:"flex", alignItems:"center", gap:8, padding:"7px 0", borderBottom:"1px solid rgba(34,197,94,.1)" }}>
+            <div style={{ flex:1, fontSize:12, fontWeight:700, textAlign:"right", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{m.home}</div>
+            <div style={{ flexShrink:0, textAlign:"center", minWidth:54 }}>
+              <div style={{ background:"rgba(34,197,94,.15)", border:"1.5px solid rgba(34,197,94,.3)", borderRadius:7, padding:"3px 10px", fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:15, color:"#22c55e" }}>
+                {hasScore ? `${api.homeScore}–${api.awayScore}` : "LIVE"}
+              </div>
+              {minute && <div style={{ fontSize:9, color:"#22c55e", fontWeight:700, marginTop:2 }}>⏱ {minute}</div>}
+            </div>
+            <div style={{ flex:1, fontSize:12, fontWeight:700, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{m.away}</div>
+          </div>
+        );
+      })}
     </div>
   );
 
@@ -1299,6 +1358,7 @@ function CropTool({ src, onCrop, onCancel }) {
 
 export default function App() {
   const [matches,       setMatches]       = useState([]);
+  const matchesRef = useRef(matches);
   const [users,         setUsers]         = useState([]);
   const [preds,         setPreds]         = useState([]);
   const [bonusA,        setBonusA]        = useState([]);
@@ -1508,21 +1568,32 @@ export default function App() {
   // ── AUTO REFRESH UITSLAGEN ELKE 5 MINUTEN (max 100x) ────────────────
   useEffect(() => {
     if (!autoRefresh) return;
-    let count = 0;
-    const doRefresh = async () => {
-      if (count >= MAX_REFRESH) {
-        setAutoRefresh(false);
-        showToast("⏹️ Auto-refresh gestopt na 100x");
-        return;
+    // Slim: elke 5 min kijken of er een wedstrijd nét is afgelopen zonder uitslag.
+    // Alleen dán de API aanroepen — scheelt enorm veel verzoeken t.o.v. continu pollen.
+    let first = true;
+    const tick = async () => {
+      const now = new Date();
+      // Bij openen één keer een inhaalslag; daarna alleen als er iets recent eindigde.
+      const recentlyEnded = matchesRef.current.some(m => {
+        if (m.home_goals != null) return false;
+        const start = parseMatchDate(m.match_date);
+        if (!start) return false;
+        const ended = new Date(start.getTime() + 105 * 60 * 1000);          // ~einde wedstrijd
+        const windowEnd = new Date(ended.getTime() + 4 * 60 * 60 * 1000);   // tot 4u erna blijven proberen
+        return now >= ended && now <= windowEnd;
+      });
+      if (first || recentlyEnded) {
+        try {
+          const { updated } = await runImport();
+          setLastRefresh(new Date());
+          setRefreshCount(c => c + 1);
+          if (updated > 0) showToast(`✅ ${updated} uitslag(en) automatisch binnengehaald`);
+        } catch {}
       }
-      const { data:m } = await sb.from("matches").select("*").order("id");
-      if (m) setMatches(m);
-      setLastRefresh(new Date());
-      count++;
-      setRefreshCount(count);
+      first = false;
     };
-    doRefresh();
-    const id = setInterval(doRefresh, 60 * 60 * 1000);
+    tick();
+    const id = setInterval(tick, 5 * 60 * 1000);
     return () => clearInterval(id);
   }, [autoRefresh]);
 
@@ -1714,6 +1785,44 @@ export default function App() {
     const { error } = await sb.from("matches").update(upd).eq("id", id);
     if (error) { showToast("❌ Score opslaan mislukt", 3000); return; }
     setMatches(ms => ms.map(m => m.id === id ? { ...m, ...upd } : m));
+  };
+
+  // Houd matchesRef gelijk aan de actuele matches (voor runImport vanuit timers).
+  useEffect(() => { matchesRef.current = matches; }, [matches]);
+
+  // Kern van de uitslagen-import: API ophalen, WK-wedstrijden matchen, scores wegschrijven.
+  // Gebruikt door zowel de handmatige knop als de automatische import na een wedstrijd.
+  const runImport = async () => {
+    const res = await fetch("/api/football-scores?days=2");
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(`Status ${res.status}: ${errData.body || errData.error || "onbekend"}`);
+    }
+    const data = await res.json();
+    const events = data?.matches || [];
+    const wkMatches = events.filter(e => TEAM_MAP[e.homeTeam] && TEAM_MAP[e.awayTeam]);
+    let updated = 0, skipped = 0;
+    const log = [];
+    for (const e of wkMatches) {
+      if (!e.finished) { skipped++; continue; }
+      let hg = e.homeScore, ag = e.awayScore;
+      if ((hg == null || ag == null) && e.scoreStr) {
+        const parts = e.scoreStr.split("-").map(s => parseInt(s.trim(), 10));
+        if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) { hg = parts[0]; ag = parts[1]; }
+      }
+      if (hg == null || ag == null) { skipped++; continue; }
+      const nlHome = TEAM_MAP[e.homeTeam], nlAway = TEAM_MAP[e.awayTeam];
+      if (!nlHome || !nlAway) { log.push(`⚠️ Onbekend team: ${e.homeTeam} vs ${e.awayTeam}`); skipped++; continue; }
+      const match = matchesRef.current.find(m => m.home?.includes(nlHome) && m.away?.includes(nlAway) && m.home_goals == null);
+      if (!match) { skipped++; continue; }
+      const { error } = await sb.from("matches").update({ home_goals: hg, away_goals: ag }).eq("id", match.id);
+      if (!error) {
+        setMatches(ms => ms.map(m => m.id === match.id ? { ...m, home_goals: hg, away_goals: ag } : m));
+        log.push(`✓ ${nlHome} ${hg}–${ag} ${nlAway}`);
+        updated++;
+      }
+    }
+    return { updated, skipped, log, found: wkMatches.length };
   };
 
   const toggleLock = async (id, locked) => {
@@ -2706,73 +2815,17 @@ export default function App() {
 
             {/* AUTO IMPORT UITSLAGEN */}
             {(() => {
-              // Vertaaltabel: Engelse API naam → Nederlandse databasenaam (zonder vlag prefix)
-              const TEAM_MAP = {
-                "Mexico":"Mexico","South Africa":"Zuid-Afrika","South Korea":"Zuid-Korea",
-                "Czech Republic":"Tsjechië","Czechia":"Tsjechië",
-                "Canada":"Canada","Bosnia and Herzegovina":"Bosnië-Herz.","Qatar":"Qatar","Switzerland":"Zwitserland",
-                "Brazil":"Brazilië","Morocco":"Marokko","Haiti":"Haïti","Scotland":"Schotland",
-                "United States":"USA","USA":"USA","Paraguay":"Paraguay","Australia":"Australië","Turkey":"Turkije",
-                "Germany":"Duitsland","Curacao":"Curaçao","Ivory Coast":"Ivoorkust","Côte d'Ivoire":"Ivoorkust","Ecuador":"Ecuador",
-                "Netherlands":"Nederland","Japan":"Japan","Sweden":"Zweden","Tunisia":"Tunesië",
-                "Belgium":"België","Egypt":"Egypte","Iran":"Iran","New Zealand":"Nieuw-Zeeland",
-                "Spain":"Spanje","Cape Verde":"Kaapverdië","Saudi Arabia":"Saoedi-Arabië","Uruguay":"Uruguay",
-                "France":"Frankrijk","Senegal":"Senegal","Iraq":"Irak","Norway":"Noorwegen",
-                "Argentina":"Argentinië","Algeria":"Algerije","Austria":"Oostenrijk","Jordan":"Jordanië",
-                "Portugal":"Portugal","DR Congo":"DR Congo","Uzbekistan":"Oezbekistan","Colombia":"Colombia",
-                "England":"Engeland","Croatia":"Kroatië","Ghana":"Ghana","Panama":"Panama",
-              };
-
+              // TEAM_MAP staat nu op module-niveau (bovenin het bestand).
               // importing en importLog komen van component-level state
 
               const importScores = async () => {
                 setImporting(true);
                 setImportLog(["🔄 Uitslagen ophalen via API..."]);
                 try {
-                  const res = await fetch("/api/football-scores");
-                  if (!res.ok) {
-                    const errData = await res.json().catch(() => ({}));
-                    throw new Error(`Status ${res.status}: ${errData.body || errData.error || "onbekend"}`);
-                  }
-                  const data = await res.json();
-                  const events = data?.matches || [];
-                  // Filter: beide teams moeten in TEAM_MAP zitten (= WK-teams)
-                  const wkMatches = events.filter(e => TEAM_MAP[e.homeTeam] && TEAM_MAP[e.awayTeam]);
-                  if (wkMatches.length === 0) {
+                  const { updated, skipped, log, found } = await runImport();
+                  if (found === 0) {
                     setImportLog(["⚠️ Geen WK-wedstrijden gevonden voor vandaag.", "Controleer of het WK al begonnen is."]);
                     setImporting(false); return;
-                  }
-                  let updated = 0, skipped = 0;
-                  const log = [];
-                  for (const e of wkMatches) {
-                    if (!e.finished) { skipped++; continue; }
-                    const apiHome = e.homeTeam;
-                    const apiAway = e.awayTeam;
-                    // Score uit scoreStr ("2 - 0") als homeScore/awayScore ontbreekt
-                    let hg = e.homeScore;
-                    let ag = e.awayScore;
-                    if ((hg == null || ag == null) && e.scoreStr) {
-                      const parts = e.scoreStr.split("-").map(s => parseInt(s.trim(), 10));
-                      if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) { hg = parts[0]; ag = parts[1]; }
-                    }
-                    if (hg == null || ag == null) { skipped++; continue; }
-                    // Zoek match in database via teamnaam
-                    const nlHome = TEAM_MAP[apiHome];
-                    const nlAway = TEAM_MAP[apiAway];
-                    if (!nlHome || !nlAway) {
-                      log.push(`⚠️ Onbekend team: ${apiHome} vs ${apiAway}`);
-                      skipped++; continue;
-                    }
-                    const match = matches.find(m =>
-                      m.home?.includes(nlHome) && m.away?.includes(nlAway) && m.home_goals == null
-                    );
-                    if (!match) { skipped++; continue; }
-                    const { error } = await sb.from("matches").update({ home_goals: hg, away_goals: ag }).eq("id", match.id);
-                    if (!error) {
-                      setMatches(ms => ms.map(m => m.id === match.id ? { ...m, home_goals: hg, away_goals: ag } : m));
-                      log.push(`✓ ${nlHome} ${hg}–${ag} ${nlAway}`);
-                      updated++;
-                    }
                   }
                   log.unshift(`✅ ${updated} uitslag(en) bijgewerkt · ${skipped} overgeslagen`);
                   setImportLog(log);
@@ -2804,10 +2857,10 @@ export default function App() {
 
             {/* ── AUTO REFRESH TOGGLE ── */}
             <div style={{ background:"var(--c2)", border:"1px solid var(--bd)", borderRadius:10, padding:"14px 16px", marginBottom:10 }}>
-              <div style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:14, color:"var(--gr)", marginBottom:6 }}>🔄 Auto-refresh uitslagen</div>
+              <div style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:14, color:"var(--gr)", marginBottom:6 }}>🔄 Auto-import uitslagen</div>
               <div style={{ fontSize:12, color:"var(--t3)", marginBottom:10, lineHeight:1.5 }}>
-                Haalt automatisch elk uur de laatste uitslagen op. Zet aan tijdens het WK!
-                {lastRefresh && <span style={{ display:"block", marginTop:4, color:"var(--t2)" }}>⏱ Laatste update: {lastRefresh.toLocaleTimeString("nl-NL")} · {refreshCount}/{MAX_REFRESH} refreshes gebruikt</span>}
+                Haalt de uitslag automatisch binnen kort nadat een wedstrijd is afgelopen (checkt elke 5 min, alleen als er net iets is geëindigd). Laat dit aan staan tijdens het WK terwijl je de app open hebt.
+                {lastRefresh && <span style={{ display:"block", marginTop:4, color:"var(--t2)" }}>⏱ Laatste auto-import: {lastRefresh.toLocaleTimeString("nl-NL")}</span>}
               </div>
               <div style={{ display:"flex", gap:8, alignItems:"center" }}>
                 <button
@@ -2815,7 +2868,7 @@ export default function App() {
                   style={{ flex:1, background: autoRefresh ? "var(--gr)" : "var(--c3)", color: autoRefresh ? "#fff" : "var(--t2)", border:"1px solid var(--bd)", padding:"10px", borderRadius:8, fontWeight:700, fontSize:13 }}
                   onClick={() => { setAutoRefresh(v => !v); if (!autoRefresh) setLastRefresh(null); }}
                 >
-                  {autoRefresh ? `🟢 Auto-refresh AAN (${refreshCount}/${MAX_REFRESH})` : "⚫ Auto-refresh UIT"}
+                  {autoRefresh ? "🟢 Auto-import AAN" : "⚫ Auto-import UIT"}
                 </button>
               </div>
             </div>

@@ -1,5 +1,8 @@
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
+  // CDN-cache: alle gebruikers delen één opgehaalde versie (max 1 upstream-call per 30s),
+  // zodat veel mensen tegelijk op de stand-pagina de API-limiet niet opblazen.
+  res.setHeader("Cache-Control", "s-maxage=30, stale-while-revalidate=60");
   if (req.method === "OPTIONS") return res.status(200).end();
 
   const key = process.env.RAPIDAPI_KEY;
@@ -11,7 +14,11 @@ export default async function handler(req, res) {
     return d.toISOString().split("T")[0].replace(/-/g, "");
   };
 
-  const dates = [getDate(2), getDate(1), getDate(0)];
+  // ?days=1 (live, alleen vandaag) of standaard 3 (import van afgelopen dagen).
+  const daysParam = parseInt(req.query?.days, 10);
+  const numDays = (daysParam >= 1 && daysParam <= 7) ? daysParam : 3;
+  const dates = [];
+  for (let i = numDays - 1; i >= 0; i--) dates.push(getDate(i));
   let fixtures = [];
 
   for (const date of dates) {
@@ -25,17 +32,26 @@ export default async function handler(req, res) {
     fixtures = fixtures.concat(day);
   }
 
-  const matches = fixtures.map(f => ({
-    id: f.id,
-    tournament: "",
-    category: "",
-    finished: f.status?.finished === true,
-    homeTeam: f.home?.name || "",
-    awayTeam: f.away?.name || "",
-    homeScore: f.home?.score ?? null,
-    awayScore: f.away?.score ?? null,
-    scoreStr: f.status?.scoreStr || "",
-  }));
+  const matches = fixtures.map(f => {
+    const st = f.status || {};
+    // Live minuut zit afhankelijk van de API in liveTime.short / .long.
+    const lt = st.liveTime;
+    const minute = (lt && (lt.short || lt.long)) || (typeof lt === "string" ? lt : null);
+    return {
+      id: f.id,
+      tournament: "",
+      category: "",
+      finished: st.finished === true,
+      started: st.started === true,
+      live: st.started === true && st.finished !== true,
+      minute,
+      homeTeam: f.home?.name || "",
+      awayTeam: f.away?.name || "",
+      homeScore: f.home?.score ?? null,
+      awayScore: f.away?.score ?? null,
+      scoreStr: st.scoreStr || "",
+    };
+  });
 
   res.json({ matches });
 }
