@@ -1581,11 +1581,18 @@ export default function App() {
           leftPresences.forEach(p => next.delete(p.username));
           return next;
         });
-        // Sla laatste gezien op
+        // Sla laatste gezien op (in geheugen voor directe weergave)
+        const now = new Date().toISOString();
         setLastSeen(prev => {
           const next = {...prev};
-          leftPresences.forEach(p => { next[p.username] = new Date().toISOString(); });
+          leftPresences.forEach(p => { next[p.username] = now; });
           return next;
+        });
+        // Schrijf óók naar de database vanaf dit (nog draaiende) toestel.
+        // Het toestel dat wegswipet kan dit zelf vaak niet meer afmaken, een
+        // ander online toestel wél. RLS staat uit, dus elke rij mag bijgewerkt.
+        leftPresences.forEach(p => {
+          if (p.username) sb.from("users").update({ last_seen: now }).eq("username", p.username);
         });
       })
       .subscribe(async (status) => {
