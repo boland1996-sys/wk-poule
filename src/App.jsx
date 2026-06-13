@@ -50,7 +50,7 @@ const KO_PHASES = [
 ];
 
 // Placeholder-teamnames die nog niet echt zijn
-const KO_PLACEHOLDERS = ["Winnaar","Verliezer","1e Groep","2e Groep","Beste nr"];
+const KO_PLACEHOLDERS = ["Winnaar","Verliezer","1e Groep","2e Groep","Beste nr","Nummer"];
 const isPlaceholder = name => !name || KO_PLACEHOLDERS.some(p => name.startsWith(p));
 
 const WK_START = new Date("2026-06-11T21:00:00+02:00");
