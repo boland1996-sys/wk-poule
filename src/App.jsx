@@ -2367,95 +2367,116 @@ export default function App() {
         {/* ── VANDAAG ── */}
         {tab === "vandaag" && (
           <div className="fu">
-            <div className="sec-title">📅 Wedstrijden Vandaag</div>
-            <div className="sec-sub">{new Date().toLocaleDateString("nl-NL", { weekday:"long", day:"numeric", month:"long" })} · 🔒 automatisch vergrendeld bij aanvang</div>
+            <div className="sec-title">📅 Wedstrijden</div>
+            <div className="sec-sub">Vandaag · morgen · overmorgen · 🔒 automatisch vergrendeld bij aanvang</div>
             {(() => {
               const now = new Date();
-              const todayMs = matches.filter(m => {
-                if (!m.match_date) return false;
+              const today0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+              const matchDayOf = (m) => {
+                if (!m.match_date) return null;
                 const parts = m.match_date.trim().split(" ");
-                if (parts.length < 3) return false;
+                if (parts.length < 3) return null;
                 const day = parseInt(parts[1]);
                 const month = NL_MONTHS[parts[2]?.toLowerCase()];
-                if (isNaN(day) || month === undefined) return false;
-                const matchDate = new Date(now.getFullYear(), month, day);
-                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                return matchDate.getTime() === today.getTime();
-              }).sort((a,b) => {
-                const ta = a.match_date?.split(" ")[3] || "00:00";
-                const tb = b.match_date?.split(" ")[3] || "00:00";
-                return ta.localeCompare(tb);
-              });
+                if (isNaN(day) || month === undefined) return null;
+                return new Date(now.getFullYear(), month, day);
+              };
+              const dayMatches = (offset) => {
+                const target = new Date(today0.getFullYear(), today0.getMonth(), today0.getDate() + offset);
+                return matches.filter(m => {
+                  const md = matchDayOf(m);
+                  return md && md.getTime() === target.getTime();
+                }).sort((a,b) => (a.match_date?.split(" ")[3] || "00:00").localeCompare(b.match_date?.split(" ")[3] || "00:00"));
+              };
 
-              if (todayMs.length === 0) return (
-                <div className="empty">
-                  <div className="empty-i">📅</div>
-                  <div className="empty-t">Geen wedstrijden vandaag.<br/>Geniet van de rustdag! 😴</div>
-                </div>
-              );
-
-              return (
-                <div className="card">
-                  <div className="card-head">
-                    <span className="card-title">📅 {todayMs.length} wedstrijd{todayMs.length !== 1 ? "en" : ""} vandaag</span>
-                    <span style={{ fontSize:11, color:"var(--t3)" }}>{todayMs.filter(m => m.home_goals != null).length} gespeeld</span>
-                  </div>
-                  {todayMs.map(m => {
-                    const mp = myPreds.find(p => p.match_id === m.id);
-                    const done = m.home_goals != null && m.away_goals != null;
-                    const parts = m.match_date.trim().split(" ");
-                    const day = parseInt(parts[1]);
-                    const month = NL_MONTHS[parts[2]?.toLowerCase()];
-                    const timeParts = (parts[3] || "00:00").split(":");
-                    const matchTime = new Date(now.getFullYear(), month, day, parseInt(timeParts[0]), parseInt(timeParts[1]));
-                    const started = now >= matchTime;
-                    const minsUntil = Math.max(0, Math.round((matchTime - now) / 60000));
-                    const canP = !isAdmin && !m.locked && !started;
-                    let cls = "", lbl = "";
-                    if (!isAdmin && mp && done) {
-                      const r = scorePts(mp.home_goals, mp.away_goals, m.home_goals, m.away_goals);
-                      cls = r.cls; lbl = r.label;
-                    }
-                    return (
-                      <div key={m.id} className="mr">
-                        <div style={{ fontSize:10, color:"var(--t3)", fontWeight:700, marginBottom:6, display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
-                          <span style={{ background:"var(--c3)", borderRadius:4, padding:"2px 7px", fontSize:10 }}>
-                            {m.phase === "group" ? `Groep ${m.grp}` : KO_PHASES.find(p => p.id === m.phase)?.full || m.phase}
-                          </span>
-                          {started && !done && <><span className="live"/><span style={{ color:"#22c55e", fontWeight:800, fontSize:10 }}>LIVE</span></>}
-                          {!started && minsUntil <= 60 && minsUntil > 0 && <span style={{ color:"var(--am)", fontWeight:700 }}>⏱ Nog {minsUntil} min</span>}
-                          {m.locked && <span className="lock-tag">🔒</span>}
+              const renderRow = (m) => {
+                const mp = myPreds.find(p => p.match_id === m.id);
+                const done = m.home_goals != null && m.away_goals != null;
+                const parts = m.match_date.trim().split(" ");
+                const day = parseInt(parts[1]);
+                const month = NL_MONTHS[parts[2]?.toLowerCase()];
+                const timeParts = (parts[3] || "00:00").split(":");
+                const matchTime = new Date(now.getFullYear(), month, day, parseInt(timeParts[0]), parseInt(timeParts[1]));
+                const started = now >= matchTime;
+                const minsUntil = Math.max(0, Math.round((matchTime - now) / 60000));
+                let cls = "", lbl = "";
+                if (!isAdmin && mp && done) {
+                  const r = scorePts(mp.home_goals, mp.away_goals, m.home_goals, m.away_goals);
+                  cls = r.cls; lbl = r.label;
+                }
+                return (
+                  <div key={m.id} className="mr">
+                    <div style={{ fontSize:10, color:"var(--t3)", fontWeight:700, marginBottom:6, display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
+                      <span style={{ background:"var(--c3)", borderRadius:4, padding:"2px 7px", fontSize:10 }}>
+                        {m.phase === "group" ? `Groep ${m.grp}` : KO_PHASES.find(p => p.id === m.phase)?.full || m.phase}
+                      </span>
+                      {started && !done && <><span className="live"/><span style={{ color:"#22c55e", fontWeight:800, fontSize:10 }}>LIVE</span></>}
+                      {!started && minsUntil <= 60 && minsUntil > 0 && <span style={{ color:"var(--am)", fontWeight:700 }}>⏱ Nog {minsUntil} min</span>}
+                      {m.locked && <span className="lock-tag">🔒</span>}
+                    </div>
+                    <div style={{ display:"grid", gridTemplateColumns:"70px 1fr", gap:10, alignItems:"center" }}>
+                      <div style={{ borderRight:"1.5px solid var(--bd)", paddingRight:10, textAlign:"center" }}>
+                        <div style={{ fontSize:16, fontWeight:800, color: done ? "var(--gr)" : started ? "#22c55e" : "var(--gr)", fontFamily:"'Oswald',sans-serif", lineHeight:1 }}>
+                          {done ? `${m.home_goals}–${m.away_goals}` : parts[3] || "–"}
                         </div>
-                        <div style={{ display:"grid", gridTemplateColumns:"70px 1fr", gap:10, alignItems:"center" }}>
-                          <div style={{ borderRight:"1.5px solid var(--bd)", paddingRight:10, textAlign:"center" }}>
-                            <div style={{ fontSize:16, fontWeight:800, color: done ? "var(--gr)" : started ? "#22c55e" : "var(--gr)", fontFamily:"'Oswald',sans-serif", lineHeight:1 }}>
-                              {done ? `${m.home_goals}–${m.away_goals}` : parts[3] || "–"}
-                            </div>
-                            <div style={{ fontSize:9, color:"var(--t3)", fontWeight:700, marginTop:3, textTransform:"uppercase" }}>
-                              {done ? "uitslag" : started ? "bezig" : "uur"}
-                            </div>
-                          </div>
-                          <div className="mr-teams" style={{ margin:0 }}>
-                            <div className="mr-home">{m.home || "?"}</div>
-                            <div className="score-btn" style={{ fontSize:11, minWidth:40, padding:"5px 6px", cursor:"default" }}>vs</div>
-                            <div className="mr-away">{m.away || "?"}</div>
-                          </div>
-                        </div>
-                        <div className="mr-meta" style={{ marginTop:7 }}>
-                          <span></span>
-                          <div className="mr-actions">
-                            {!isAdmin && mp && done && <span className={`pts-badge ${cls}`}>{lbl}</span>}
-                            {!isAdmin && mp && <span className="pill">{mp.home_goals}–{mp.away_goals}</span>}
-                            {!isAdmin && !mp && !m.locked && !started && <span style={{ fontSize:11, color:"var(--re)", fontWeight:700 }}>⚠️ Nog geen tip!</span>}
-                            {!isAdmin && !mp && (m.locked || started) && <span className="too-late">Te laat</span>}
-                            <button className="btn btn-out btn-sm" title="Wie tipte wat?" onClick={() => setPredsModal(m)}>👥</button>
-                          </div>
+                        <div style={{ fontSize:9, color:"var(--t3)", fontWeight:700, marginTop:3, textTransform:"uppercase" }}>
+                          {done ? "uitslag" : started ? "bezig" : "uur"}
                         </div>
                       </div>
-                    );
-                  })}
+                      <div className="mr-teams" style={{ margin:0 }}>
+                        <div className="mr-home">{m.home || "?"}</div>
+                        <div className="score-btn" style={{ fontSize:11, minWidth:40, padding:"5px 6px", cursor:"default" }}>vs</div>
+                        <div className="mr-away">{m.away || "?"}</div>
+                      </div>
+                    </div>
+                    <div className="mr-meta" style={{ marginTop:7 }}>
+                      <span></span>
+                      <div className="mr-actions">
+                        {!isAdmin && mp && done && <span className={`pts-badge ${cls}`}>{lbl}</span>}
+                        {!isAdmin && mp && <span className="pill">{mp.home_goals}–{mp.away_goals}</span>}
+                        {!isAdmin && !mp && !m.locked && !started && <span style={{ fontSize:11, color:"var(--re)", fontWeight:700 }}>⚠️ Nog geen tip!</span>}
+                        {!isAdmin && !mp && (m.locked || started) && <span className="too-late">Te laat</span>}
+                        <button className="btn btn-out btn-sm" title="Wie tipte wat?" onClick={() => setPredsModal(m)}>👥</button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              };
+
+              const sections = [
+                { label: "Vandaag", offset: 0 },
+                { label: "Morgen", offset: 1 },
+                { label: "Overmorgen", offset: 2 },
+              ];
+
+              if (sections.every(s => dayMatches(s.offset).length === 0)) return (
+                <div className="empty">
+                  <div className="empty-i">📅</div>
+                  <div className="empty-t">Geen wedstrijden de komende dagen.<br/>Geniet van de rustdag! 😴</div>
                 </div>
               );
+
+              return sections.map(s => {
+                const ms = dayMatches(s.offset);
+                const target = new Date(today0.getFullYear(), today0.getMonth(), today0.getDate() + s.offset);
+                const dateLabel = target.toLocaleDateString("nl-NL", { weekday:"long", day:"numeric", month:"long" });
+                return (
+                  <div key={s.offset} className="card" style={{ marginBottom:12 }}>
+                    <div className="card-head">
+                      <div style={{ display:"flex", flexDirection:"column", gap:2, minWidth:0 }}>
+                        <span className="card-title">{s.label}</span>
+                        <span style={{ fontSize:10, color:"var(--t3)", fontWeight:600 }}>{dateLabel}</span>
+                      </div>
+                      <span style={{ fontSize:11, color:"var(--t3)", flexShrink:0 }}>
+                        {ms.length === 0 ? "—" : `${ms.filter(m => m.home_goals != null).length}/${ms.length} gespeeld`}
+                      </span>
+                    </div>
+                    {ms.length === 0
+                      ? <div style={{ padding:"14px", fontSize:12, color:"var(--t3)", textAlign:"center", fontStyle:"italic" }}>Geen wedstrijden</div>
+                      : ms.map(renderRow)}
+                  </div>
+                );
+              });
             })()}
           </div>
         )}
