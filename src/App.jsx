@@ -2191,27 +2191,37 @@ export default function App() {
                           scores[u.id] = pts;
                         }
                         const maxPts = Math.max(...Object.values(scores));
-                        const winner = leaderboard.find(u => scores[u.id] === maxPts);
-                        return { day, winner, pts: maxPts };
-                      }).filter(d => d.winner && d.pts > 0);
+                        const winners = leaderboard.filter(u => scores[u.id] === maxPts);
+                        return { day, winners, pts: maxPts };
+                      }).filter(d => d.winners.length && d.pts > 0);
                       if (dayWinners.length === 0) return <div style={{ fontSize:13, color:"var(--t3)", padding:"8px 0", textAlign:"center" }}>Nog geen winnaars</div>;
                       const winCounts = {};
-                      dayWinners.forEach(d => { winCounts[d.winner.id] = (winCounts[d.winner.id] || 0) + 1; });
+                      dayWinners.forEach(d => d.winners.forEach(w => { winCounts[w.id] = (winCounts[w.id] || 0) + 1; }));
                       const mostWins = Math.max(...Object.values(winCounts));
                       const topWinner = leaderboard.find(u => winCounts[u.id] === mostWins);
+                      const joinNames = (arr) => arr.length <= 1 ? (arr[0] || "") : arr.slice(0, -1).join(", ") + " & " + arr[arr.length - 1];
                       return (
                         <div>
                           {dayWinners.map((d, i) => {
-                            const color = userProfiles[d.winner.id]?.color || avatarColor(d.winner.username);
+                            const shared = d.winners.length > 1;
                             return (
                               <div key={i} style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 0", borderBottom:"0.5px solid rgba(255,255,255,.05)" }}>
                                 <span style={{ fontSize:18, width:24, textAlign:"center", flexShrink:0 }}>🥇</span>
-                                <Avatar userId={d.winner.id} username={d.winner.username} size={36} profiles={userProfiles} />
+                                <div style={{ display:"flex", flexShrink:0 }}>
+                                  {d.winners.map((w, j) => (
+                                    <div key={w.id} style={{ marginLeft: j === 0 ? 0 : -11, borderRadius:"50%", boxShadow:"0 0 0 2px var(--c1)" }}>
+                                      <Avatar userId={w.id} username={w.username} size={32} profiles={userProfiles} />
+                                    </div>
+                                  ))}
+                                </div>
                                 <div style={{ flex:1, minWidth:0 }}>
-                                  <div style={{ fontSize:13, fontWeight:700, color:"var(--t1)" }}>{d.winner.username}</div>
+                                  <div style={{ fontSize:13, fontWeight:700, color:"var(--t1)", lineHeight:1.3, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                                    {joinNames(d.winners.map(w => w.username))}
+                                    {shared && <span style={{ fontSize:10, color:"var(--am)", fontWeight:700 }}> · gedeeld</span>}
+                                  </div>
                                   <div style={{ fontSize:11, color:"var(--t3)" }}>dag {i+1} · {d.day}</div>
                                 </div>
-                                <div style={{ fontSize:15, fontWeight:700, color:"var(--gr)", fontFamily:"'Oswald',sans-serif" }}>{d.pts} pt</div>
+                                <div style={{ fontSize:15, fontWeight:700, color:"var(--gr)", fontFamily:"'Oswald',sans-serif", flexShrink:0 }}>{d.pts} pt</div>
                               </div>
                             );
                           })}
