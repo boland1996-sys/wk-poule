@@ -2421,7 +2421,7 @@ export default function App() {
                         {live && <span className="live" style={{ margin:0 }}/>}
                         {m.locked ? "🔒 " : ""}{phaseLabel}{statusLabel ? ` · ${statusLabel}` : ""}
                       </span>
-                      <span style={{ fontSize:10, color:"var(--t3)", flexShrink:0 }}>{parts[3] || ""}</span>
+                      <span style={{ fontSize:10, color:"var(--t3)", flexShrink:0 }}>{(done || live) ? (parts[3] || "") : ""}</span>
                     </div>
                     {/* scorebord */}
                     <div style={{ display:"grid", gridTemplateColumns:"1fr auto 1fr", alignItems:"center", gap:8, padding:"14px 12px" }}>
@@ -2434,7 +2434,10 @@ export default function App() {
                           ? <span style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:30, color:"var(--gr)", letterSpacing:2 }}>{m.home_goals}<span style={{ color:"var(--bd)", margin:"0 4px" }}>–</span>{m.away_goals}</span>
                           : live
                             ? <span style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:16, color:"#22c55e", border:"1.5px solid rgba(34,197,94,.4)", borderRadius:8, padding:"4px 10px" }}>BEZIG</span>
-                            : <span style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:18, color:"var(--t3)" }}>vs</span>}
+                            : <div>
+                                <div style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:24, color:"var(--gr)", lineHeight:1 }}>{parts[3] || "vs"}</div>
+                                <div style={{ fontSize:8, color:"var(--t3)", fontWeight:700, textTransform:"uppercase", letterSpacing:.5, marginTop:2 }}>aftrap</div>
+                              </div>}
                       </div>
                       <div style={{ textAlign:"left", minWidth:0 }}>
                         <div style={{ fontSize:22, lineHeight:1 }}>{a.flag}</div>
