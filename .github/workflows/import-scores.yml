@@ -4,7 +4,7 @@ name: Auto-import WK uitslagen
 # Draait op GitHub (gratis), dus ook als niemand de app open heeft.
 on:
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "*/5 * * * *"
   workflow_dispatch: {}
 
 jobs:
