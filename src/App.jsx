@@ -2351,6 +2351,8 @@ export default function App() {
                 }).sort((a,b) => (a.match_date?.split(" ")[3] || "00:00").localeCompare(b.match_date?.split(" ")[3] || "00:00"));
               };
 
+              const splitTeam = (t) => { const s = t || "?"; const i = s.indexOf(" "); return i === -1 ? { flag:"", name:s } : { flag: s.slice(0, i), name: s.slice(i + 1) }; };
+
               const renderRow = (m) => {
                 const mp = myPreds.find(p => p.match_id === m.id);
                 const done = m.home_goals != null && m.away_goals != null;
@@ -2360,47 +2362,53 @@ export default function App() {
                 const timeParts = (parts[3] || "00:00").split(":");
                 const matchTime = new Date(now.getFullYear(), month, day, parseInt(timeParts[0]), parseInt(timeParts[1]));
                 const started = now >= matchTime;
+                const live = started && !done;
                 const minsUntil = Math.max(0, Math.round((matchTime - now) / 60000));
                 let cls = "", lbl = "";
                 if (!isAdmin && mp && done) {
                   const r = scorePts(mp.home_goals, mp.away_goals, m.home_goals, m.away_goals);
                   cls = r.cls; lbl = r.label;
                 }
+                const h = splitTeam(m.home), a = splitTeam(m.away);
+                const phaseLabel = m.phase === "group" ? `Groep ${m.grp}` : (KO_PHASES.find(p => p.id === m.phase)?.full || m.phase);
+                const statusLabel = done ? "gespeeld" : live ? "live" : (minsUntil > 0 && minsUntil <= 60 ? `nog ${minsUntil} min` : "");
                 return (
-                  <div key={m.id} className="mr">
-                    <div style={{ fontSize:10, color:"var(--t3)", fontWeight:700, marginBottom:6, display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
-                      <span style={{ background:"var(--c3)", borderRadius:4, padding:"2px 7px", fontSize:10 }}>
-                        {m.phase === "group" ? `Groep ${m.grp}` : KO_PHASES.find(p => p.id === m.phase)?.full || m.phase}
+                  <div key={m.id} style={{ background:"var(--c1)", border:`1px solid ${live ? "rgba(34,197,94,.3)" : "var(--c3)"}`, borderRadius:12, overflow:"hidden", marginBottom:8 }}>
+                    {/* kop */}
+                    <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"7px 12px", background: live ? "rgba(34,197,94,.08)" : "rgba(255,255,255,.03)", borderBottom:`1px solid ${live ? "rgba(34,197,94,.2)" : "var(--c2)"}` }}>
+                      <span style={{ fontSize:10, fontWeight:700, color: live ? "#22c55e" : "var(--t3)", textTransform:"uppercase", letterSpacing:.5, display:"flex", alignItems:"center", gap:5, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                        {live && <span className="live" style={{ margin:0 }}/>}
+                        {m.locked ? "🔒 " : ""}{phaseLabel}{statusLabel ? ` · ${statusLabel}` : ""}
                       </span>
-                      {started && !done && <><span className="live"/><span style={{ color:"#22c55e", fontWeight:800, fontSize:10 }}>LIVE</span></>}
-                      {!started && minsUntil <= 60 && minsUntil > 0 && <span style={{ color:"var(--am)", fontWeight:700 }}>⏱ Nog {minsUntil} min</span>}
-                      {m.locked && <span className="lock-tag">🔒</span>}
+                      <span style={{ fontSize:10, color:"var(--t3)", flexShrink:0 }}>{parts[3] || ""}</span>
                     </div>
-                    <div style={{ display:"grid", gridTemplateColumns:"70px 1fr", gap:10, alignItems:"center" }}>
-                      <div style={{ borderRight:"1.5px solid var(--bd)", paddingRight:10, textAlign:"center" }}>
-                        <div style={{ fontSize:16, fontWeight:800, color: done ? "var(--gr)" : started ? "#22c55e" : "var(--gr)", fontFamily:"'Oswald',sans-serif", lineHeight:1 }}>
-                          {done ? `${m.home_goals}–${m.away_goals}` : parts[3] || "–"}
-                        </div>
-                        <div style={{ fontSize:9, color:"var(--t3)", fontWeight:700, marginTop:3, textTransform:"uppercase" }}>
-                          {done ? "uitslag" : started ? "bezig" : "uur"}
-                        </div>
+                    {/* scorebord */}
+                    <div style={{ display:"grid", gridTemplateColumns:"1fr auto 1fr", alignItems:"center", gap:8, padding:"14px 12px" }}>
+                      <div style={{ textAlign:"right", minWidth:0 }}>
+                        <div style={{ fontSize:22, lineHeight:1 }}>{h.flag}</div>
+                        <div style={{ fontSize:12, fontWeight:700, color:"var(--t1)", marginTop:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{h.name}</div>
                       </div>
-                      <div className="mr-teams" style={{ margin:0 }}>
-                        <div className="mr-home">{m.home || "?"}</div>
-                        {!isAdmin && mp
-                          ? <div className="score-btn" title="Jouw tip" style={{ fontSize:13, minWidth:44, padding:"5px 6px", cursor:"default", color:"var(--am)", borderColor:"rgba(255,179,71,.4)", background:"rgba(255,179,71,.12)" }}>{mp.home_goals}–{mp.away_goals}</div>
-                          : <div className="score-btn" style={{ fontSize:11, minWidth:40, padding:"5px 6px", cursor:"default" }}>vs</div>}
-                        <div className="mr-away">{m.away || "?"}</div>
+                      <div style={{ flexShrink:0, textAlign:"center" }}>
+                        {done
+                          ? <span style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:30, color:"var(--gr)", letterSpacing:2 }}>{m.home_goals}<span style={{ color:"var(--bd)", margin:"0 4px" }}>–</span>{m.away_goals}</span>
+                          : live
+                            ? <span style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:16, color:"#22c55e", border:"1.5px solid rgba(34,197,94,.4)", borderRadius:8, padding:"4px 10px" }}>BEZIG</span>
+                            : <span style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:18, color:"var(--t3)" }}>vs</span>}
+                      </div>
+                      <div style={{ textAlign:"left", minWidth:0 }}>
+                        <div style={{ fontSize:22, lineHeight:1 }}>{a.flag}</div>
+                        <div style={{ fontSize:12, fontWeight:700, color:"var(--t1)", marginTop:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{a.name}</div>
                       </div>
                     </div>
-                    <div className="mr-meta" style={{ marginTop:7 }}>
-                      <span></span>
-                      <div className="mr-actions">
-                        {!isAdmin && mp && done && <span className={`pts-badge ${cls}`}>{lbl}</span>}
+                    {/* voet: jouw tip + punten + wie-tipte-wat */}
+                    <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, padding:"8px 12px", borderTop:"1px solid var(--c2)", background:"rgba(0,0,0,.15)" }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:8, minWidth:0, flexWrap:"wrap" }}>
+                        {!isAdmin && mp && <><span style={{ fontSize:11, color:"var(--t3)" }}>Jouw tip:</span><span style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:13, color:"var(--am)" }}>{mp.home_goals}–{mp.away_goals}</span></>}
+                        {!isAdmin && mp && done && lbl && <span className={`pts-badge ${cls}`}>{lbl}</span>}
                         {!isAdmin && !mp && !m.locked && !started && <span style={{ fontSize:11, color:"var(--re)", fontWeight:700 }}>⚠️ Nog geen tip!</span>}
                         {!isAdmin && !mp && (m.locked || started) && <span className="too-late">Te laat</span>}
-                        <button className="btn btn-out btn-sm" title="Wie tipte wat?" onClick={() => setPredsModal(m)}>👥</button>
                       </div>
+                      <button className="btn btn-out btn-sm" title="Wie tipte wat?" onClick={() => setPredsModal(m)} style={{ flexShrink:0 }}>👥</button>
                     </div>
                   </div>
                 );
@@ -2424,18 +2432,18 @@ export default function App() {
                 const target = new Date(today0.getFullYear(), today0.getMonth(), today0.getDate() + s.offset);
                 const dateLabel = target.toLocaleDateString("nl-NL", { weekday:"long", day:"numeric", month:"long" });
                 return (
-                  <div key={s.offset} className="card" style={{ marginBottom:12 }}>
-                    <div className="card-head">
-                      <div style={{ display:"flex", flexDirection:"column", gap:2, minWidth:0 }}>
+                  <div key={s.offset} style={{ marginBottom:18 }}>
+                    <div style={{ display:"flex", alignItems:"baseline", justifyContent:"space-between", padding:"0 2px 8px", gap:8 }}>
+                      <div style={{ display:"flex", alignItems:"baseline", gap:8, minWidth:0 }}>
                         <span className="card-title">{s.label}</span>
-                        <span style={{ fontSize:10, color:"var(--t3)", fontWeight:600 }}>{dateLabel}</span>
+                        <span style={{ fontSize:10, color:"var(--t3)", fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{dateLabel}</span>
                       </div>
                       <span style={{ fontSize:11, color:"var(--t3)", flexShrink:0 }}>
                         {ms.length === 0 ? "—" : `${ms.filter(m => m.home_goals != null).length}/${ms.length} gespeeld`}
                       </span>
                     </div>
                     {ms.length === 0
-                      ? <div style={{ padding:"14px", fontSize:12, color:"var(--t3)", textAlign:"center", fontStyle:"italic" }}>Geen wedstrijden</div>
+                      ? <div style={{ padding:"14px", fontSize:12, color:"var(--t3)", textAlign:"center", fontStyle:"italic", background:"var(--c1)", border:"1px solid var(--c3)", borderRadius:12 }}>Geen wedstrijden</div>
                       : ms.map(renderRow)}
                   </div>
                 );
