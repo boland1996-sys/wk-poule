@@ -29,21 +29,22 @@ export default async function handler(req, res) {
   const supaKey = process.env.VITE_SUPABASE_KEY || process.env.SUPABASE_KEY;
   if (!rapidKey || !supaUrl || !supaKey) return res.status(500).json({ error: "env vars ontbreken" });
 
-  // 1. Uitslagen ophalen (vandaag + gisteren, voor nachtwedstrijden).
+  // 1. Uitslagen ophalen via flashscore (vandaag + gisteren, voor nachtwedstrijden).
   const getDate = (daysAgo) => {
     const d = new Date();
     d.setDate(d.getDate() - daysAgo);
-    return d.toISOString().split("T")[0].replace(/-/g, "");
+    return d.toISOString().split("T")[0];
   };
   let fixtures = [];
   for (const date of [getDate(1), getDate(0)]) {
     const r = await fetch(
-      `https://free-api-live-football-data.p.rapidapi.com/football-get-matches-by-date?date=${date}`,
-      { headers: { "x-rapidapi-key": rapidKey, "x-rapidapi-host": "free-api-live-football-data.p.rapidapi.com" } }
+      `https://flashscore4.p.rapidapi.com/api/flashscore/v2/matches/list-by-date?sport_id=1&date=${date}&timezone=Europe%2FBerlin`,
+      { headers: { "x-rapidapi-key": rapidKey, "x-rapidapi-host": "flashscore4.p.rapidapi.com" } }
     );
     if (!r.ok) continue;
     const d = await r.json();
-    fixtures = fixtures.concat(d?.response?.matches || d?.matches || d?.response || []);
+    const tournaments = Array.isArray(d) ? d : (d?.data || []);
+    for (const t of tournaments) for (const m of (t.matches || [])) fixtures.push(m);
   }
 
   // 2. Wedstrijden zonder uitslag uit Supabase halen.
@@ -56,14 +57,10 @@ export default async function handler(req, res) {
   let updated = 0;
   const log = [];
   for (const f of fixtures) {
-    if (f.status?.finished !== true) continue;
-    const nlHome = TEAM_MAP[f.home?.name], nlAway = TEAM_MAP[f.away?.name];
+    if (f.match_status?.is_finished !== true) continue;
+    const nlHome = TEAM_MAP[f.home_team?.name], nlAway = TEAM_MAP[f.away_team?.name];
     if (!nlHome || !nlAway) continue;
-    let hg = f.home?.score, ag = f.away?.score;
-    if ((hg == null || ag == null) && f.status?.scoreStr) {
-      const p = f.status.scoreStr.split("-").map(s => parseInt(s.trim(), 10));
-      if (p.length === 2 && !isNaN(p[0]) && !isNaN(p[1])) { hg = p[0]; ag = p[1]; }
-    }
+    const hg = f.scores?.home, ag = f.scores?.away;
     if (hg == null || ag == null) continue;
     const match = dbMatches.find(m => m.home?.includes(nlHome) && m.away?.includes(nlAway));
     if (!match) continue;
