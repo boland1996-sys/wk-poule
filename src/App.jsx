@@ -1816,6 +1816,30 @@ export default function App() {
     return { updated, skipped, log, found: wkMatches.length };
   };
 
+  // ── CLIENT-SIDE AUTO-IMPORT (aanvulling op GitHub Actions) ───────────
+  // GitHub knijpt het */5-schema af tot ~1x/uur. Zolang de app open is draaien we
+  // de import zelf elke 5 min, maar ALLEEN als er een wedstrijd bezig/net afgelopen is
+  // (anders geen API-call → geen quotaverbruik). Alleen admin schrijft, zodat niet elke
+  // client tegelijk dezelfde update pusht.
+  const runImportRef = useRef(runImport);
+  runImportRef.current = runImport;
+  useEffect(() => {
+    if (!isAdmin || !wkStarted) return;
+    const maybeImport = async () => {
+      const now = Date.now();
+      const hasOpen = matchesRef.current.some(m => {
+        if (m.home_goals != null) return false;
+        const start = parseMatchDate(m.match_date);
+        return start && now >= start.getTime();
+      });
+      if (!hasOpen) return; // niets te importeren → sla de API-call over
+      try { await runImportRef.current(); } catch {}
+    };
+    maybeImport();
+    const id = setInterval(maybeImport, 5 * 60 * 1000);
+    return () => clearInterval(id);
+  }, [isAdmin, wkStarted]);
+
   const toggleLock = async (id, locked) => {
     const { error } = await sb.from("matches").update({ locked:!locked }).eq("id", id);
     if (error) { showToast("❌ Vergrendelen mislukt", 3000); return; }
