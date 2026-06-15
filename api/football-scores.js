@@ -32,57 +32,6 @@ export default async function handler(req, res) {
   if (!key) return res.status(500).json({ error: "RAPIDAPI_KEY not configured" });
   const headers = { "x-rapidapi-key": key, "x-rapidapi-host": HOST };
 
-  // TIJDELIJKE PROBE (?probe=1): onderzoekt of scorers beschikbaar zijn. Weghalen na test.
-  if (req.query?.probe === "1") {
-    res.setHeader("Cache-Control", "no-store");
-    const out = {};
-    // 1. Ruwe live-data: bekijk de velden van één live wedstrijd (zit er al een events-veld in?)
-    const liveRes = await fetch(`https://${HOST}/api/flashscore/v2/matches/live?sport_id=1&timezone=Europe%2FBerlin`, { headers });
-    let matchId = null;
-    if (liveRes.ok) {
-      const data = await liveRes.json();
-      const tournaments = Array.isArray(data) ? data : (data?.data || []);
-      const firstMatch = tournaments.flatMap(t => t.matches || [])[0];
-      if (firstMatch) {
-        matchId = firstMatch.match_id;
-        out.liveMatchKeys = Object.keys(firstMatch);
-        out.sampleMatchId = matchId;
-        out.sampleMatch = firstMatch;
-      }
-    } else {
-      out.liveError = liveRes.status;
-    }
-    // 2. Probeer kandidaat-detail-endpoints in diverse vormen.
-    const id = matchId;
-    const urls = [];
-    if (id) {
-      const names = [
-        "result","preview","report","odds","standings","table","top-scorers",
-        "player-statistics","match-statistics","statistics","stats","live-incidents",
-        "get-incidents","incidents","timeline","highlights","scorers","goals","feed",
-        "overview","summary","detail","match-detail","get-detail","info","lineups","commentary","events",
-      ];
-      for (const n of names) urls.push(`matches/${n}?match_id=${id}`);
-      // alternatieve parameternaam voor de meest waarschijnlijke
-      for (const n of ["incidents","timeline","summary","detail","scorers"]) {
-        urls.push(`matches/${n}?event_id=${id}`);
-        urls.push(`matches/${n}?matchId=${id}`);
-      }
-    }
-    out.detailProbes = {};
-    for (const u of urls) {
-      try {
-        const r = await fetch(`https://${HOST}/api/flashscore/v2/${u}`, { headers });
-        const entry = { status: r.status };
-        if (r.status === 200) entry.snippet = (await r.text()).slice(0, 800);
-        out.detailProbes[u] = entry;
-      } catch (e) {
-        out.detailProbes[u] = { error: String(e) };
-      }
-    }
-    return res.json(out);
-  }
-
   // LIVE-modus (?live=1): klein endpoint met alleen wedstrijden die nu bezig zijn.
   if (req.query?.live === "1") {
     res.setHeader("Cache-Control", "s-maxage=6, stale-while-revalidate=12");
