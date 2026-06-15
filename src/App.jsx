@@ -224,6 +224,23 @@ function Modal({ title, children, onClose }) {
   );
 }
 
+// Inklapbare kaart: kop altijd zichtbaar, inhoud open/dicht via klik (standaard dicht).
+function Collapse({ title, sub, defaultOpen=false, children }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="card" style={{ marginBottom:8 }}>
+      <div className="card-head" style={{ cursor:"pointer", userSelect:"none" }} onClick={() => setOpen(o => !o)}>
+        <span className="card-title">{title}</span>
+        <span style={{ display:"flex", alignItems:"center", gap:8 }}>
+          {sub && <span style={{ fontSize:11, color:"var(--t3)" }}>{sub}</span>}
+          <span style={{ fontSize:13, color:"var(--t3)", display:"inline-block", transform: open ? "rotate(180deg)" : "rotate(0deg)", transition:"transform .2s" }}>▾</span>
+        </span>
+      </div>
+      {open && <div style={{ padding:"4px 14px 10px" }}>{children}</div>}
+    </div>
+  );
+}
+
 // ── WEDSTRIJD VOORSPELLINGEN MODAL ────────────────────────────────────────
 // Toont per wedstrijd wat iedereen heeft ingevuld. Andermans tips zichtbaar
 // zodra de wedstrijd vergrendeld of begonnen is (anti-afkijken vóór de deadline).
@@ -2247,9 +2264,7 @@ export default function App() {
               <div style={{ marginTop:16 }}>
                 <div className="sec-title" style={{ fontSize:16 }}>📈 Statistieken</div>
                 <div className="sec-sub">Vergelijk prestaties per categorie</div>
-                <div className="card" style={{ marginBottom:8 }}>
-                  <div className="card-head"><span className="card-title">🏅 Speeldag winnaars</span></div>
-                  <div style={{ padding:"4px 14px 10px" }}>
+                <Collapse title="🏅 Speeldag winnaars">
                     {(() => {
                       const playedMatches = matches.filter(m => m.home_goals != null && m.away_goals != null && m.match_date);
                       if (playedMatches.length === 0) return <div style={{ fontSize:13, color:"var(--t3)", padding:"8px 0", textAlign:"center" }}>Nog geen gespeelde wedstrijden</div>;
@@ -2322,12 +2337,9 @@ export default function App() {
                         </div>
                       );
                     })()}
-                  </div>
-                </div>
+                </Collapse>
                 {leaderboard.some(u => u.bp > 0) && (
-                  <div className="card" style={{ marginBottom:8 }}>
-                    <div className="card-head"><span className="card-title">Bonuspunten</span></div>
-                    <div style={{ padding:"4px 14px 10px" }}>
+                  <Collapse title="Bonuspunten">
                       {[...leaderboard].sort((a,b) => b.bp - a.bp).map(u => {
                         const color = avatarColor(u.username);
                         const max = leaderboard.reduce((m,x) => Math.max(m, x.bp), 0) || 1;
@@ -2342,13 +2354,10 @@ export default function App() {
                           </div>
                         );
                       })}
-                    </div>
-                  </div>
+                  </Collapse>
                 )}
                 {leaderboard.some(u => u.sp > 0) && (
-                  <div className="card">
-                    <div className="card-head"><span className="card-title">Eindstand punten</span></div>
-                    <div style={{ padding:"4px 14px 10px" }}>
+                  <Collapse title="Eindstand punten">
                       {[...leaderboard].sort((a,b) => b.sp - a.sp).map(u => {
                         const color = avatarColor(u.username);
                         const max = leaderboard.reduce((m,x) => Math.max(m, x.sp), 0) || 1;
@@ -2363,8 +2372,7 @@ export default function App() {
                           </div>
                         );
                       })}
-                    </div>
-                  </div>
+                  </Collapse>
                 )}
 
                 {/* ── BESTE RONDE ── */}
@@ -2394,9 +2402,7 @@ export default function App() {
                   if (bestRounds[0]?.bestPts === 0) return null;
 
                   return (
-                    <div className="card" style={{ marginBottom:8 }}>
-                      <div className="card-head"><span className="card-title">🔥 Beste speeldag</span><span style={{ fontSize:11, color:"var(--t3)" }}>meeste punten op één dag</span></div>
-                      <div style={{ padding:"4px 14px 10px" }}>
+                    <Collapse title="🔥 Beste speeldag" sub="meeste punten op één dag">
                         {bestRounds.map(u => {
                           const color = avatarColor(u.username);
                           const max = bestRounds[0].bestPts || 1;
@@ -2417,8 +2423,7 @@ export default function App() {
                             </div>
                           );
                         })}
-                      </div>
-                    </div>
+                    </Collapse>
                   );
                 })()}
               </div>
