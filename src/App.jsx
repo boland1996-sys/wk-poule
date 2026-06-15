@@ -1253,26 +1253,35 @@ function LiveOrNext({ matches, nextMatch }) {
             {n > 1 && <span style={{ fontSize:10, fontWeight:800, color:"#ef4444" }}>{n}</span>}
           </span>
         );
+        // Vlag los van naam: "🇪🇸 Spanje" → vlag boven, naam eronder (gecentreerd blokje).
+        const teamBlock = (teamStr, redN) => {
+          const p = (teamStr || "").split(" ");
+          const flag = p.length > 1 ? p[0] : "";
+          const name = p.length > 1 ? p.slice(1).join(" ") : (teamStr || "");
+          return (
+            <div style={{ textAlign:"center", minWidth:0 }}>
+              {flag && <div style={{ fontSize:22, lineHeight:1 }}>{flag}</div>}
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:4, marginTop:4 }}>
+                <span style={{ fontSize:13, fontWeight:700, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{name}</span>
+                {redN > 0 && redCard(redN)}
+              </div>
+            </div>
+          );
+        };
         return (
           <div key={m.id} style={{ padding:"11px 0", borderBottom:"1px solid rgba(34,197,94,.1)" }}>
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:6, marginBottom:9 }}>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:6, marginBottom:10 }}>
               <span className="live" style={{ margin:0 }}/>
               <span style={{ fontSize:11, fontWeight:800, color:"#22c55e", textTransform:"uppercase", letterSpacing:1 }}>
                 Live{statusLine ? ` · ${statusLine}` : ""}
               </span>
             </div>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr auto 1fr", alignItems:"center", gap:12 }}>
-              <div style={{ display:"flex", alignItems:"center", justifyContent:"flex-end", gap:6, minWidth:0 }}>
-                <span style={{ fontSize:14, fontWeight:700, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{m.home}</span>
-                {hr > 0 && redCard(hr)}
-              </div>
-              <div style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:26, color:"#22c55e", lineHeight:1, minWidth:64, textAlign:"center" }}>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr auto 1fr", alignItems:"center", gap:10 }}>
+              {teamBlock(m.home, hr)}
+              <div style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:28, color:"#22c55e", lineHeight:1, padding:"0 6px", textAlign:"center" }}>
                 {hasScore ? `${api.homeScore}–${api.awayScore}` : "LIVE"}
               </div>
-              <div style={{ display:"flex", alignItems:"center", gap:6, minWidth:0 }}>
-                {ar > 0 && redCard(ar)}
-                <span style={{ fontSize:14, fontWeight:700, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{m.away}</span>
-              </div>
+              {teamBlock(m.away, ar)}
             </div>
           </div>
         );
