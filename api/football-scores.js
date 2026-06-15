@@ -56,17 +56,18 @@ export default async function handler(req, res) {
     const id = matchId;
     const urls = [];
     if (id) {
-      const names = ["detail","summary","incidents","info","statistics","lineups","commentary","point-by-point","head2head","h2h","events","data"];
-      for (const n of names) {
-        urls.push(`matches/${n}?match_id=${id}`);
-        urls.push(`matches/${n}?id=${id}`);
+      const names = [
+        "result","preview","report","odds","standings","table","top-scorers",
+        "player-statistics","match-statistics","statistics","stats","live-incidents",
+        "get-incidents","incidents","timeline","highlights","scorers","goals","feed",
+        "overview","summary","detail","match-detail","get-detail","info","lineups","commentary","events",
+      ];
+      for (const n of names) urls.push(`matches/${n}?match_id=${id}`);
+      // alternatieve parameternaam voor de meest waarschijnlijke
+      for (const n of ["incidents","timeline","summary","detail","scorers"]) {
+        urls.push(`matches/${n}?event_id=${id}`);
+        urls.push(`matches/${n}?matchId=${id}`);
       }
-      // id-in-pad varianten
-      urls.push(`matches/detail/${id}`);
-      urls.push(`matches/${id}`);
-      urls.push(`match/${id}`);
-      urls.push(`matches/info/${id}`);
-      urls.push(`match/incidents?event_id=${id}`);
     }
     out.detailProbes = {};
     for (const u of urls) {
