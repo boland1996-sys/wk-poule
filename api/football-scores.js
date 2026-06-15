@@ -32,6 +32,46 @@ export default async function handler(req, res) {
   if (!key) return res.status(500).json({ error: "RAPIDAPI_KEY not configured" });
   const headers = { "x-rapidapi-key": key, "x-rapidapi-host": HOST };
 
+  // TIJDELIJKE PROBE (?probe=1): onderzoekt of scorers beschikbaar zijn. Weghalen na test.
+  if (req.query?.probe === "1") {
+    res.setHeader("Cache-Control", "no-store");
+    const out = {};
+    // 1. Ruwe live-data: bekijk de velden van één live wedstrijd (zit er al een events-veld in?)
+    const liveRes = await fetch(`https://${HOST}/api/flashscore/v2/matches/live?sport_id=1&timezone=Europe%2FBerlin`, { headers });
+    let matchId = null;
+    if (liveRes.ok) {
+      const data = await liveRes.json();
+      const tournaments = Array.isArray(data) ? data : (data?.data || []);
+      const firstMatch = tournaments.flatMap(t => t.matches || [])[0];
+      if (firstMatch) {
+        matchId = firstMatch.match_id;
+        out.liveMatchKeys = Object.keys(firstMatch);
+        out.sampleMatchId = matchId;
+        out.sampleMatch = firstMatch;
+      }
+    } else {
+      out.liveError = liveRes.status;
+    }
+    // 2. Probeer kandidaat-detail-endpoints voor die match_id.
+    const candidates = [
+      "matches/detail", "matches/data", "matches/summary",
+      "matches/incidents", "matches/statistics", "matches/events", "match/detail",
+    ];
+    out.detailProbes = {};
+    if (matchId) {
+      for (const path of candidates) {
+        try {
+          const r = await fetch(`https://${HOST}/api/flashscore/v2/${path}?match_id=${encodeURIComponent(matchId)}&timezone=Europe%2FBerlin`, { headers });
+          const text = await r.text();
+          out.detailProbes[path] = { status: r.status, snippet: text.slice(0, 600) };
+        } catch (e) {
+          out.detailProbes[path] = { error: String(e) };
+        }
+      }
+    }
+    return res.json(out);
+  }
+
   // LIVE-modus (?live=1): klein endpoint met alleen wedstrijden die nu bezig zijn.
   if (req.query?.live === "1") {
     res.setHeader("Cache-Control", "s-maxage=6, stale-while-revalidate=12");
