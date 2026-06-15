@@ -26,6 +26,8 @@ const ALL_TEAMS = Object.values(GROUP_TEAMS).flat().sort((a,b)=>{
   const cl = s => s.replace(/[^a-zA-ZÀ-ÿ ]/g,'').trim();
   return cl(a).localeCompare(cl(b),'nl');
 });
+// Alleen de vlag-emoji van elk deelnemend land (voor de vlaggen-muur in de header).
+const ALL_FLAGS = Object.values(GROUP_TEAMS).flat().map(t => t.split(" ")[0]);
 
 const AVATAR_COLORS = ["#10b981","#f59e0b","#3b82f6","#ec4899","#8b5cf6","#ef4444","#14b8a6","#f97316","#84cc16","#06b6d4","#a855f7","#d946ef"];
 
@@ -2161,8 +2163,11 @@ export default function App() {
         {tab === "stand" && (
           <div className="fu">
             <div className="banner">
+              {/* Vlaggen-muur: alle deelnemende landen subtiel op de achtergrond */}
+              <div aria-hidden="true" style={{ position:"absolute", inset:0, fontSize:19, lineHeight:1.4, letterSpacing:3, wordBreak:"break-all", opacity:.13, padding:6, filter:"saturate(.7)", pointerEvents:"none" }}>
+                {ALL_FLAGS.concat(ALL_FLAGS).join("")}
+              </div>
               <div style={{ position:"relative", zIndex:1 }}>
-                <div className="banner-flags"><span>🇺🇸</span><span>🇲🇽</span><span>🇨🇦</span></div>
                 <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:6 }}>
                   <span style={{ fontSize:32, filter:"drop-shadow(0 0 10px rgba(255,107,0,.4))" }}>🏆</span>
                   <div>
