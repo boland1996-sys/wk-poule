@@ -605,7 +605,7 @@ function PredDist({ matchId, preds }) {
 }
 
 // ── GROUP CARD ────────────────────────────────────────────────────────────
-function GroupCard({ group, matches, isAdmin, myPreds, allPreds, onScore, onLock, onPred, toast, onShowPreds }) {
+function GroupCard({ group, matches, isAdmin, myPreds, onScore, onLock, onPred, onShowPreds }) {
   const gm = matches.filter(m => m.grp === group && m.phase === "group");
   const [ed, setEd] = useState(null);
   const [ts, setTs] = useState({ h:"", a:"" });
@@ -736,7 +736,7 @@ function GroupCard({ group, matches, isAdmin, myPreds, allPreds, onScore, onLock
 }
 
 // ── KO CARD ───────────────────────────────────────────────────────────────
-function KOCard({ phase, matches, isAdmin, myPreds, allPreds, onScore, onLock, onPred, allTeams, onShowPreds }) {
+function KOCard({ phase, matches, isAdmin, myPreds, onScore, onLock, onPred, allTeams, onShowPreds }) {
   const km = matches.filter(m => m.phase === phase);
   const [ed, setEd] = useState(null);
   const [ts, setTs] = useState({ h:"", a:"", home:"", away:"", homeCustom:"", awayCustom:"" });
@@ -2410,7 +2410,7 @@ export default function App() {
                 })}
               </div>
             </div>
-            <GroupCard group={grp} matches={matches} isAdmin={isAdmin} myPreds={myPreds} allPreds={preds} onScore={setScore} onLock={toggleLock} onPred={savePred} onShowPreds={setPredsModal} />
+            <GroupCard group={grp} matches={matches} isAdmin={isAdmin} myPreds={myPreds} onScore={setScore} onLock={toggleLock} onPred={savePred} onShowPreds={setPredsModal} />
           </div>
         )}
 
@@ -2553,7 +2553,7 @@ export default function App() {
                 {KO_PHASES.map(p => <button key={p.id} className={`ptab${kphase===p.id?" on":""}`} onClick={() => setKphase(p.id)}>{p.full}</button>)}
               </div>
             </div>
-            <KOCard phase={kphase} matches={matches} isAdmin={isAdmin} myPreds={myPreds} allPreds={preds} onScore={setScore} onLock={toggleLock} onPred={savePred} allTeams={ALL_TEAMS} onShowPreds={setPredsModal} />
+            <KOCard phase={kphase} matches={matches} isAdmin={isAdmin} myPreds={myPreds} onScore={setScore} onLock={toggleLock} onPred={savePred} allTeams={ALL_TEAMS} onShowPreds={setPredsModal} />
           </div>
         )}
 
