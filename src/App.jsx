@@ -26,8 +26,6 @@ const ALL_TEAMS = Object.values(GROUP_TEAMS).flat().sort((a,b)=>{
   const cl = s => s.replace(/[^a-zA-ZÀ-ÿ ]/g,'').trim();
   return cl(a).localeCompare(cl(b),'nl');
 });
-// Alleen de vlag-emoji van elk deelnemend land (voor de vlaggen-muur in de header).
-const ALL_FLAGS = Object.values(GROUP_TEAMS).flat().map(t => t.split(" ")[0]);
 
 const AVATAR_COLORS = ["#10b981","#f59e0b","#3b82f6","#ec4899","#8b5cf6","#ef4444","#14b8a6","#f97316","#84cc16","#06b6d4","#a855f7","#d946ef"];
 
@@ -355,9 +353,6 @@ button{cursor:pointer}
 .banner::after{content:'⚽';position:absolute;right:-8px;bottom:-12px;font-size:100px;opacity:.03;transform:rotate(20deg)}
 .banner-flags{position:absolute;right:14px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:5px;opacity:.25;font-size:30px;filter:saturate(.5)}
 .banner-divider{height:1.5px;background:linear-gradient(90deg,transparent,var(--gr),var(--am),var(--gr),transparent);margin-top:14px;border-radius:1px;box-shadow:0 0 8px rgba(255,107,0,.35)}
-.banner-ticker{margin:12px -16px -20px;padding:9px 0;overflow:hidden;border-top:1px solid rgba(255,107,0,.15);background:rgba(0,0,0,.2);position:relative}
-.banner-ticker-row{display:flex;gap:10px;width:max-content;font-size:19px;filter:saturate(.85);animation:bannerscroll 40s linear infinite}
-@keyframes bannerscroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 
 .card{background:var(--c1);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;margin-bottom:10px}
 .card-head{padding:12px 14px 10px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;gap:6px}
@@ -2167,6 +2162,7 @@ export default function App() {
           <div className="fu">
             <div className="banner">
               <div style={{ position:"relative", zIndex:1 }}>
+                <div className="banner-flags"><span>🇺🇸</span><span>🇲🇽</span><span>🇨🇦</span></div>
                 <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:6 }}>
                   <span style={{ fontSize:32, filter:"drop-shadow(0 0 10px rgba(255,107,0,.4))" }}>🏆</span>
                   <div>
@@ -2175,12 +2171,6 @@ export default function App() {
                   </div>
                 </div>
                 <div className="banner-divider" />
-                {/* Bewegende strip met alle deelnemende vlaggen */}
-                <div className="banner-ticker">
-                  <div className="banner-ticker-row">
-                    {ALL_FLAGS.concat(ALL_FLAGS).map((f, i) => <span key={i}>{f}</span>)}
-                  </div>
-                </div>
               </div>
             </div>
 
