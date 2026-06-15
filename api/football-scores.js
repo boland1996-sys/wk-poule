@@ -13,10 +13,13 @@ function flatten(data) {
         finished: st.is_finished === true,
         live: st.is_in_progress === true,
         minute: st.live_time,
+        stage: st.stage || "",
         homeTeam: m.home_team?.name || "",
         awayTeam: m.away_team?.name || "",
         homeScore: m.scores?.home ?? null,
         awayScore: m.scores?.away ?? null,
+        homeRed: m.home_team?.red_cards ?? 0,
+        awayRed: m.away_team?.red_cards ?? 0,
         scoreStr: "",
       });
     }

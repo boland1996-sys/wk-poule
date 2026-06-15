@@ -49,6 +49,13 @@ const KO_PHASES = [
   {id:"final",label:"🏆",full:"🏆 Finale"},
 ];
 
+// Wedstrijdfase uit de live-API (Engels) → Nederlands label.
+const STAGE_NL = {
+  "1st Half":"1e helft", "2nd Half":"2e helft", "Half Time":"rust", "Break Time":"rust",
+  "Extra Time":"verlenging", "Extra Time 1st Half":"verlenging", "Extra Time 2nd Half":"verlenging",
+  "Awaiting Extra Time":"einde 2e helft", "Penalties":"penalty's", "Awaiting Penalties":"penalty's",
+};
+
 // Placeholder-teamnames die nog niet echt zijn
 const KO_PLACEHOLDERS = ["Winnaar","Verliezer","1e Groep","2e Groep","Beste nr","Nummer"];
 const isPlaceholder = name => !name || KO_PLACEHOLDERS.some(p => name.startsWith(p));
@@ -1235,16 +1242,38 @@ function LiveOrNext({ matches, nextMatch }) {
         const api = liveMatchFor(m, liveData);
         const hasScore = api && api.homeScore != null && api.awayScore != null;
         const minute = fmtMin(api?.minute);
+        const stage = api?.stage || "";
+        const phase = STAGE_NL[stage] || stage || "";
+        const showMin = /half|extra/i.test(stage) && minute;     // minuut alleen tijdens actief spel
+        const statusLine = [phase, showMin ? minute : null].filter(Boolean).join(" · ");
+        const hr = api?.homeRed || 0, ar = api?.awayRed || 0;
+        const redCard = (n) => (
+          <span style={{ display:"inline-flex", alignItems:"center", gap:2, flexShrink:0 }} title={`${n} rode kaart${n>1?"en":""}`}>
+            <span style={{ width:9, height:13, background:"#ef4444", borderRadius:1.5, display:"inline-block" }}/>
+            {n > 1 && <span style={{ fontSize:10, fontWeight:800, color:"#ef4444" }}>{n}</span>}
+          </span>
+        );
         return (
-          <div key={m.id} style={{ display:"flex", alignItems:"center", gap:8, padding:"7px 0", borderBottom:"1px solid rgba(34,197,94,.1)" }}>
-            <div style={{ flex:1, fontSize:12, fontWeight:700, textAlign:"right", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{m.home}</div>
-            <div style={{ flexShrink:0, textAlign:"center", minWidth:54 }}>
-              <div style={{ background:"rgba(34,197,94,.15)", border:"1.5px solid rgba(34,197,94,.3)", borderRadius:7, padding:"3px 10px", fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:15, color:"#22c55e" }}>
+          <div key={m.id} style={{ padding:"11px 0", borderBottom:"1px solid rgba(34,197,94,.1)" }}>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:6, marginBottom:9 }}>
+              <span className="live" style={{ margin:0 }}/>
+              <span style={{ fontSize:11, fontWeight:800, color:"#22c55e", textTransform:"uppercase", letterSpacing:1 }}>
+                Live{statusLine ? ` · ${statusLine}` : ""}
+              </span>
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr auto 1fr", alignItems:"center", gap:12 }}>
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"flex-end", gap:6, minWidth:0 }}>
+                <span style={{ fontSize:14, fontWeight:700, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{m.home}</span>
+                {hr > 0 && redCard(hr)}
+              </div>
+              <div style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:26, color:"#22c55e", lineHeight:1, minWidth:64, textAlign:"center" }}>
                 {hasScore ? `${api.homeScore}–${api.awayScore}` : "LIVE"}
               </div>
-              {minute && <div style={{ fontSize:9, color:"#22c55e", fontWeight:700, marginTop:2 }}>⏱ {minute}</div>}
+              <div style={{ display:"flex", alignItems:"center", gap:6, minWidth:0 }}>
+                {ar > 0 && redCard(ar)}
+                <span style={{ fontSize:14, fontWeight:700, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{m.away}</span>
+              </div>
             </div>
-            <div style={{ flex:1, fontSize:12, fontWeight:700, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{m.away}</div>
           </div>
         );
       })}
