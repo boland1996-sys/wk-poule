@@ -1205,7 +1205,7 @@ function LiveOrNext({ matches, nextMatch }) {
   });
   const hasLive = liveMatches.length > 0;
 
-  // Live tussenstand + minuut ophalen via flashscore (alleen-live endpoint), elke 15s.
+  // Live tussenstand + minuut ophalen via flashscore (alleen-live endpoint), elke 8s.
   useEffect(() => {
     if (!hasLive) { setLiveData([]); return; }
     let cancelled = false;
@@ -1218,7 +1218,7 @@ function LiveOrNext({ matches, nextMatch }) {
       } catch {}
     };
     fetchLive();
-    const id = setInterval(fetchLive, 15 * 1000);
+    const id = setInterval(fetchLive, 8 * 1000);
     return () => { cancelled = true; clearInterval(id); };
   }, [hasLive]);
 

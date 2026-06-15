@@ -34,7 +34,7 @@ export default async function handler(req, res) {
 
   // LIVE-modus (?live=1): klein endpoint met alleen wedstrijden die nu bezig zijn.
   if (req.query?.live === "1") {
-    res.setHeader("Cache-Control", "s-maxage=10, stale-while-revalidate=20");
+    res.setHeader("Cache-Control", "s-maxage=6, stale-while-revalidate=12");
     const apiRes = await fetch(`https://${HOST}/api/flashscore/v2/matches/live?sport_id=1&timezone=Europe%2FBerlin`, { headers });
     if (!apiRes.ok) {
       const body = await apiRes.text();
