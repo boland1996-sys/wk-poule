@@ -1688,13 +1688,21 @@ export default function App() {
     const { u, p } = form;
     if (!u || !p) return setErr("Vul alles in.");
     setLoading(true);
-    const { data } = await sb.from("users").select("*").ilike("username", u).maybeSingle();
-    setLoading(false);
-    if (!data || data.pw_hash !== hashPw(p)) return setErr("Gebruikersnaam of wachtwoord onjuist.");
-    setSession({ id: data.id, username: data.username, isAdmin: data.is_admin === true });
-    // Update last_seen bij inloggen (.then() nodig anders wordt het verzoek niet verstuurd)
-    sb.from("users").update({ last_seen: new Date().toISOString() }).eq("id", data.id).then(() => {}, () => {});
-    setErr(""); setForm({ u:"", p:"", p2:"" });
+    try {
+      const res = await fetch("/api/auth", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "login", username: u, password: p }),
+      });
+      const data = await res.json();
+      setLoading(false);
+      if (!res.ok) return setErr(data.error || "Gebruikersnaam of wachtwoord onjuist.");
+      setSession({ id: data.id, username: data.username, isAdmin: data.isAdmin === true });
+      setErr(""); setForm({ u:"", p:"", p2:"" });
+    } catch {
+      setLoading(false);
+      setErr("Verbinding mislukt, probeer opnieuw.");
+    }
   };
 
   const register = async () => {
@@ -1705,15 +1713,23 @@ export default function App() {
     if (p !== p2) return setErr("Wachtwoorden komen niet overeen.");
     if (u.toLowerCase() === "admin") return setErr("Naam niet beschikbaar.");
     setLoading(true);
-    const { data:ex } = await sb.from("users").select("id").ilike("username", u).maybeSingle();
-    if (ex) { setLoading(false); return setErr("Naam al in gebruik."); }
-    const { data:nu, error } = await sb.from("users").insert({ username:u, pw_hash:hashPw(p) }).select().single();
-    setLoading(false);
-    if (error || !nu) return setErr("Er ging iets mis, probeer opnieuw.");
-    setUsers(us => [...us, { id:nu.id, username:nu.username }]);
-    setSession({ id:nu.id, username:nu.username, isAdmin:false });
-    setErr(""); setForm({ u:"", p:"", p2:"" });
-    showToast(`Welkom ${nu.username}! 🎉`);
+    try {
+      const res = await fetch("/api/auth", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "register", username: u, password: p }),
+      });
+      const data = await res.json();
+      setLoading(false);
+      if (!res.ok) return setErr(data.error || "Er ging iets mis, probeer opnieuw.");
+      setUsers(us => [...us, { id:data.id, username:data.username }]);
+      setSession({ id:data.id, username:data.username, isAdmin:false });
+      setErr(""); setForm({ u:"", p:"", p2:"" });
+      showToast(`Welkom ${data.username}! 🎉`);
+    } catch {
+      setLoading(false);
+      setErr("Verbinding mislukt, probeer opnieuw.");
+    }
   };
 
   // ── DATA ACTIONS — FIX #14: error handling ────────────────────────────
