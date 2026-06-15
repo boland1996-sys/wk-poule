@@ -1425,19 +1425,26 @@ export default function App() {
 
   // FIX #8/#9: leaderboard via useMemo — niet bij elke render herberekend
   const leaderboard = useMemo(() => {
+    // Per groep één keer voorberekenen (hangt niet af van de gebruiker):
+    // is de groep volledig gespeeld, en wat is de echte eindvolgorde.
+    const groupAllDone = {};
+    const groupRealOrder = {};
+    for (const g of GROUPS) {
+      const gm = matches.filter(m => m.grp === g && m.phase === "group");
+      groupAllDone[g] = gm.length > 0 && gm.every(m => m.home_goals != null);
+      groupRealOrder[g] = (groupStandings[g] || []).map(r => r.team);
+    }
+    // Standenvoorspellingen één keer indexeren op "userId|group" voor O(1) lookup.
+    const standPredMap = new Map(standingPreds.map(s => [s.user_id + "|" + s.group, s]));
+
     const standPtsCache = {};
     for (const u of users) {
       let sp = 0;
       for (const g of GROUPS) {
-        const pred = standingPreds.find(s => s.user_id === u.id && s.group === g);
+        if (!groupAllDone[g]) continue;
+        const pred = standPredMap.get(u.id + "|" + g);
         if (!pred) continue;
-        const real = groupStandings[g];
-        const allDone = (GROUP_TEAMS[g] || []).every(() => {
-          const gm = matches.filter(m => m.grp === g && m.phase === "group");
-          return gm.length > 0 && gm.every(m => m.home_goals != null);
-        });
-        if (!allDone) continue;
-        sp += calcStandingPts(pred.order, real.map(r => r.team));
+        sp += calcStandingPts(pred.order, groupRealOrder[g]);
       }
       standPtsCache[u.id] = sp;
     }
