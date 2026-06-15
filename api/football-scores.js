@@ -52,21 +52,31 @@ export default async function handler(req, res) {
     } else {
       out.liveError = liveRes.status;
     }
-    // 2. Probeer kandidaat-detail-endpoints voor die match_id.
-    const candidates = [
-      "matches/detail", "matches/data", "matches/summary",
-      "matches/incidents", "matches/statistics", "matches/events", "match/detail",
-    ];
+    // 2. Probeer kandidaat-detail-endpoints in diverse vormen.
+    const id = matchId;
+    const urls = [];
+    if (id) {
+      const names = ["detail","summary","incidents","info","statistics","lineups","commentary","point-by-point","head2head","h2h","events","data"];
+      for (const n of names) {
+        urls.push(`matches/${n}?match_id=${id}`);
+        urls.push(`matches/${n}?id=${id}`);
+      }
+      // id-in-pad varianten
+      urls.push(`matches/detail/${id}`);
+      urls.push(`matches/${id}`);
+      urls.push(`match/${id}`);
+      urls.push(`matches/info/${id}`);
+      urls.push(`match/incidents?event_id=${id}`);
+    }
     out.detailProbes = {};
-    if (matchId) {
-      for (const path of candidates) {
-        try {
-          const r = await fetch(`https://${HOST}/api/flashscore/v2/${path}?match_id=${encodeURIComponent(matchId)}&timezone=Europe%2FBerlin`, { headers });
-          const text = await r.text();
-          out.detailProbes[path] = { status: r.status, snippet: text.slice(0, 600) };
-        } catch (e) {
-          out.detailProbes[path] = { error: String(e) };
-        }
+    for (const u of urls) {
+      try {
+        const r = await fetch(`https://${HOST}/api/flashscore/v2/${u}`, { headers });
+        const entry = { status: r.status };
+        if (r.status === 200) entry.snippet = (await r.text()).slice(0, 800);
+        out.detailProbes[u] = entry;
+      } catch (e) {
+        out.detailProbes[u] = { error: String(e) };
       }
     }
     return res.json(out);
