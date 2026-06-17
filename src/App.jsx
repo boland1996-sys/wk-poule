@@ -1478,18 +1478,26 @@ export default function App() {
     } catch {}
     return [];
   });
-  const [, setNowTick] = useState(0);
+  // 30s-tik: ververst de aftrap-countdown én laat hasLiveNow opnieuw evalueren
+  // (zodat een wedstrijd die net begint vanzelf de live-fetch aanzet).
+  const [nowTick, setNowTick] = useState(0);
   useEffect(() => {
     if (!wkStarted) return;
-    const idTick = setInterval(() => setNowTick(t => t + 1), 30 * 1000);
+    const id = setInterval(() => setNowTick(t => t + 1), 30 * 1000);
+    return () => clearInterval(id);
+  }, [wkStarted]);
+  // Is er nú een wedstrijd bezig? (herberekend zodra wedstrijden laden of bij elke tik)
+  const hasLiveNow = useMemo(() => matches.some(m => {
+    if (m.home_goals != null) return false;
+    const st = parseMatchDate(m.match_date);
+    return st && Date.now() >= st.getTime() && Date.now() <= st.getTime() + 2 * 60 * 60 * 1000;
+  }), [matches, nowTick]);
+  // Live-stand ophalen zolang er een wedstrijd bezig is: meteen + elke 8s. We wissen
+  // liveData hier NIET als er niks live is, zodat de onthouden stand blijft staan.
+  useEffect(() => {
+    if (!wkStarted || !hasLiveNow) return;
     let cancelled = false;
-    const anyLive = () => matchesRef.current.some(m => {
-      if (m.home_goals != null) return false;
-      const st = parseMatchDate(m.match_date);
-      return st && Date.now() >= st.getTime() && Date.now() <= st.getTime() + 2 * 60 * 60 * 1000;
-    });
     const fetchLive = async () => {
-      if (!anyLive()) { if (!cancelled) setLiveData([]); return; }
       try {
         const res = await fetch("/api/football-scores?live=1");
         if (!res.ok) return;
@@ -1502,9 +1510,9 @@ export default function App() {
       } catch {}
     };
     fetchLive();
-    const idLive = setInterval(fetchLive, 8 * 1000);
-    return () => { cancelled = true; clearInterval(idTick); clearInterval(idLive); };
-  }, [wkStarted]);
+    const id = setInterval(fetchLive, 8 * 1000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [wkStarted, hasLiveNow]);
 
   // FIX #10: Map voor O(1) lookups
   const matchMap = useMemo(() => new Map(matches.map(m => [m.id, m])), [matches]);
