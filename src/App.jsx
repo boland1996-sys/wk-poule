@@ -1469,7 +1469,15 @@ export default function App() {
   // Live-data centraal: één fetch (elke 8s, alleen als er een wedstrijd bezig is) die
   // zowel de live-balk als de Vandaag-kaarten voedt. Plus een 30s-tik zodat de
   // aftrap-countdown ververst zonder de hele app per seconde te hertekenen.
-  const [liveData, setLiveData] = useState([]);
+  // Laatst bekende live-stand uit de browser hydrateren (max 5 min oud), zodat je bij
+  // een refresh meteen de stand ziet i.p.v. eerst "LIVE" tot de eerste fetch binnen is.
+  const [liveData, setLiveData] = useState(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem("wkp_live") || "null");
+      if (raw && Date.now() - raw.t < 5 * 60 * 1000) return raw.d || [];
+    } catch {}
+    return [];
+  });
   const [, setNowTick] = useState(0);
   useEffect(() => {
     if (!wkStarted) return;
@@ -1486,7 +1494,11 @@ export default function App() {
         const res = await fetch("/api/football-scores?live=1");
         if (!res.ok) return;
         const data = await res.json();
-        if (!cancelled) setLiveData(data?.matches || []);
+        if (!cancelled) {
+          const arr = data?.matches || [];
+          setLiveData(arr);
+          try { localStorage.setItem("wkp_live", JSON.stringify({ t: Date.now(), d: arr })); } catch {}
+        }
       } catch {}
     };
     fetchLive();
