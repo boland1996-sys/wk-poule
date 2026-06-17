@@ -2269,7 +2269,7 @@ export default function App() {
                       animation:`fu .3s ease ${i*50}ms both`,
                     }}>
                       {/* Positie + pijltje */}
-                      <div style={{ textAlign:"center", fontSize:13, color:"var(--t3)", fontWeight:700, display:"flex", flexDirection:"column", alignItems:"center", gap:1 }}>
+                      <div style={{ textAlign:"center", fontSize:13, color: i===0?"#f59e0b": i===1?"#94a3b8": i===2?"#cd7f32":"var(--t3)", fontWeight:700, display:"flex", flexDirection:"column", alignItems:"center", gap:1 }}>
                         {i+1}
                         {(() => {
                           const prev = prevRanks[u.id];
