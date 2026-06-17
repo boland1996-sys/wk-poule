@@ -2269,14 +2269,15 @@ export default function App() {
                       animation:`fu .3s ease ${i*50}ms both`,
                     }}>
                       {/* Positie + pijltje */}
-                      <div style={{ textAlign:"center", fontSize: i<3?18:13, color:"var(--t3)", fontWeight:700, display:"flex", flexDirection:"column", alignItems:"center", gap:1 }}>
-                        {i < 3 ? medals[i] : i+1}
+                      <div style={{ textAlign:"center", fontSize:13, color:"var(--t3)", fontWeight:700, display:"flex", flexDirection:"column", alignItems:"center", gap:1 }}>
+                        {i+1}
                         {(() => {
                           const prev = prevRanks[u.id];
                           const curr = i + 1;
                           if (!prev || prev === curr) return <span style={{ fontSize:8, color:"var(--t3)", lineHeight:1 }}>–</span>;
-                          if (prev > curr) return <span style={{ fontSize:9, color:"#22c55e", lineHeight:1, fontWeight:900 }}>▲</span>;
-                          return <span style={{ fontSize:9, color:"#ef4444", lineHeight:1, fontWeight:900 }}>▼</span>;
+                          const diff = Math.abs(prev - curr);
+                          if (prev > curr) return <span style={{ fontSize:9, color:"#22c55e", lineHeight:1, fontWeight:900 }}>▲{diff}</span>;
+                          return <span style={{ fontSize:9, color:"#ef4444", lineHeight:1, fontWeight:900 }}>▼{diff}</span>;
                         })()}
                       </div>
                       {/* Avatar */}
@@ -2284,12 +2285,12 @@ export default function App() {
                       {/* Naam + balk */}
                       <div style={{ minWidth:0 }}>
                         <div style={{ display:"flex", alignItems:"center", gap:5, marginBottom:3 }}>
-                          <span style={{ fontSize:13, fontWeight:700, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", color: i<3 ? mc[i] : "var(--t1)" }}>{u.username}</span>
+                          <span style={{ fontSize:13, fontWeight:700, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", color:"var(--t1)" }}>{u.username}</span>
                           {isMe && <span style={{ background:"rgba(255,107,0,.15)", color:"var(--gr)", fontSize:9, fontWeight:900, borderRadius:3, padding:"1px 5px", border:"1px solid rgba(255,107,0,.15)", flexShrink:0 }}>JIJ</span>}
                           {!isMe && onlineUsers.has(u.username) && <span style={{ width:7, height:7, borderRadius:"50%", background:"#22c55e", display:"inline-block", flexShrink:0, boxShadow:"0 0 5px #22c55e" }} title="Online"/>}
                         </div>
                         <div style={{ height:3, background:"var(--c3)", borderRadius:2, overflow:"hidden" }}>
-                          <div style={{ width:`${pct}%`, height:"100%", background: i<3 ? mc[i] : color, borderRadius:2, transition:"width 1s ease" }} />
+                          <div style={{ width:`${pct}%`, height:"100%", background: color, borderRadius:2, transition:"width 1s ease" }} />
                         </div>
                       </div>
                       {/* Exact */}
@@ -2297,7 +2298,7 @@ export default function App() {
                       {/* Bonus */}
                       <div style={{ fontSize:13, textAlign:"center", color: u.bp>0 ? "var(--am)" : "var(--t3)" }}>{u.bp > 0 ? `+${u.bp}` : "—"}</div>
                       {/* Totaal */}
-                      <div style={{ fontSize:17, fontWeight:700, textAlign:"right", color: i===0?"#f59e0b": i===1?"#94a3b8": i===2?"#cd7f32":"var(--gr)", fontFamily:"'Oswald',sans-serif" }}>
+                      <div style={{ fontSize:17, fontWeight:700, textAlign:"right", color:"var(--gr)", fontFamily:"'Oswald',sans-serif" }}>
                         {isMe ? <AnimatedScore value={u.pts} style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:17 }} /> : u.pts}
                       </div>
                     </div>
