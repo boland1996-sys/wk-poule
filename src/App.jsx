@@ -259,42 +259,6 @@ function Collapse({ title, sub, defaultOpen=false, children }) {
   );
 }
 
-// ── PODIUM TOP 3 ──────────────────────────────────────────────────────────
-function Podium({ top3, profiles, myId }) {
-  const order = [top3[1], top3[0], top3[2]]; // op het podium: 2 · 1 · 3
-  const cfg = [
-    { rank:2, h:54, av:44, col:"#cbd5e1", dark:"#94a3b8" },
-    { rank:1, h:78, av:54, col:"#ffd166", dark:"#e8a317", crown:true },
-    { rank:3, h:40, av:44, col:"#d8965a", dark:"#a86a32" },
-  ];
-  return (
-    <div className="card" style={{ padding:"18px 14px 0", marginBottom:10 }}>
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", alignItems:"end", gap:8 }}>
-        {order.map((u, idx) => {
-          const c = cfg[idx];
-          if (!u) return <div key={idx} />;
-          const isMe = u.id === myId;
-          return (
-            <div key={u.id} style={{ textAlign:"center", minWidth:0 }}>
-              {c.crown ? <div style={{ fontSize:18, lineHeight:1 }}>👑</div> : <div style={{ height:18 }} />}
-              <div style={{ display:"flex", justifyContent:"center", margin:"2px 0 6px" }}>
-                <div style={{ borderRadius:"50%", boxShadow:`0 0 0 2px ${c.col}` }}>
-                  <Avatar userId={u.id} username={u.username} size={c.av} profiles={profiles} />
-                </div>
-              </div>
-              <div style={{ fontSize:12, fontWeight:700, color: c.crown ? "#fff" : "var(--t1)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                {u.username}{isMe && <span style={{ fontSize:9, color:"var(--gr)", fontWeight:900 }}> ·JIJ</span>}
-              </div>
-              <div style={{ fontSize:13, fontWeight:700, color:c.col, fontFamily:"'Oswald',sans-serif" }}>{u.pts} pt</div>
-              <div style={{ background:`linear-gradient(180deg,${c.col},${c.dark})`, borderRadius:"8px 8px 0 0", marginTop:6, height:c.h, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Oswald',sans-serif", fontSize: c.crown ? 26 : 20, fontWeight:700, color:"#1c1c1e" }}>{c.rank}</div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 // ── WEDSTRIJD VOORSPELLINGEN MODAL ────────────────────────────────────────
 // Toont per wedstrijd wat iedereen heeft ingevuld. Andermans tips zichtbaar
 // zodra de wedstrijd vergrendeld of begonnen is (anti-afkijken vóór de deadline).
@@ -2280,10 +2244,9 @@ export default function App() {
             <div className="sec-title">Tussenstand</div>
             <div className="sec-sub">3pt winnaar · +1pt per team-goals · +2 bonus bij exact (= 7pt) · 10pt bonusvragen · 5pt eindstand</div>
 
-            {leaderboard.length === 0 && <div className="empty"><div className="empty-i">👥</div><div className="empty-t">Nog geen deelnemers.<br />Deel de link met je vrienden!</div></div>}
-            {leaderboard.length >= 3 && <Podium top3={leaderboard.slice(0,3)} profiles={userProfiles} myId={session?.id} />}
-            {leaderboard.length > 0 && (leaderboard.length < 3 || leaderboard.length > 3) &&
-              <div className="card">
+            {leaderboard.length === 0
+              ? <div className="empty"><div className="empty-i">👥</div><div className="empty-t">Nog geen deelnemers.<br />Deel de link met je vrienden!</div></div>
+              : <div className="card">
                 {/* Tabel header */}
                 <div style={{ display:"grid", gridTemplateColumns:"36px 48px 1fr 44px 44px 50px", gap:6, padding:"8px 14px", borderBottom:"1px solid var(--bd)" }}>
                   {["#","","Naam","Exact","Bonus","Totaal"].map((h,i) => (
@@ -2291,7 +2254,6 @@ export default function App() {
                   ))}
                 </div>
                 {leaderboard.map((u, i) => {
-                  if (leaderboard.length >= 3 && i < 3) return null; // top 3 staan op het podium
                   const isMe = u.id === session?.id;
                   const medals = ["🥇","🥈","🥉"];
                   const mc = ["#f59e0b","#94a3b8","#cd7f32"];
