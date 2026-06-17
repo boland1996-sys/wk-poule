@@ -2551,7 +2551,7 @@ export default function App() {
                 const redTag = (n) => n > 0 ? <span style={{ display:"inline-flex", alignItems:"center", gap:2 }}><span style={{ width:8, height:11, background:"#ef4444", borderRadius:1.5, display:"inline-block" }}/>{n > 1 && <span style={{ fontSize:9, fontWeight:800, color:"#ef4444" }}>{n}</span>}</span> : null;
                 // Aftrap-countdown (alleen binnen 24u, anders "aftrap").
                 const untilMs = matchTime - now;
-                const cdU = (untilMs > 0 && untilMs < 24 * 3600000) ? (() => { const H = Math.floor(untilMs/3600000), M = Math.floor(untilMs/60000)%60; return H > 0 ? `over ${H}u ${M}m` : `over ${M}m`; })() : "";
+                const cdU = untilMs > 0 ? (() => { const d = Math.floor(untilMs/86400000), H = Math.floor(untilMs/3600000)%24, M = Math.floor(untilMs/60000)%60; return d > 0 ? `over ${d}d ${H}u` : (H > 0 ? `over ${H}u ${M}m` : `over ${M}m`); })() : "";
                 let cls = "", lbl = "";
                 if (!isAdmin && mp && done) {
                   const r = scorePts(mp.home_goals, mp.away_goals, m.home_goals, m.away_goals);
@@ -2568,7 +2568,7 @@ export default function App() {
                         {live && <span className="live" style={{ margin:0 }}/>}
                         {m.locked ? "🔒 " : ""}{phaseLabel}{statusLabel ? ` · ${statusLabel}` : ""}
                       </span>
-                      <span style={{ fontSize:10, color:"var(--t3)", flexShrink:0 }}>{(done || live) ? (parts[3] || "") : ""}</span>
+                      <span style={{ fontSize:10, color: (!done && !live && cdU) ? "var(--gr)" : "var(--t3)", fontWeight: (!done && !live && cdU) ? 700 : 400, flexShrink:0 }}>{(done || live) ? (parts[3] || "") : (cdU || "")}</span>
                     </div>
                     {/* scorebord */}
                     <div style={{ display:"grid", gridTemplateColumns:"1fr auto 1fr", alignItems:"center", gap:8, padding:"14px 12px" }}>
@@ -2589,7 +2589,7 @@ export default function App() {
                               </div>
                             : <div>
                                 <div style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:24, color:"var(--gr)", lineHeight:1 }}>{parts[3] || "vs"}</div>
-                                <div style={{ fontSize:8, color:"var(--t3)", fontWeight:700, textTransform:"uppercase", letterSpacing:.5, marginTop:2 }}>{cdU || "aftrap"}</div>
+                                <div style={{ fontSize:8, color:"var(--t3)", fontWeight:700, textTransform:"uppercase", letterSpacing:.5, marginTop:2 }}>aftrap</div>
                               </div>}
                       </div>
                       <div style={{ textAlign:"left", minWidth:0 }}>
