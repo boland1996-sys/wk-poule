@@ -69,7 +69,7 @@ const NL_MONTHS = {jan:0,feb:1,mrt:2,apr:3,mei:4,jun:5,jul:6,aug:7,sep:8,okt:9,n
 const TEAM_MAP = {
   "Mexico":"Mexico","South Africa":"Zuid-Afrika","South Korea":"Zuid-Korea",
   "Czech Republic":"Tsjechië","Czechia":"Tsjechië",
-  "Canada":"Canada","Bosnia and Herzegovina":"Bosnië-Herz.","Qatar":"Qatar","Switzerland":"Zwitserland",
+  "Canada":"Canada","Bosnia and Herzegovina":"Bosnië-Herz.","Bosnia & Herzegovina":"Bosnië-Herz.","Qatar":"Qatar","Switzerland":"Zwitserland",
   "Brazil":"Brazilië","Morocco":"Marokko","Haiti":"Haïti","Scotland":"Schotland",
   "United States":"USA","USA":"USA","Paraguay":"Paraguay","Australia":"Australië","Turkey":"Turkije",
   "Germany":"Duitsland","Curacao":"Curaçao","Ivory Coast":"Ivoorkust","Côte d'Ivoire":"Ivoorkust","Ecuador":"Ecuador",
