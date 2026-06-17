@@ -78,7 +78,7 @@ const TEAM_MAP = {
   "Spain":"Spanje","Cape Verde":"Kaapverdië","Saudi Arabia":"Saoedi-Arabië","Uruguay":"Uruguay",
   "France":"Frankrijk","Senegal":"Senegal","Iraq":"Irak","Norway":"Noorwegen",
   "Argentina":"Argentinië","Algeria":"Algerije","Austria":"Oostenrijk","Jordan":"Jordanië",
-  "Portugal":"Portugal","DR Congo":"DR Congo","Uzbekistan":"Oezbekistan","Colombia":"Colombia",
+  "Portugal":"Portugal","DR Congo":"DR Congo","D.R. Congo":"DR Congo","Uzbekistan":"Oezbekistan","Colombia":"Colombia",
   "England":"Engeland","Croatia":"Kroatië","Ghana":"Ghana","Panama":"Panama",
 };
 
