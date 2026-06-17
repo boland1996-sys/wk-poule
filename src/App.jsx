@@ -103,6 +103,9 @@ function parseMatchDate(md) {
   return new Date(2026, month, day, hh || 0, mm || 0);
 }
 
+// Speelminuut netjes tonen: "45" → "45'", niet-numeriek (bv. "HT") ongewijzigd.
+const fmtMin = (mn) => mn == null ? null : (/^\d+$/.test(String(mn)) ? `${mn}'` : String(mn));
+
 // ── PUNTENSYSTEEM (Vindicat) ──────────────────────────────────────────────
 // 3pt winnaar/gelijkspel goed + 1pt thuisgoals goed + 1pt uitgoals goed = 5pt; exacte uitslag +2 bonus = 7pt
 function scorePts(ph, pa, mh, ma) {
@@ -1229,9 +1232,8 @@ function CountdownCard() {
 }
 
 // ── LIVE / VOLGENDE WEDSTRIJD (tikt elke seconde, zonder hele app mee te slepen) ──
-function LiveOrNext({ matches, nextMatch }) {
+function LiveOrNext({ matches, nextMatch, liveData = [] }) {
   const [, setTick] = useState(0);
-  const [liveData, setLiveData] = useState([]);
   useEffect(() => { const id = setInterval(() => setTick(t => t + 1), 1000); return () => clearInterval(id); }, []);
   const now = new Date();
 
@@ -1243,25 +1245,6 @@ function LiveOrNext({ matches, nextMatch }) {
     return now >= start && now <= end;
   });
   const hasLive = liveMatches.length > 0;
-
-  // Live tussenstand + minuut ophalen via flashscore (alleen-live endpoint), elke 8s.
-  useEffect(() => {
-    if (!hasLive) { setLiveData([]); return; }
-    let cancelled = false;
-    const fetchLive = async () => {
-      try {
-        const res = await fetch("/api/football-scores?live=1");
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!cancelled) setLiveData(data?.matches || []);
-      } catch {}
-    };
-    fetchLive();
-    const id = setInterval(fetchLive, 8 * 1000);
-    return () => { cancelled = true; clearInterval(id); };
-  }, [hasLive]);
-
-  const fmtMin = (mn) => mn == null ? null : (/^\d+$/.test(String(mn)) ? `${mn}'` : String(mn));
 
   if (hasLive) return (
     <div style={{ background:"linear-gradient(135deg,rgba(34,197,94,.08),rgba(34,197,94,.04))", border:"1px solid rgba(34,197,94,.25)", borderRadius:"var(--r)", padding:"14px 16px", marginBottom:12 }}>
@@ -1481,6 +1464,34 @@ export default function App() {
     if (wkStarted) return;
     const id = setInterval(() => { if (Date.now() >= WK_START.getTime()) setWkStarted(true); }, 1000);
     return () => clearInterval(id);
+  }, [wkStarted]);
+
+  // Live-data centraal: één fetch (elke 8s, alleen als er een wedstrijd bezig is) die
+  // zowel de live-balk als de Vandaag-kaarten voedt. Plus een 30s-tik zodat de
+  // aftrap-countdown ververst zonder de hele app per seconde te hertekenen.
+  const [liveData, setLiveData] = useState([]);
+  const [, setNowTick] = useState(0);
+  useEffect(() => {
+    if (!wkStarted) return;
+    const idTick = setInterval(() => setNowTick(t => t + 1), 30 * 1000);
+    let cancelled = false;
+    const anyLive = () => matchesRef.current.some(m => {
+      if (m.home_goals != null) return false;
+      const st = parseMatchDate(m.match_date);
+      return st && Date.now() >= st.getTime() && Date.now() <= st.getTime() + 2 * 60 * 60 * 1000;
+    });
+    const fetchLive = async () => {
+      if (!anyLive()) { if (!cancelled) setLiveData([]); return; }
+      try {
+        const res = await fetch("/api/football-scores?live=1");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) setLiveData(data?.matches || []);
+      } catch {}
+    };
+    fetchLive();
+    const idLive = setInterval(fetchLive, 8 * 1000);
+    return () => { cancelled = true; clearInterval(idTick); clearInterval(idLive); };
   }, [wkStarted]);
 
   // FIX #10: Map voor O(1) lookups
@@ -2208,7 +2219,7 @@ export default function App() {
 
             <CountdownCard />
 
-            {wkStarted && <LiveOrNext matches={matches} nextMatch={nextMatch} />}
+            {wkStarted && <LiveOrNext matches={matches} nextMatch={nextMatch} liveData={liveData} />}
 
             <div className="sec-title">Tussenstand</div>
             <div className="sec-sub">3pt winnaar · +1pt per team-goals · +2 bonus bij exact (= 7pt) · 10pt bonusvragen · 5pt eindstand</div>
@@ -2510,6 +2521,17 @@ export default function App() {
                 const started = now >= matchTime;
                 const live = started && !done;
                 const minsUntil = Math.max(0, Math.round((matchTime - now) / 60000));
+                // Live-data koppelen (stand, minuut, fase, rode kaarten).
+                const apiLive = live ? liveMatchFor(m, liveData) : null;
+                const liveScore = apiLive && apiLive.homeScore != null && apiLive.awayScore != null;
+                const liveMin = apiLive ? fmtMin(apiLive.minute) : null;
+                const liveStage = apiLive?.stage ? (STAGE_NL[apiLive.stage] || apiLive.stage) : "";
+                const liveStatus = [liveStage, (/half|extra/i.test(apiLive?.stage || "") && liveMin) ? liveMin : null].filter(Boolean).join(" · ");
+                const hr = apiLive?.homeRed || 0, ar = apiLive?.awayRed || 0;
+                const redTag = (n) => n > 0 ? <span style={{ display:"inline-flex", alignItems:"center", gap:2 }}><span style={{ width:8, height:11, background:"#ef4444", borderRadius:1.5, display:"inline-block" }}/>{n > 1 && <span style={{ fontSize:9, fontWeight:800, color:"#ef4444" }}>{n}</span>}</span> : null;
+                // Aftrap-countdown (alleen binnen 24u, anders "aftrap").
+                const untilMs = matchTime - now;
+                const cdU = (untilMs > 0 && untilMs < 24 * 3600000) ? (() => { const H = Math.floor(untilMs/3600000), M = Math.floor(untilMs/60000)%60; return H > 0 ? `over ${H}u ${M}m` : `over ${M}m`; })() : "";
                 let cls = "", lbl = "";
                 if (!isAdmin && mp && done) {
                   const r = scorePts(mp.home_goals, mp.away_goals, m.home_goals, m.away_goals);
@@ -2517,7 +2539,7 @@ export default function App() {
                 }
                 const h = splitTeam(m.home), a = splitTeam(m.away);
                 const phaseLabel = m.phase === "group" ? `Groep ${m.grp}` : (KO_PHASES.find(p => p.id === m.phase)?.full || m.phase);
-                const statusLabel = done ? "gespeeld" : live ? "live" : (minsUntil > 0 && minsUntil <= 60 ? `nog ${minsUntil} min` : "");
+                const statusLabel = done ? "gespeeld" : live ? (liveStatus || "live") : (minsUntil > 0 && minsUntil <= 60 ? `nog ${minsUntil} min` : "");
                 return (
                   <div key={m.id} style={{ background:"var(--c1)", border:`1px solid ${live ? "rgba(34,197,94,.3)" : "var(--c3)"}`, borderRadius:12, overflow:"hidden", marginBottom:8 }}>
                     {/* kop */}
@@ -2533,20 +2555,27 @@ export default function App() {
                       <div style={{ textAlign:"right", minWidth:0 }}>
                         <div style={{ fontSize:22, lineHeight:1 }}>{h.flag}</div>
                         <div style={{ fontSize:12, fontWeight:700, color:"var(--t1)", marginTop:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{h.name}</div>
+                        {hr > 0 && <div style={{ marginTop:3 }}>{redTag(hr)}</div>}
                       </div>
                       <div style={{ flexShrink:0, textAlign:"center" }}>
                         {done
                           ? <span style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:30, color:"var(--gr)", letterSpacing:2 }}>{m.home_goals}<span style={{ color:"var(--bd)", margin:"0 4px" }}>–</span>{m.away_goals}</span>
                           : live
-                            ? <span style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:16, color:"#22c55e", border:"1.5px solid rgba(34,197,94,.4)", borderRadius:8, padding:"4px 10px" }}>BEZIG</span>
+                            ? <div>
+                                {liveScore
+                                  ? <span style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:30, color:"#22c55e", letterSpacing:2 }}>{apiLive.homeScore}<span style={{ color:"rgba(34,197,94,.4)", margin:"0 4px" }}>–</span>{apiLive.awayScore}</span>
+                                  : <span style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:16, color:"#22c55e", border:"1.5px solid rgba(34,197,94,.4)", borderRadius:8, padding:"4px 10px" }}>BEZIG</span>}
+                                <div style={{ fontSize:9, color:"#22c55e", fontWeight:700, marginTop:3, textTransform:"uppercase", letterSpacing:.5 }}>{liveStatus || "live"}</div>
+                              </div>
                             : <div>
                                 <div style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:24, color:"var(--gr)", lineHeight:1 }}>{parts[3] || "vs"}</div>
-                                <div style={{ fontSize:8, color:"var(--t3)", fontWeight:700, textTransform:"uppercase", letterSpacing:.5, marginTop:2 }}>aftrap</div>
+                                <div style={{ fontSize:8, color:"var(--t3)", fontWeight:700, textTransform:"uppercase", letterSpacing:.5, marginTop:2 }}>{cdU || "aftrap"}</div>
                               </div>}
                       </div>
                       <div style={{ textAlign:"left", minWidth:0 }}>
                         <div style={{ fontSize:22, lineHeight:1 }}>{a.flag}</div>
                         <div style={{ fontSize:12, fontWeight:700, color:"var(--t1)", marginTop:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{a.name}</div>
+                        {ar > 0 && <div style={{ marginTop:3 }}>{redTag(ar)}</div>}
                       </div>
                     </div>
                     {/* voet: jouw tip + punten + wie-tipte-wat */}
