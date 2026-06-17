@@ -136,9 +136,24 @@ function calcMatchPts(preds, matchMap) {
 
 function calcBonusPts(ans, res) {
   if (!res || !ans) return 0;
+  // Normaliseer tekst: kleine letters, accenten/leestekens weg, spaties samengevoegd.
+  const norm = s => s.toString().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\w\s]/g, " ").replace(/\s+/g, " ").trim();
+  // Heel-woord-bevatting: komt "needle" als volledig woord voor in "hay"?
+  const wordIn = (hay, needle) => (" " + hay + " ").includes(" " + needle + " ");
   return BONUS_QS.reduce((s, q) => {
     const a = ans[q.id], r = res[q.id];
-    return s + (a && r && a.toString().toLowerCase().trim() === r.toString().toLowerCase().trim() ? 10 : 0);
+    if (a == null || a === "" || r == null || r === "") return s;
+    let ok;
+    if (q.type === "text") {
+      // Open tekst (topscorer / speler v.h. toernooi): tel goed bij exacte match
+      // óf als de één als heel woord in de ander zit ("Kane" ↔ "Harry Kane").
+      const na = norm(a), nr = norm(r);
+      ok = !!na && !!nr && (na === nr || wordIn(na, nr) || wordIn(nr, na));
+    } else {
+      // Team/getal: exacte match (komen uit een keuzelijst of zijn een getal).
+      ok = a.toString().toLowerCase().trim() === r.toString().toLowerCase().trim();
+    }
+    return s + (ok ? 10 : 0);
   }, 0);
 }
 
