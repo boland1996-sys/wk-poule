@@ -62,6 +62,9 @@ const isPlaceholder = name => !name || KO_PLACEHOLDERS.some(p => name.startsWith
 
 const WK_START = new Date("2026-06-11T21:00:00+02:00");
 
+// Hoe lang vóór de aftrap een wedstrijd automatisch op slot gaat (deadline om te tippen).
+const LOCK_BEFORE_MS = 60 * 60 * 1000; // 1 uur
+
 // Eén centrale parser voor "do 11 jun 21:00" — voorheen 6x gedupliceerd
 const NL_MONTHS = {jan:0,feb:1,mrt:2,apr:3,mei:4,jun:5,jul:6,aug:7,sep:8,okt:9,nov:10,dec:11};
 
@@ -1691,7 +1694,7 @@ export default function App() {
   // Auto-import draait nu server-side via GitHub Actions (elke 15 min), ook zonder
   // dat iemand is ingelogd — de in-app variant is daardoor overbodig en verwijderd.
 
-  // ── AUTO VERGRENDELEN BIJ AANVANG WEDSTRIJD ──────────────────────────
+  // ── AUTO VERGRENDELEN 1 UUR VÓÓR AANVANG WEDSTRIJD ───────────────────
   useEffect(() => {
     if (!matches.length || !isAdmin) return; // alleen admin-client schrijft locks weg
     const checkLocks = async () => {
@@ -1699,7 +1702,7 @@ export default function App() {
       for (const m of matches) {
         if (m.locked) continue;
         const matchTime = parseMatchDate(m.match_date);
-        if (matchTime && now >= matchTime) {
+        if (matchTime && now.getTime() >= matchTime.getTime() - LOCK_BEFORE_MS) {
           await sb.from("matches").update({ locked: true }).eq("id", m.id);
           setMatches(ms => ms.map(x => x.id === m.id ? { ...x, locked: true } : x));
         }
@@ -1838,8 +1841,8 @@ export default function App() {
     if (!session?.id) return false;
     const mGuard = matchMap.get(mid);
     const start = mGuard ? parseMatchDate(mGuard.match_date) : null;
-    if (mGuard?.locked || (start && new Date() >= start)) {
-      showToast("🔒 Te laat — wedstrijd is begonnen", 3000); return false;
+    if (mGuard?.locked || (start && new Date().getTime() >= start.getTime() - LOCK_BEFORE_MS)) {
+      showToast("🔒 Te laat — sluit 1 uur voor aftrap", 3000); return false;
     }
 
     // Beide velden leeg → tip verwijderen (op user_id+match_id, niet op geheugen-id)
