@@ -649,6 +649,38 @@ function PredDist({ matchId, preds }) {
   );
 }
 
+// ── INLINE TIP-INVOER (Vandaag-tab) ───────────────────────────────────────
+// Compacte tip-knop + invoer zodat deelnemers direct vanaf de Vandaag-tab
+// hun score kunnen invullen of wijzigen, zonder naar Groepen/KO te gaan.
+function TodayTip({ match, mp, onPred }) {
+  const [editing, setEditing] = useState(false);
+  const [h, setH] = useState(mp?.home_goals ?? "");
+  const [a, setA] = useState(mp?.away_goals ?? "");
+  const [sav, setSav] = useState(false);
+  if (!editing) {
+    return (
+      <button className="btn btn-out btn-sm" style={{ flexShrink:0 }}
+        onClick={() => { setH(mp?.home_goals ?? ""); setA(mp?.away_goals ?? ""); setEditing(true); }}>
+        {mp ? "✏️ Wijzig" : "⚽ Tip"}
+      </button>
+    );
+  }
+  return (
+    <div style={{ display:"flex", alignItems:"center", gap:6, flexShrink:0 }}>
+      <input type="number" min="0" max="20" className="ni" style={{ width:38, height:34, fontSize:15 }} value={h} onChange={e => setH(e.target.value)} />
+      <span style={{ color:"var(--t3)", fontWeight:700 }}>–</span>
+      <input type="number" min="0" max="20" className="ni" style={{ width:38, height:34, fontSize:15 }} value={a} onChange={e => setA(e.target.value)} />
+      <button className="btn-confirm" disabled={sav} onClick={async () => {
+        setSav(true);
+        const ok = await onPred(match.id, parseInt(h, 10), parseInt(a, 10));
+        setSav(false);
+        if (ok !== false) setEditing(false);
+      }}>{sav ? "..." : "✓"}</button>
+      <button className="btn btn-out btn-sm" onClick={() => setEditing(false)}>✕</button>
+    </div>
+  );
+}
+
 // ── GROUP CARD ────────────────────────────────────────────────────────────
 function GroupCard({ group, matches, isAdmin, myPreds, onScore, onLock, onPred, onShowPreds }) {
   const gm = matches.filter(m => m.grp === group && m.phase === "group");
@@ -2602,16 +2634,24 @@ export default function App() {
                         {ar > 0 && <div style={{ marginTop:3 }}>{redTag(ar)}</div>}
                       </div>
                     </div>
-                    {/* voet: jouw tip + punten + wie-tipte-wat */}
+                    {/* voet: jouw tip + punten + tip-invoer + wie-tipte-wat */}
+                    {(() => {
+                      const canTip = !isAdmin && !m.locked && !started && !isPlaceholder(m.home) && !isPlaceholder(m.away);
+                      return (
                     <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, padding:"8px 12px", borderTop:"1px solid var(--c2)", background:"rgba(0,0,0,.15)" }}>
                       <div style={{ display:"flex", alignItems:"center", gap:8, minWidth:0, flexWrap:"wrap" }}>
                         {!isAdmin && mp && <><span style={{ fontSize:11, color:"var(--t3)" }}>Jouw tip:</span><span style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:13, color:"var(--am)" }}>{mp.home_goals}–{mp.away_goals}</span></>}
                         {!isAdmin && mp && done && lbl && <span className={`pts-badge ${cls}`}>{lbl}</span>}
-                        {!isAdmin && !mp && !m.locked && !started && <span style={{ fontSize:11, color:"var(--re)", fontWeight:700 }}>⚠️ Nog geen tip!</span>}
+                        {!isAdmin && !mp && canTip && <span style={{ fontSize:11, color:"var(--re)", fontWeight:700 }}>⚠️ Nog geen tip!</span>}
                         {!isAdmin && !mp && (m.locked || started) && <span className="too-late">Te laat</span>}
                       </div>
-                      <button className="btn btn-out btn-sm" title="Wie tipte wat?" onClick={() => setPredsModal(m)} style={{ flexShrink:0 }}>👥</button>
+                      <div style={{ display:"flex", alignItems:"center", gap:6, flexShrink:0 }}>
+                        {canTip && <TodayTip match={m} mp={mp} onPred={savePred} />}
+                        <button className="btn btn-out btn-sm" title="Wie tipte wat?" onClick={() => setPredsModal(m)} style={{ flexShrink:0 }}>👥</button>
+                      </div>
                     </div>
+                      );
+                    })()}
                   </div>
                 );
               };
