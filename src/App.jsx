@@ -62,14 +62,6 @@ const isPlaceholder = name => !name || KO_PLACEHOLDERS.some(p => name.startsWith
 
 const WK_START = new Date("2026-06-11T21:00:00+02:00");
 
-// Hoe lang vóór de aftrap een wedstrijd automatisch op slot gaat (deadline om te tippen).
-const LOCK_BEFORE_MS = 60 * 60 * 1000; // 1 uur
-
-// Is tippen voor deze wedstrijd dicht? Dicht zodra hij handmatig vergrendeld is
-// (DB-vlag `locked`) ÓF vanaf 1 uur voor de aftrap. De tijd-check werkt op elk
-// toestel, dus de deadline geldt ook als de admin offline is en het slotje nog
-// niet in de database staat.
-
 // Eén centrale parser voor "do 11 jun 21:00" — voorheen 6x gedupliceerd
 const NL_MONTHS = {jan:0,feb:1,mrt:2,apr:3,mei:4,jun:5,jul:6,aug:7,sep:8,okt:9,nov:10,dec:11};
 
@@ -109,13 +101,6 @@ function parseMatchDate(md) {
   if (isNaN(day) || month === undefined) return null;
   const [hh, mm] = (parts[3] || "00:00").split(":").map(n => parseInt(n, 10));
   return new Date(2026, month, day, hh || 0, mm || 0);
-}
-
-// Zie de toelichting bij LOCK_BEFORE_MS hierboven.
-function isTipClosed(m) {
-  if (m?.locked) return true;
-  const t = parseMatchDate(m?.match_date);
-  return !!t && Date.now() >= t.getTime() - LOCK_BEFORE_MS;
 }
 
 // Speelminuut netjes tonen: "45" → "45'", niet-numeriek (bv. "HT") ongewijzigd.
@@ -661,38 +646,6 @@ function PredDist({ matchId, preds }) {
   );
 }
 
-// ── INLINE TIP-INVOER (Vandaag-tab) ───────────────────────────────────────
-// Compacte tip-knop + invoer zodat deelnemers direct vanaf de Vandaag-tab
-// hun score kunnen invullen of wijzigen, zonder naar Groepen/KO te gaan.
-function TodayTip({ match, mp, onPred }) {
-  const [editing, setEditing] = useState(false);
-  const [h, setH] = useState(mp?.home_goals ?? "");
-  const [a, setA] = useState(mp?.away_goals ?? "");
-  const [sav, setSav] = useState(false);
-  if (!editing) {
-    return (
-      <button className="btn btn-out btn-sm" style={{ flexShrink:0 }}
-        onClick={() => { setH(mp?.home_goals ?? ""); setA(mp?.away_goals ?? ""); setEditing(true); }}>
-        {mp ? "✏️ Wijzig" : "⚽ Tip"}
-      </button>
-    );
-  }
-  return (
-    <div style={{ display:"flex", alignItems:"center", gap:6, flexShrink:0 }}>
-      <input type="number" min="0" max="20" className="ni" style={{ width:38, height:34, fontSize:15 }} value={h} onChange={e => setH(e.target.value)} />
-      <span style={{ color:"var(--t3)", fontWeight:700 }}>–</span>
-      <input type="number" min="0" max="20" className="ni" style={{ width:38, height:34, fontSize:15 }} value={a} onChange={e => setA(e.target.value)} />
-      <button className="btn-confirm" disabled={sav} onClick={async () => {
-        setSav(true);
-        const ok = await onPred(match.id, parseInt(h, 10), parseInt(a, 10));
-        setSav(false);
-        if (ok !== false) setEditing(false);
-      }}>{sav ? "..." : "✓"}</button>
-      <button className="btn btn-out btn-sm" onClick={() => setEditing(false)}>✕</button>
-    </div>
-  );
-}
-
 // ── GROUP CARD ────────────────────────────────────────────────────────────
 function GroupCard({ group, matches, isAdmin, myPreds, onScore, onLock, onPred, onShowPreds }) {
   const gm = matches.filter(m => m.grp === group && m.phase === "group");
@@ -723,7 +676,7 @@ function GroupCard({ group, matches, isAdmin, myPreds, onScore, onLock, onPred, 
         const isE  = ed === m.id, isP = pe === m.id;
         // FIX #8 - admin kan altijd bewerken, ook vergrendelde wedstrijden
         const canEdit = isAdmin;
-        const canP = !isAdmin && !isTipClosed(m);
+        const canP = !isAdmin && !m.locked;
         let cls = "", lbl = "";
         if (!isAdmin && mp && done) {
           const r = scorePts(mp.home_goals, mp.away_goals, m.home_goals, m.away_goals);
@@ -783,7 +736,7 @@ function GroupCard({ group, matches, isAdmin, myPreds, onScore, onLock, onPred, 
               <span></span>
               <div className="mr-actions">
                 {/* FIX #8: toon "te laat" als wedstrijd vergrendeld */}
-                {isTipClosed(m) && !isAdmin && <span className="lock-tag">🔒</span>}
+                {m.locked && !isAdmin && <span className="lock-tag">🔒</span>}
                 {!isAdmin && mp && done && <span className={`pts-badge ${cls}`}>{lbl}</span>}
                 {!isAdmin && mp && !isP && <span className="pill">{mp.home_goals}–{mp.away_goals}</span>}
                 {onShowPreds && <button className="btn btn-out btn-sm" title="Wie tipte wat?" onClick={() => onShowPreds(m)}>👥</button>}
@@ -792,7 +745,7 @@ function GroupCard({ group, matches, isAdmin, myPreds, onScore, onLock, onPred, 
                     {mp ? "✏️" : "⚽ Tip"}
                   </button>
                 )}
-                {!isAdmin && isTipClosed(m) && !mp && <span className="too-late">Te laat</span>}
+                {!isAdmin && m.locked && !mp && <span className="too-late">Te laat</span>}
                 {isAdmin && !isE && (
                   <button className="btn btn-out btn-sm" onClick={() => onLock(m.id, m.locked)}>
                     {m.locked ? "🔓" : "🔒"}
@@ -849,7 +802,7 @@ function KOCard({ phase, matches, isAdmin, myPreds, onScore, onLock, onPred, all
         const isE = ed === m.id, isP = pe === m.id;
         // FIX #8: admin kan altijd bewerken
         const canEdit = isAdmin;
-        const canP = !isAdmin && !isTipClosed(m) && hasTeams;
+        const canP = !isAdmin && !m.locked && hasTeams;
         let cls = "", lbl = "";
         if (!isAdmin && mp && done) {
           const r = scorePts(mp.home_goals, mp.away_goals, m.home_goals, m.away_goals);
@@ -925,7 +878,7 @@ function KOCard({ phase, matches, isAdmin, myPreds, onScore, onLock, onPred, all
             <div className="mr-meta">
               <span></span>
               <div className="mr-actions">
-                {isTipClosed(m) && !isAdmin && <span className="lock-tag">🔒</span>}
+                {m.locked && !isAdmin && <span className="lock-tag">🔒</span>}
                 {!isAdmin && mp && done && <span className={`pts-badge ${cls}`}>{lbl}</span>}
                 {!isAdmin && mp && !isP && <span className="pill">{mp.home_goals}–{mp.away_goals}</span>}
                 {onShowPreds && hasTeams && <button className="btn btn-out btn-sm" title="Wie tipte wat?" onClick={() => onShowPreds(m)}>👥</button>}
@@ -934,7 +887,7 @@ function KOCard({ phase, matches, isAdmin, myPreds, onScore, onLock, onPred, all
                     {mp ? "✏️ Wijzig" : "⚽ Voorspel"}
                   </button>
                 )}
-                {!isAdmin && isTipClosed(m) && !mp && hasTeams && <span className="too-late">Te laat</span>}
+                {!isAdmin && m.locked && !mp && hasTeams && <span className="too-late">Te laat</span>}
                 {isAdmin && !isE && <button className="btn btn-out btn-sm" onClick={() => onLock(m.id, m.locked)}>{m.locked ? "🔓 Open" : "🔒 Sluit"}</button>}
               </div>
             </div>
@@ -1738,7 +1691,7 @@ export default function App() {
   // Auto-import draait nu server-side via GitHub Actions (elke 15 min), ook zonder
   // dat iemand is ingelogd — de in-app variant is daardoor overbodig en verwijderd.
 
-  // ── AUTO VERGRENDELEN 1 UUR VÓÓR AANVANG WEDSTRIJD ───────────────────
+  // ── AUTO VERGRENDELEN BIJ AANVANG WEDSTRIJD ──────────────────────────
   useEffect(() => {
     if (!matches.length || !isAdmin) return; // alleen admin-client schrijft locks weg
     const checkLocks = async () => {
@@ -1746,7 +1699,7 @@ export default function App() {
       for (const m of matches) {
         if (m.locked) continue;
         const matchTime = parseMatchDate(m.match_date);
-        if (matchTime && now.getTime() >= matchTime.getTime() - LOCK_BEFORE_MS) {
+        if (matchTime && now >= matchTime) {
           await sb.from("matches").update({ locked: true }).eq("id", m.id);
           setMatches(ms => ms.map(x => x.id === m.id ? { ...x, locked: true } : x));
         }
@@ -1885,8 +1838,8 @@ export default function App() {
     if (!session?.id) return false;
     const mGuard = matchMap.get(mid);
     const start = mGuard ? parseMatchDate(mGuard.match_date) : null;
-    if (mGuard?.locked || (start && new Date().getTime() >= start.getTime() - LOCK_BEFORE_MS)) {
-      showToast("🔒 Te laat — sluit 1 uur voor aftrap", 3000); return false;
+    if (mGuard?.locked || (start && new Date() >= start)) {
+      showToast("🔒 Te laat — wedstrijd is begonnen", 3000); return false;
     }
 
     // Beide velden leeg → tip verwijderen (op user_id+match_id, niet op geheugen-id)
@@ -2147,7 +2100,7 @@ export default function App() {
     if (!d) return false;
     const now = new Date();
     return d.getDate() === now.getDate() && d.getMonth() === now.getMonth()
-      && m.home_goals == null && !isTipClosed(m);
+      && m.home_goals == null && !m.locked;
   });
   const todayUntiped = !isAdmin && todayMatches.filter(m => !myPreds.find(p => p.match_id === m.id)).length > 0;
 
@@ -2535,7 +2488,7 @@ export default function App() {
               <div className="gtabs">
                 {GROUPS.map(g => {
                   const untiped = !isAdmin ? matches.filter(m =>
-                    m.grp === g && m.phase === "group" && m.home_goals == null && !isTipClosed(m) &&
+                    m.grp === g && m.phase === "group" && m.home_goals == null && !m.locked &&
                     !myPreds.find(p => p.match_id === m.id)
                   ).length : 0;
                   return (
@@ -2614,7 +2567,7 @@ export default function App() {
                     <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"7px 12px", background: live ? "rgba(34,197,94,.08)" : "rgba(255,255,255,.03)", borderBottom:`1px solid ${live ? "rgba(34,197,94,.2)" : "var(--c2)"}` }}>
                       <span style={{ fontSize:10, fontWeight:700, color: live ? "#22c55e" : "var(--t3)", textTransform:"uppercase", letterSpacing:.5, display:"flex", alignItems:"center", gap:5, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
                         {live && <span className="live" style={{ margin:0 }}/>}
-                        {isTipClosed(m) && !done ? "🔒 " : ""}{phaseLabel}{statusLabel ? ` · ${statusLabel}` : ""}
+                        {m.locked ? "🔒 " : ""}{phaseLabel}{statusLabel ? ` · ${statusLabel}` : ""}
                       </span>
                       <span style={{ fontSize:10, color: (!done && !live && cdU) ? "var(--gr)" : "var(--t3)", fontWeight: (!done && !live && cdU) ? 700 : 400, flexShrink:0 }}>{(done || live) ? (parts[3] || "") : (cdU || "")}</span>
                     </div>
@@ -2646,24 +2599,16 @@ export default function App() {
                         {ar > 0 && <div style={{ marginTop:3 }}>{redTag(ar)}</div>}
                       </div>
                     </div>
-                    {/* voet: jouw tip + punten + tip-invoer + wie-tipte-wat */}
-                    {(() => {
-                      const canTip = !isAdmin && !isTipClosed(m) && !isPlaceholder(m.home) && !isPlaceholder(m.away);
-                      return (
+                    {/* voet: jouw tip + punten + wie-tipte-wat */}
                     <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, padding:"8px 12px", borderTop:"1px solid var(--c2)", background:"rgba(0,0,0,.15)" }}>
                       <div style={{ display:"flex", alignItems:"center", gap:8, minWidth:0, flexWrap:"wrap" }}>
                         {!isAdmin && mp && <><span style={{ fontSize:11, color:"var(--t3)" }}>Jouw tip:</span><span style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:13, color:"var(--am)" }}>{mp.home_goals}–{mp.away_goals}</span></>}
                         {!isAdmin && mp && done && lbl && <span className={`pts-badge ${cls}`}>{lbl}</span>}
-                        {!isAdmin && !mp && canTip && <span style={{ fontSize:11, color:"var(--re)", fontWeight:700 }}>⚠️ Nog geen tip!</span>}
-                        {!isAdmin && !mp && isTipClosed(m) && <span className="too-late">Te laat</span>}
+                        {!isAdmin && !mp && !m.locked && !started && <span style={{ fontSize:11, color:"var(--re)", fontWeight:700 }}>⚠️ Nog geen tip!</span>}
+                        {!isAdmin && !mp && (m.locked || started) && <span className="too-late">Te laat</span>}
                       </div>
-                      <div style={{ display:"flex", alignItems:"center", gap:6, flexShrink:0 }}>
-                        {canTip && <TodayTip match={m} mp={mp} onPred={savePred} />}
-                        <button className="btn btn-out btn-sm" title="Wie tipte wat?" onClick={() => setPredsModal(m)} style={{ flexShrink:0 }}>👥</button>
-                      </div>
+                      <button className="btn btn-out btn-sm" title="Wie tipte wat?" onClick={() => setPredsModal(m)} style={{ flexShrink:0 }}>👥</button>
                     </div>
-                      );
-                    })()}
                   </div>
                 );
               };
@@ -3082,7 +3027,7 @@ export default function App() {
             <div style={{ background:"var(--c2)", border:"1px solid var(--bd)", borderRadius:10, padding:"14px 16px", marginBottom:10 }}>
               <div style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:14, color:"var(--gr)", marginBottom:6 }}>🔒 Alles vergrendelen</div>
               <div style={{ fontSize:12, color:"var(--t3)", marginBottom:10, lineHeight:1.5 }}>
-                Wedstrijden gaan automatisch op slot 1 uur voor de aftrap. Hier kun je dat handmatig overrulen: vandaag vergrendelen, alle komende wedstrijden weer openen, of écht alles openen.
+                Vergrendelt alle wedstrijden van vandaag in één klik. Niemand kan meer tippen.
               </div>
               <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
                 <button
@@ -3115,30 +3060,6 @@ export default function App() {
                   }}
                 >
                   {lockAllLoading ? <><span className="spin">⚽</span> Bezig...</> : "🔒 Vandaag vergrendelen"}
-                </button>
-                <button
-                  className="btn btn-out"
-                  style={{ flex:1 }}
-                  disabled={lockAllLoading}
-                  onClick={async () => {
-                    setLockAllLoading(true);
-                    // Open alleen wedstrijden die nog meer dan 1 uur voor de aftrap liggen.
-                    // Gespeelde/lopende wedstrijden (binnen 1 uur of begonnen) blijven op slot.
-                    const now = Date.now();
-                    const upcoming = matches.filter(m => {
-                      if (!m.locked) return false;
-                      const t = parseMatchDate(m.match_date);
-                      return t && now < t.getTime() - LOCK_BEFORE_MS;
-                    });
-                    for (const m of upcoming) {
-                      await sb.from("matches").update({ locked: false }).eq("id", m.id);
-                      setMatches(ms => ms.map(x => x.id === m.id ? { ...x, locked: false } : x));
-                    }
-                    showToast(upcoming.length ? `🔓 ${upcoming.length} komende wedstrijd(en) geopend` : "ℹ️ Geen komende wedstrijden om te openen");
-                    setLockAllLoading(false);
-                  }}
-                >
-                  🔓 Komende openen
                 </button>
                 <button
                   className="btn btn-out"

@@ -75,26 +75,15 @@ Klassement: punten → bij gelijk aantal exacte uitslagen als tiebreak. Admin-ac
 Deelnemer: 🏆 Stand · 📅 Vandaag · ⚽ Groepen · 🥊 KO · 📊 Standen · 🎯 Bonus · 💶 Pot · 📋 Mijn
 Admin: idem, laatste tab = 👑 Beheer
 
-Op 📅 Vandaag (vandaag/morgen/overmorgen) kunnen deelnemers hun tip nu ook **direct invoeren/wijzigen** via de inline `TodayTip`-knop per wedstrijd (zelfde regels als Groepen/KO). Tippen kan ook gewoon nog via ⚽ Groepen en 🥊 KO.
-
 ## Belangrijke features / gedrag
 
-- **Auto-lock:** admin-client vergrendelt een wedstrijd automatisch **1 uur vóór de aftrap** (constante `LOCK_BEFORE_MS`, check elke 60s). Daarna kan niemand meer tippen ("Te laat"). De tip-opslaan-controle in `savePred` hanteert dezelfde grens als vangnet.
+- **Auto-lock:** admin-client vergrendelt een wedstrijd automatisch zodra de aftraptijd voorbij is (check elke 60s). Daarna kan niemand meer tippen ("Te laat").
 - **Tip opslaan:** upsert; beide velden leeg = tip verwijderen. Exacte uitslag → confetti + "+7 Exact!". "Twin"-melding als iemand dezelfde tip had.
 - **Live-balk:** pollt `/api/football-scores?live=1` elke 8s, broadcast-stijl met wedstrijdfase + rode kaarten. Gecached in localStorage voor directe weergave bij refresh.
 - **Klassement:** top 3 = 🥇🥈🥉, daarna gewone nummers. Positiepijltjes ▲/▼/– via `prevRanks` in localStorage.
 - **Auto-reload:** checkt elke 10 min op een nieuwe build (asset-hash) en herlaadt automatisch, zodat niemand op oude cache blijft.
 - **Online/laatst gezien:** via realtime presence + `last_seen` updates op meerdere events (vangnet voor mobiel).
 - **Sessie:** in localStorage (`wkp2026`), simpel `{id, username, isAdmin}` — geen JWT.
-
-## Beheer-tab: vergrendel-knoppen
-
-In de 👑 Beheer-tab staat een blok met drie knoppen:
-- **🔒 Vandaag vergrendelen** — vergrendelt alle wedstrijden van vandaag handmatig.
-- **🔓 Komende openen** — opent alle vergrendelde wedstrijden die nog >1 uur voor de aftrap liggen (gespeelde/lopende blijven op slot). Gebruik dit als wedstrijden ten onrechte vast op slot staan.
-- **🔓 Alles openen** — ontgrendelt echt alle wedstrijden (ook gespeelde).
-
-De automatische vergrendeling (1 uur voor aftrap) blijft daarnaast gewoon werken; deze knoppen zijn handmatige override.
 
 ## Pot / prijzengeld
 
