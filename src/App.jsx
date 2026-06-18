@@ -65,6 +65,11 @@ const WK_START = new Date("2026-06-11T21:00:00+02:00");
 // Hoe lang vóór de aftrap een wedstrijd automatisch op slot gaat (deadline om te tippen).
 const LOCK_BEFORE_MS = 60 * 60 * 1000; // 1 uur
 
+// Is tippen voor deze wedstrijd dicht? Dicht zodra hij handmatig vergrendeld is
+// (DB-vlag `locked`) ÓF vanaf 1 uur voor de aftrap. De tijd-check werkt op elk
+// toestel, dus de deadline geldt ook als de admin offline is en het slotje nog
+// niet in de database staat.
+
 // Eén centrale parser voor "do 11 jun 21:00" — voorheen 6x gedupliceerd
 const NL_MONTHS = {jan:0,feb:1,mrt:2,apr:3,mei:4,jun:5,jul:6,aug:7,sep:8,okt:9,nov:10,dec:11};
 
@@ -104,6 +109,13 @@ function parseMatchDate(md) {
   if (isNaN(day) || month === undefined) return null;
   const [hh, mm] = (parts[3] || "00:00").split(":").map(n => parseInt(n, 10));
   return new Date(2026, month, day, hh || 0, mm || 0);
+}
+
+// Zie de toelichting bij LOCK_BEFORE_MS hierboven.
+function isTipClosed(m) {
+  if (m?.locked) return true;
+  const t = parseMatchDate(m?.match_date);
+  return !!t && Date.now() >= t.getTime() - LOCK_BEFORE_MS;
 }
 
 // Speelminuut netjes tonen: "45" → "45'", niet-numeriek (bv. "HT") ongewijzigd.
@@ -711,7 +723,7 @@ function GroupCard({ group, matches, isAdmin, myPreds, onScore, onLock, onPred, 
         const isE  = ed === m.id, isP = pe === m.id;
         // FIX #8 - admin kan altijd bewerken, ook vergrendelde wedstrijden
         const canEdit = isAdmin;
-        const canP = !isAdmin && !m.locked;
+        const canP = !isAdmin && !isTipClosed(m);
         let cls = "", lbl = "";
         if (!isAdmin && mp && done) {
           const r = scorePts(mp.home_goals, mp.away_goals, m.home_goals, m.away_goals);
@@ -771,7 +783,7 @@ function GroupCard({ group, matches, isAdmin, myPreds, onScore, onLock, onPred, 
               <span></span>
               <div className="mr-actions">
                 {/* FIX #8: toon "te laat" als wedstrijd vergrendeld */}
-                {m.locked && !isAdmin && <span className="lock-tag">🔒</span>}
+                {isTipClosed(m) && !isAdmin && <span className="lock-tag">🔒</span>}
                 {!isAdmin && mp && done && <span className={`pts-badge ${cls}`}>{lbl}</span>}
                 {!isAdmin && mp && !isP && <span className="pill">{mp.home_goals}–{mp.away_goals}</span>}
                 {onShowPreds && <button className="btn btn-out btn-sm" title="Wie tipte wat?" onClick={() => onShowPreds(m)}>👥</button>}
@@ -780,7 +792,7 @@ function GroupCard({ group, matches, isAdmin, myPreds, onScore, onLock, onPred, 
                     {mp ? "✏️" : "⚽ Tip"}
                   </button>
                 )}
-                {!isAdmin && m.locked && !mp && <span className="too-late">Te laat</span>}
+                {!isAdmin && isTipClosed(m) && !mp && <span className="too-late">Te laat</span>}
                 {isAdmin && !isE && (
                   <button className="btn btn-out btn-sm" onClick={() => onLock(m.id, m.locked)}>
                     {m.locked ? "🔓" : "🔒"}
@@ -837,7 +849,7 @@ function KOCard({ phase, matches, isAdmin, myPreds, onScore, onLock, onPred, all
         const isE = ed === m.id, isP = pe === m.id;
         // FIX #8: admin kan altijd bewerken
         const canEdit = isAdmin;
-        const canP = !isAdmin && !m.locked && hasTeams;
+        const canP = !isAdmin && !isTipClosed(m) && hasTeams;
         let cls = "", lbl = "";
         if (!isAdmin && mp && done) {
           const r = scorePts(mp.home_goals, mp.away_goals, m.home_goals, m.away_goals);
@@ -913,7 +925,7 @@ function KOCard({ phase, matches, isAdmin, myPreds, onScore, onLock, onPred, all
             <div className="mr-meta">
               <span></span>
               <div className="mr-actions">
-                {m.locked && !isAdmin && <span className="lock-tag">🔒</span>}
+                {isTipClosed(m) && !isAdmin && <span className="lock-tag">🔒</span>}
                 {!isAdmin && mp && done && <span className={`pts-badge ${cls}`}>{lbl}</span>}
                 {!isAdmin && mp && !isP && <span className="pill">{mp.home_goals}–{mp.away_goals}</span>}
                 {onShowPreds && hasTeams && <button className="btn btn-out btn-sm" title="Wie tipte wat?" onClick={() => onShowPreds(m)}>👥</button>}
@@ -922,7 +934,7 @@ function KOCard({ phase, matches, isAdmin, myPreds, onScore, onLock, onPred, all
                     {mp ? "✏️ Wijzig" : "⚽ Voorspel"}
                   </button>
                 )}
-                {!isAdmin && m.locked && !mp && hasTeams && <span className="too-late">Te laat</span>}
+                {!isAdmin && isTipClosed(m) && !mp && hasTeams && <span className="too-late">Te laat</span>}
                 {isAdmin && !isE && <button className="btn btn-out btn-sm" onClick={() => onLock(m.id, m.locked)}>{m.locked ? "🔓 Open" : "🔒 Sluit"}</button>}
               </div>
             </div>
@@ -2135,7 +2147,7 @@ export default function App() {
     if (!d) return false;
     const now = new Date();
     return d.getDate() === now.getDate() && d.getMonth() === now.getMonth()
-      && m.home_goals == null && !m.locked;
+      && m.home_goals == null && !isTipClosed(m);
   });
   const todayUntiped = !isAdmin && todayMatches.filter(m => !myPreds.find(p => p.match_id === m.id)).length > 0;
 
@@ -2523,7 +2535,7 @@ export default function App() {
               <div className="gtabs">
                 {GROUPS.map(g => {
                   const untiped = !isAdmin ? matches.filter(m =>
-                    m.grp === g && m.phase === "group" && m.home_goals == null && !m.locked &&
+                    m.grp === g && m.phase === "group" && m.home_goals == null && !isTipClosed(m) &&
                     !myPreds.find(p => p.match_id === m.id)
                   ).length : 0;
                   return (
@@ -2602,7 +2614,7 @@ export default function App() {
                     <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"7px 12px", background: live ? "rgba(34,197,94,.08)" : "rgba(255,255,255,.03)", borderBottom:`1px solid ${live ? "rgba(34,197,94,.2)" : "var(--c2)"}` }}>
                       <span style={{ fontSize:10, fontWeight:700, color: live ? "#22c55e" : "var(--t3)", textTransform:"uppercase", letterSpacing:.5, display:"flex", alignItems:"center", gap:5, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
                         {live && <span className="live" style={{ margin:0 }}/>}
-                        {m.locked ? "🔒 " : ""}{phaseLabel}{statusLabel ? ` · ${statusLabel}` : ""}
+                        {isTipClosed(m) && !done ? "🔒 " : ""}{phaseLabel}{statusLabel ? ` · ${statusLabel}` : ""}
                       </span>
                       <span style={{ fontSize:10, color: (!done && !live && cdU) ? "var(--gr)" : "var(--t3)", fontWeight: (!done && !live && cdU) ? 700 : 400, flexShrink:0 }}>{(done || live) ? (parts[3] || "") : (cdU || "")}</span>
                     </div>
@@ -2636,14 +2648,14 @@ export default function App() {
                     </div>
                     {/* voet: jouw tip + punten + tip-invoer + wie-tipte-wat */}
                     {(() => {
-                      const canTip = !isAdmin && !m.locked && !started && !isPlaceholder(m.home) && !isPlaceholder(m.away);
+                      const canTip = !isAdmin && !isTipClosed(m) && !isPlaceholder(m.home) && !isPlaceholder(m.away);
                       return (
                     <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, padding:"8px 12px", borderTop:"1px solid var(--c2)", background:"rgba(0,0,0,.15)" }}>
                       <div style={{ display:"flex", alignItems:"center", gap:8, minWidth:0, flexWrap:"wrap" }}>
                         {!isAdmin && mp && <><span style={{ fontSize:11, color:"var(--t3)" }}>Jouw tip:</span><span style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:13, color:"var(--am)" }}>{mp.home_goals}–{mp.away_goals}</span></>}
                         {!isAdmin && mp && done && lbl && <span className={`pts-badge ${cls}`}>{lbl}</span>}
                         {!isAdmin && !mp && canTip && <span style={{ fontSize:11, color:"var(--re)", fontWeight:700 }}>⚠️ Nog geen tip!</span>}
-                        {!isAdmin && !mp && (m.locked || started) && <span className="too-late">Te laat</span>}
+                        {!isAdmin && !mp && isTipClosed(m) && <span className="too-late">Te laat</span>}
                       </div>
                       <div style={{ display:"flex", alignItems:"center", gap:6, flexShrink:0 }}>
                         {canTip && <TodayTip match={m} mp={mp} onPred={savePred} />}
