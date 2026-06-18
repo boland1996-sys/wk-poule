@@ -75,6 +75,8 @@ Klassement: punten → bij gelijk aantal exacte uitslagen als tiebreak. Admin-ac
 Deelnemer: 🏆 Stand · 📅 Vandaag · ⚽ Groepen · 🥊 KO · 📊 Standen · 🎯 Bonus · 💶 Pot · 📋 Mijn
 Admin: idem, laatste tab = 👑 Beheer
 
+Op 📅 Vandaag (vandaag/morgen/overmorgen) kunnen deelnemers hun tip nu ook **direct invoeren/wijzigen** via de inline `TodayTip`-knop per wedstrijd (zelfde regels als Groepen/KO). Tippen kan ook gewoon nog via ⚽ Groepen en 🥊 KO.
+
 ## Belangrijke features / gedrag
 
 - **Auto-lock:** admin-client vergrendelt een wedstrijd automatisch **1 uur vóór de aftrap** (constante `LOCK_BEFORE_MS`, check elke 60s). Daarna kan niemand meer tippen ("Te laat"). De tip-opslaan-controle in `savePred` hanteert dezelfde grens als vangnet.
