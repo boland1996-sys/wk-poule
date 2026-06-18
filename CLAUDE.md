@@ -77,7 +77,7 @@ Admin: idem, laatste tab = 👑 Beheer
 
 ## Belangrijke features / gedrag
 
-- **Auto-lock:** admin-client vergrendelt een wedstrijd automatisch zodra de aftraptijd voorbij is (check elke 60s). Daarna kan niemand meer tippen ("Te laat").
+- **Auto-lock:** admin-client vergrendelt een wedstrijd automatisch **1 uur vóór de aftrap** (constante `LOCK_BEFORE_MS`, check elke 60s). Daarna kan niemand meer tippen ("Te laat"). De tip-opslaan-controle in `savePred` hanteert dezelfde grens als vangnet.
 - **Tip opslaan:** upsert; beide velden leeg = tip verwijderen. Exacte uitslag → confetti + "+7 Exact!". "Twin"-melding als iemand dezelfde tip had.
 - **Live-balk:** pollt `/api/football-scores?live=1` elke 8s, broadcast-stijl met wedstrijdfase + rode kaarten. Gecached in localStorage voor directe weergave bij refresh.
 - **Klassement:** top 3 = 🥇🥈🥉, daarna gewone nummers. Positiepijltjes ▲/▼/– via `prevRanks` in localStorage.
