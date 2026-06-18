@@ -85,6 +85,15 @@ Admin: idem, laatste tab = 👑 Beheer
 - **Online/laatst gezien:** via realtime presence + `last_seen` updates op meerdere events (vangnet voor mobiel).
 - **Sessie:** in localStorage (`wkp2026`), simpel `{id, username, isAdmin}` — geen JWT.
 
+## Beheer-tab: vergrendel-knoppen
+
+In de 👑 Beheer-tab staat een blok met drie knoppen:
+- **🔒 Vandaag vergrendelen** — vergrendelt alle wedstrijden van vandaag handmatig.
+- **🔓 Komende openen** — opent alle vergrendelde wedstrijden die nog >1 uur voor de aftrap liggen (gespeelde/lopende blijven op slot). Gebruik dit als wedstrijden ten onrechte vast op slot staan.
+- **🔓 Alles openen** — ontgrendelt echt alle wedstrijden (ook gespeelde).
+
+De automatische vergrendeling (1 uur voor aftrap) blijft daarnaast gewoon werken; deze knoppen zijn handmatige override.
+
 ## Pot / prijzengeld
 
 Inleg × aantal deelnemers. Verdeling: winnaar 50% · nr.2 30% · nr.3 20%.
