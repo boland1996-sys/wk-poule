@@ -2607,7 +2607,18 @@ export default function App() {
                         {!isAdmin && !mp && !m.locked && !started && <span style={{ fontSize:11, color:"var(--re)", fontWeight:700 }}>⚠️ Nog geen tip!</span>}
                         {!isAdmin && !mp && (m.locked || started) && <span className="too-late">Te laat</span>}
                       </div>
-                      <button className="btn btn-out btn-sm" title="Wie tipte wat?" onClick={() => setPredsModal(m)} style={{ flexShrink:0 }}>👥</button>
+                      {(() => {
+                        const tipCount = preds.filter(p => p.match_id === m.id && p.home_goals != null).length;
+                        return (
+                          <button
+                            title="Wie tipte wat?"
+                            onClick={() => setPredsModal(m)}
+                            style={{ flexShrink:0, background:"rgba(255,107,0,.12)", border:"1px solid rgba(255,107,0,.3)", color:"var(--gr)", padding:"6px 12px", fontSize:12, fontWeight:700, borderRadius:7, display:"inline-flex", alignItems:"center", gap:5, whiteSpace:"nowrap", cursor:"pointer" }}
+                          >
+                            👀 {tipCount > 0 ? `${tipCount} tip${tipCount === 1 ? "" : "s"} bekijken` : "Tips bekijken"}
+                          </button>
+                        );
+                      })()}
                     </div>
                   </div>
                 );
