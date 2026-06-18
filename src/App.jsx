@@ -3030,7 +3030,7 @@ export default function App() {
             <div style={{ background:"var(--c2)", border:"1px solid var(--bd)", borderRadius:10, padding:"14px 16px", marginBottom:10 }}>
               <div style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:14, color:"var(--gr)", marginBottom:6 }}>🔒 Alles vergrendelen</div>
               <div style={{ fontSize:12, color:"var(--t3)", marginBottom:10, lineHeight:1.5 }}>
-                Vergrendelt alle wedstrijden van vandaag in één klik. Niemand kan meer tippen.
+                Wedstrijden gaan automatisch op slot 1 uur voor de aftrap. Hier kun je dat handmatig overrulen: vandaag vergrendelen, alle komende wedstrijden weer openen, of écht alles openen.
               </div>
               <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
                 <button
@@ -3063,6 +3063,30 @@ export default function App() {
                   }}
                 >
                   {lockAllLoading ? <><span className="spin">⚽</span> Bezig...</> : "🔒 Vandaag vergrendelen"}
+                </button>
+                <button
+                  className="btn btn-out"
+                  style={{ flex:1 }}
+                  disabled={lockAllLoading}
+                  onClick={async () => {
+                    setLockAllLoading(true);
+                    // Open alleen wedstrijden die nog meer dan 1 uur voor de aftrap liggen.
+                    // Gespeelde/lopende wedstrijden (binnen 1 uur of begonnen) blijven op slot.
+                    const now = Date.now();
+                    const upcoming = matches.filter(m => {
+                      if (!m.locked) return false;
+                      const t = parseMatchDate(m.match_date);
+                      return t && now < t.getTime() - LOCK_BEFORE_MS;
+                    });
+                    for (const m of upcoming) {
+                      await sb.from("matches").update({ locked: false }).eq("id", m.id);
+                      setMatches(ms => ms.map(x => x.id === m.id ? { ...x, locked: false } : x));
+                    }
+                    showToast(upcoming.length ? `🔓 ${upcoming.length} komende wedstrijd(en) geopend` : "ℹ️ Geen komende wedstrijden om te openen");
+                    setLockAllLoading(false);
+                  }}
+                >
+                  🔓 Komende openen
                 </button>
                 <button
                   className="btn btn-out"
