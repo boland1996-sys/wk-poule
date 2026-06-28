@@ -2789,6 +2789,11 @@ export default function App() {
                 {KO_PHASES.map(p => <button key={p.id} className={`ptab${kphase===p.id?" on":""}`} onClick={() => setKphase(p.id)}>{p.full}</button>)}
               </div>
             </div>
+            {!isAdmin && (
+              <div style={{ display:"flex", alignItems:"center", gap:7, background:"rgba(255,107,0,.1)", border:"1px solid rgba(255,107,0,.25)", color:"var(--gr)", borderRadius:8, padding:"8px 11px", margin:"0 2px 10px", fontSize:12, fontWeight:700 }}>
+                <span>⚠️</span><span>Geen gelijkspel mogelijk in de knockout — tip altijd een winnaar.</span>
+              </div>
+            )}
             <KOCard phase={kphase} matches={matches} isAdmin={isAdmin} myPreds={myPreds} onScore={setScore} onLock={toggleLock} onPred={savePred} allTeams={ALL_TEAMS} onShowPreds={setPredsModal} />
           </div>
         )}
