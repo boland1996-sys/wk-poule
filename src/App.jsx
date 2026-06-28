@@ -1249,6 +1249,7 @@ function LiveOrNext({ matches, nextMatch, liveData = [], isAdmin = false, myPred
   const [th, setTh] = useState("");
   const [ta, setTa] = useState("");
   const [saving, setSaving] = useState(false);
+  const [editing, setEditing] = useState(false);
   const now = new Date();
   // Eerstvolgende nog te spelen wedstrijd met echte teams die nog niet is begonnen
   // (los van een eventuele live-wedstrijd, zodat je die alvast kunt tippen).
@@ -1261,6 +1262,7 @@ function LiveOrNext({ matches, nextMatch, liveData = [], isAdmin = false, myPred
     setTh(tip ? String(tip.home_goals) : "");
     setTa(tip ? String(tip.away_goals) : "");
   }, [upcoming?.id, myPreds]);
+  useEffect(() => { setEditing(false); }, [upcoming?.id]);
 
   const liveMatches = matches.filter(m => {
     if (m.home_goals != null) return false;
@@ -1361,7 +1363,26 @@ function LiveOrNext({ matches, nextMatch, liveData = [], isAdmin = false, myPred
       {!isAdmin && onPred && (() => {
         const dl = tipDeadline(upcoming.match_date);
         const closed = upcoming.locked || (dl && now >= dl);
-        if (closed) return <div style={{ marginTop:11, fontSize:12, fontWeight:700, color:"var(--am)" }}>🔒 Tippen gesloten</div>;
+        const myTip = myPreds.find(p => p.match_id === upcoming.id);
+        if (closed) return (
+          <div style={{ marginTop:11, fontSize:12, fontWeight:700, color:"var(--am)" }}>
+            🔒 Tippen gesloten{myTip ? ` · jouw tip: ${myTip.home_goals}–${myTip.away_goals}` : ""}
+          </div>
+        );
+        // Bevroren weergave: tip staat vast, pas aan via "Wijzig" (voorkomt per ongeluk wijzigen)
+        if (!editing) return (
+          <div style={{ display:"flex", alignItems:"center", gap:8, marginTop:11, flexWrap:"wrap" }}>
+            {myTip ? (
+              <>
+                <span style={{ fontSize:11, color:"var(--t2)", fontWeight:700 }}>Jouw tip:</span>
+                <span className="pill" style={{ fontSize:13 }}>{myTip.home_goals}–{myTip.away_goals}</span>
+                <button className="btn btn-out btn-sm" onClick={() => setEditing(true)}>✏️ Wijzig</button>
+              </>
+            ) : (
+              <button className="btn btn-out btn-sm" onClick={() => setEditing(true)}>⚽ Voorspel</button>
+            )}
+          </div>
+        );
         return (
           <div style={{ display:"flex", alignItems:"center", gap:7, marginTop:11, flexWrap:"wrap" }}>
             <span style={{ fontSize:11, color:"var(--t2)", fontWeight:700 }}>Jouw tip:</span>
@@ -1372,9 +1393,11 @@ function LiveOrNext({ matches, nextMatch, liveData = [], isAdmin = false, myPred
               setSaving(true);
               const hg = th === "" ? null : parseInt(th, 10);
               const ag = ta === "" ? null : parseInt(ta, 10);
-              await onPred(upcoming.id, hg, ag);
+              const ok = await onPred(upcoming.id, hg, ag);
               setSaving(false);
+              if (ok) setEditing(false);
             }}>{saving ? "…" : "✓ Opslaan"}</button>
+            <button className="btn btn-out btn-sm" onClick={() => { setEditing(false); setTh(myTip ? String(myTip.home_goals) : ""); setTa(myTip ? String(myTip.away_goals) : ""); }}>✕</button>
           </div>
         );
       })()}
