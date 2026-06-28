@@ -35,6 +35,25 @@ export default async function handler(req, res) {
   if (!key) return res.status(500).json({ error: "RAPIDAPI_KEY not configured" });
   const headers = { "x-rapidapi-key": key, "x-rapidapi-host": HOST };
 
+  // TIJDELIJKE DEBUG: ruwe match-objecten van wedstrijden met verlenging/penalty's,
+  // om te zien welke velden flashscore meestuurt. Verwijderen na onderzoek.
+  if (req.query?.raw === "1") {
+    const date = req.query.date || new Date().toISOString().split("T")[0];
+    const apiRes = await fetch(`https://${HOST}/api/flashscore/v2/matches/list-by-date?sport_id=1&date=${date}&timezone=Europe%2FBerlin`, { headers });
+    if (!apiRes.ok) return res.status(apiRes.status).json({ error: "API error", status: apiRes.status });
+    const data = await apiRes.json();
+    const tournaments = Array.isArray(data) ? data : (data?.data || []);
+    const samples = [];
+    for (const t of tournaments) for (const m of (t.matches || [])) {
+      const stg = (m.match_status?.stage || "").toLowerCase();
+      if (stg.includes("pen") || stg.includes("extra") || stg.includes("aet")) {
+        samples.push({ tournament: t.name, match: m });
+        if (samples.length >= 8) break;
+      }
+    }
+    return res.json({ date, count: samples.length, samples });
+  }
+
   // LIVE-modus (?live=1): klein endpoint met alleen wedstrijden die nu bezig zijn.
   if (req.query?.live === "1") {
     res.setHeader("Cache-Control", "s-maxage=6, stale-while-revalidate=12");
