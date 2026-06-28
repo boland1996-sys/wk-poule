@@ -75,5 +75,41 @@ export default async function handler(req, res) {
     if (up.ok) { updated++; log.push(`${nlHome} ${hg}-${ag} ${nlAway}`); }
   }
 
-  res.json({ ok: true, updated, log });
+  // 4. Tegenstanders volgende KO-ronde invullen. Kost GEEN flashscore-calls
+  //    (alleen Supabase). Draait elke run, dus ook als de admin offline is.
+  //    "Winnaar duel N"/"Verliezer duel N" wordt het echte team zodra duel N
+  //    een duidelijke winnaar heeft (gelijkspel/penalty's → admin vult zelf in).
+  let filled = 0;
+  const isPlaceholder = (n) => !n || /^(Winnaar|Verliezer|1e Groep|2e Groep|Beste nr|Nummer)/.test(n);
+  const koRes = await fetch(`${supaUrl}/rest/v1/matches?phase=neq.group&select=id,home,away,home_goals,away_goals`, { headers: sbHeaders });
+  if (koRes.ok) {
+    const ko = await koRes.json();
+    const byId = new Map(ko.map(m => [m.id, m]));
+    for (const m of ko) {
+      for (const col of ["home", "away"]) {
+        const val = m[col];
+        const win = /^Winnaar duel (\d+)$/.exec(val || "");
+        const los = /^Verliezer duel (\d+)$/.exec(val || "");
+        const mt = win || los;
+        if (!mt) continue;
+        const src = byId.get(parseInt(mt[1], 10));
+        if (!src) continue;
+        if (src.home_goals == null || src.away_goals == null) continue;
+        if (src.home_goals === src.away_goals) continue; // winnaar onbekend
+        if (isPlaceholder(src.home) || isPlaceholder(src.away)) continue;
+        const winner = src.home_goals > src.away_goals ? src.home : src.away;
+        const loser  = src.home_goals > src.away_goals ? src.away : src.home;
+        const desired = win ? winner : loser;
+        if (!desired || desired === val) continue;
+        const up = await fetch(`${supaUrl}/rest/v1/matches?id=eq.${m.id}`, {
+          method: "PATCH",
+          headers: { ...sbHeaders, Prefer: "return=minimal" },
+          body: JSON.stringify({ [col]: desired }),
+        });
+        if (up.ok) { filled++; byId.set(m.id, { ...m, [col]: desired }); log.push(`→ ${val} = ${desired}`); }
+      }
+    }
+  }
+
+  res.json({ ok: true, updated, filled, log });
 }
