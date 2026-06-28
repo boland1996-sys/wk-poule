@@ -1993,16 +1993,19 @@ export default function App() {
         setTimeout(() => setPtsPopup(null), 2500);
       }
     }
-    // Twin detectie — wie heeft dezelfde tip ingevoerd?
-    const twins = preds.filter(p =>
-      p.match_id === mid &&
-      p.user_id !== session.id &&
-      +p.home_goals === +hg &&
-      +p.away_goals === +ag
-    ).map(p => users.find(u => u.id === p.user_id)?.username).filter(Boolean);
-    if (twins.length > 0) {
-      setTwinPopup({ names: twins });
-      setTimeout(() => setTwinPopup(null), 3500);
+    // Twin detectie — alleen in de groepsfase (in de KO zijn er weinig scores
+    // mogelijk, dus dan tipt bijna iedereen hetzelfde — niet meer leuk).
+    if (m && m.phase === "group") {
+      const twins = preds.filter(p =>
+        p.match_id === mid &&
+        p.user_id !== session.id &&
+        +p.home_goals === +hg &&
+        +p.away_goals === +ag
+      ).map(p => users.find(u => u.id === p.user_id)?.username).filter(Boolean);
+      if (twins.length > 0) {
+        setTwinPopup({ names: twins });
+        setTimeout(() => setTwinPopup(null), 3500);
+      }
     }
     showToast("✓ Voorspelling opgeslagen");
     return true;
