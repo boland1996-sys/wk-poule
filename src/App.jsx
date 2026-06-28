@@ -2159,8 +2159,8 @@ export default function App() {
   const todayUntiped = !isAdmin && todayMatches.filter(m => !myPreds.find(p => p.match_id === m.id)).length > 0;
 
   const TABS = isAdmin
-    ? [{ id:"stand",ic:"🏆",lb:"Stand" },{ id:"vandaag",ic:"📅",lb:"Vandaag" },{ id:"groepen",ic:"⚽",lb:"Groepen" },{ id:"ko",ic:"🥊",lb:"KO" },{ id:"standen",ic:"📊",lb:"Standen" },{ id:"bonus",ic:"🎯",lb:"Bonus" },{ id:"pot",ic:"💶",lb:"Pot" },{ id:"beheer",ic:"👑",lb:"Beheer" }]
-    : [{ id:"stand",ic:"🏆",lb:"Stand" },{ id:"vandaag",ic:"📅",lb:"Vandaag" },{ id:"groepen",ic:"⚽",lb:"Groepen" },{ id:"ko",ic:"🥊",lb:"KO" },{ id:"standen",ic:"📊",lb:"Standen" },{ id:"bonus",ic:"🎯",lb:"Bonus" },{ id:"pot",ic:"💶",lb:"Pot" },{ id:"mijn",ic:"📋",lb:"Mijn" }];
+    ? [{ id:"stand",ic:"🏆",lb:"Stand" },{ id:"vandaag",ic:"📅",lb:"Vandaag" },{ id:"groepen",ic:"⚽",lb:"Groepen" },{ id:"ko",ic:"🥊",lb:"KO" },{ id:"schema",ic:"🗺️",lb:"Schema" },{ id:"standen",ic:"📊",lb:"Standen" },{ id:"bonus",ic:"🎯",lb:"Bonus" },{ id:"pot",ic:"💶",lb:"Pot" },{ id:"beheer",ic:"👑",lb:"Beheer" }]
+    : [{ id:"stand",ic:"🏆",lb:"Stand" },{ id:"vandaag",ic:"📅",lb:"Vandaag" },{ id:"groepen",ic:"⚽",lb:"Groepen" },{ id:"ko",ic:"🥊",lb:"KO" },{ id:"schema",ic:"🗺️",lb:"Schema" },{ id:"standen",ic:"📊",lb:"Standen" },{ id:"bonus",ic:"🎯",lb:"Bonus" },{ id:"pot",ic:"💶",lb:"Pot" },{ id:"mijn",ic:"📋",lb:"Mijn" }];
 
   const myStandingPred = standingPreds.find(s => s.user_id === session?.id && s.group === grp)?.order;
 
@@ -2729,6 +2729,56 @@ export default function App() {
               </div>
             </div>
             <KOCard phase={kphase} matches={matches} isAdmin={isAdmin} myPreds={myPreds} onScore={setScore} onLock={toggleLock} onPred={savePred} allTeams={ALL_TEAMS} onShowPreds={setPredsModal} />
+          </div>
+        )}
+
+        {/* ── SCHEMA (KO-bracket per ronde, telefoon-vriendelijk) ── */}
+        {tab === "schema" && (
+          <div className="fu">
+            <div className="sec-title">🗺️ Knock-out schema</div>
+            <div className="sec-sub">Van de zestiende finale tot de finale — vult zich automatisch</div>
+            {KO_PHASES.map(ph => {
+              const ms = matches.filter(m => m.phase === ph.id)
+                .sort((a, b) => (parseMatchDate(a.match_date)?.getTime() ?? 9e15) - (parseMatchDate(b.match_date)?.getTime() ?? 9e15));
+              if (!ms.length) return null;
+              return (
+                <div key={ph.id} style={{ marginBottom:18 }}>
+                  <div style={{ display:"flex", alignItems:"baseline", gap:8, margin:"0 2px 8px" }}>
+                    <span className="card-title">{ph.full}</span>
+                    <span style={{ fontSize:10, color:"var(--t3)" }}>{ms.length} {ms.length === 1 ? "wedstrijd" : "wedstrijden"}</span>
+                  </div>
+                  {ms.map(m => {
+                    const done = m.home_goals != null && m.away_goals != null;
+                    const hWin = done && m.home_goals > m.away_goals;
+                    const aWin = done && m.away_goals > m.home_goals;
+                    const cell = (name, win, align) => {
+                      const isPh = isPlaceholder(name);
+                      return (
+                        <div style={{ textAlign:align, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap",
+                          fontSize:12.5, fontStyle: isPh ? "italic" : "normal", fontWeight: win ? 800 : 700,
+                          color: isPh ? "var(--t3)" : win ? "var(--gr)" : done ? "var(--t3)" : "var(--t1)" }}>
+                          {name || "—"}
+                        </div>
+                      );
+                    };
+                    return (
+                      <div key={m.id} style={{ background:"var(--c1)", border:"1px solid var(--c3)", borderRadius:10, padding:"9px 12px", marginBottom:7 }}>
+                        <div style={{ display:"grid", gridTemplateColumns:"1fr auto 1fr", alignItems:"center", gap:10 }}>
+                          {cell(m.home, hWin, "right")}
+                          <div style={{ flexShrink:0, textAlign:"center", minWidth:46 }}>
+                            {done
+                              ? <span style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:18, color:"var(--gr)", letterSpacing:1 }}>{m.home_goals}<span style={{ color:"var(--bd)", margin:"0 3px" }}>–</span>{m.away_goals}</span>
+                              : <span style={{ fontSize:13, fontWeight:700, color:"var(--t3)", fontFamily:"'Oswald',sans-serif" }}>vs</span>}
+                          </div>
+                          {cell(m.away, aWin, "left")}
+                        </div>
+                        <div style={{ textAlign:"center", fontSize:9.5, color:"var(--t3)", fontWeight:700, textTransform:"uppercase", letterSpacing:.5, marginTop:5 }}>{m.match_date}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
           </div>
         )}
 
