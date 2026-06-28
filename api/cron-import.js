@@ -58,6 +58,9 @@ export default async function handler(req, res) {
   const log = [];
   for (const f of fixtures) {
     if (f.match_status?.is_finished !== true) continue;
+    // Op penalty's beslist: API geeft alleen de gelijke stand na verlenging
+    // (geen penalty-uitslag/winnaar). Niet auto-importeren — admin vult zelf in.
+    if (f.match_status?.is_finished_after_penalties === true) continue;
     const nlHome = TEAM_MAP[f.home_team?.name], nlAway = TEAM_MAP[f.away_team?.name];
     if (!nlHome || !nlAway) continue;
     const hg = f.scores?.home, ag = f.scores?.away;

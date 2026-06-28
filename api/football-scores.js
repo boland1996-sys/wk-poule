@@ -14,6 +14,7 @@ function flatten(data) {
         live: st.is_in_progress === true,
         minute: st.live_time,
         stage: st.stage || "",
+        pens: st.is_finished_after_penalties === true,
         homeTeam: m.home_team?.name || "",
         awayTeam: m.away_team?.name || "",
         homeScore: m.scores?.home ?? null,

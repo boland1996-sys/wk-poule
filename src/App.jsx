@@ -1935,6 +1935,9 @@ export default function App() {
     const log = [];
     for (const e of wkMatches) {
       if (!e.finished) { skipped++; continue; }
+      // Op penalty's beslist: API geeft alleen de gelijke stand na verlenging
+      // (geen penalty-uitslag/winnaar). Niet auto-importeren — admin vult zelf in.
+      if (e.pens) { skipped++; log.push(`🥅 Penalty's, handmatig invullen: ${e.homeTeam} vs ${e.awayTeam}`); continue; }
       let hg = e.homeScore, ag = e.awayScore;
       if ((hg == null || ag == null) && e.scoreStr) {
         const parts = e.scoreStr.split("-").map(s => parseInt(s.trim(), 10));
