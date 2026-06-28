@@ -1249,12 +1249,18 @@ function LiveOrNext({ matches, nextMatch, liveData = [], isAdmin = false, myPred
   const [th, setTh] = useState("");
   const [ta, setTa] = useState("");
   const [saving, setSaving] = useState(false);
+  const now = new Date();
+  // Eerstvolgende nog te spelen wedstrijd met echte teams die nog niet is begonnen
+  // (los van een eventuele live-wedstrijd, zodat je die alvast kunt tippen).
+  const upcoming = matches
+    .map(m => ({ m, t: parseMatchDate(m.match_date) }))
+    .filter(x => x.m.home_goals == null && !isPlaceholder(x.m.home) && !isPlaceholder(x.m.away) && x.t && x.t > now)
+    .sort((a, b) => a.t - b.t)[0]?.m || null;
   useEffect(() => {
-    const tip = myPreds.find(p => p.match_id === nextMatch?.id);
+    const tip = myPreds.find(p => p.match_id === upcoming?.id);
     setTh(tip ? String(tip.home_goals) : "");
     setTa(tip ? String(tip.away_goals) : "");
-  }, [nextMatch?.id, myPreds]);
-  const now = new Date();
+  }, [upcoming?.id, myPreds]);
 
   const liveMatches = matches.filter(m => {
     if (m.home_goals != null) return false;
@@ -1265,7 +1271,7 @@ function LiveOrNext({ matches, nextMatch, liveData = [], isAdmin = false, myPred
   });
   const hasLive = liveMatches.length > 0;
 
-  if (hasLive) return (
+  const liveBlock = hasLive ? (
     <div style={{ background:"linear-gradient(135deg,rgba(34,197,94,.08),rgba(34,197,94,.04))", border:"1px solid rgba(34,197,94,.25)", borderRadius:"var(--r)", padding:"14px 16px", marginBottom:12 }}>
       <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
         <span className="live"/>
@@ -1321,16 +1327,17 @@ function LiveOrNext({ matches, nextMatch, liveData = [], isAdmin = false, myPred
         );
       })}
     </div>
-  );
+  ) : null;
 
-  if (!nextMatch) return null;
-  const matchTime = parseMatchDate(nextMatch.match_date);
+  let nextCard = null;
+  if (upcoming) {
+  const matchTime = parseMatchDate(upcoming.match_date);
   const diff = matchTime ? matchTime - now : 0;
   const dh = Math.floor(diff/36e5);
   const dm = Math.floor(diff/6e4)%60;
   const ds = Math.floor(diff/1e3)%60;
 
-  return (
+  nextCard = (
     <div className="next-match" style={{ position:"relative", overflow:"hidden" }}>
       <div style={{ position:"absolute", right:12, top:"50%", transform:"translateY(-50%)", fontFamily:"'Oswald',sans-serif", fontWeight:800, fontSize:11, color:"var(--t3)", textAlign:"right" }}>
         {diff > 0 && (
@@ -1344,16 +1351,16 @@ function LiveOrNext({ matches, nextMatch, liveData = [], isAdmin = false, myPred
       </div>
       <div className="nm-label">⚽ Volgende wedstrijd</div>
       <div className="nm-teams" style={{ paddingRight:70 }}>
-        <span className="nm-team">{nextMatch.home}</span>
+        <span className="nm-team">{upcoming.home}</span>
         <span className="nm-vs">vs</span>
-        <span className="nm-team away">{nextMatch.away}</span>
+        <span className="nm-team away">{upcoming.away}</span>
       </div>
       <div style={{ fontSize:11, color:"var(--t3)", marginTop:6 }}>
-        📅 {nextMatch.match_date} · {nextMatch.phase === "group" ? `Groep ${nextMatch.grp}` : KO_PHASES.find(p => p.id === nextMatch.phase)?.full || nextMatch.phase}
+        📅 {upcoming.match_date} · {upcoming.phase === "group" ? `Groep ${upcoming.grp}` : KO_PHASES.find(p => p.id === upcoming.phase)?.full || upcoming.phase}
       </div>
       {!isAdmin && onPred && (() => {
-        const dl = tipDeadline(nextMatch.match_date);
-        const closed = nextMatch.locked || (dl && now >= dl);
+        const dl = tipDeadline(upcoming.match_date);
+        const closed = upcoming.locked || (dl && now >= dl);
         if (closed) return <div style={{ marginTop:11, fontSize:12, fontWeight:700, color:"var(--am)" }}>🔒 Tippen gesloten</div>;
         return (
           <div style={{ display:"flex", alignItems:"center", gap:7, marginTop:11, flexWrap:"wrap" }}>
@@ -1365,7 +1372,7 @@ function LiveOrNext({ matches, nextMatch, liveData = [], isAdmin = false, myPred
               setSaving(true);
               const hg = th === "" ? null : parseInt(th, 10);
               const ag = ta === "" ? null : parseInt(ta, 10);
-              await onPred(nextMatch.id, hg, ag);
+              await onPred(upcoming.id, hg, ag);
               setSaving(false);
             }}>{saving ? "…" : "✓ Opslaan"}</button>
           </div>
@@ -1373,6 +1380,10 @@ function LiveOrNext({ matches, nextMatch, liveData = [], isAdmin = false, myPred
       })()}
     </div>
   );
+  }
+
+  if (!liveBlock && !nextCard) return null;
+  return (<>{liveBlock}{nextCard}</>);
 }
 
 // ── MAIN APP ──────────────────────────────────────────────────────────────
