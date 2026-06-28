@@ -103,8 +103,8 @@ function parseMatchDate(md) {
   return new Date(2026, month, day, hh || 0, mm || 0);
 }
 
-// Tippen sluit 1 uur vóór aftrap. Daarna wordt de wedstrijd vergrendeld.
-const LOCK_LEAD_MS = 60 * 60 * 1000;
+// Tippen sluit 5 minuten vóór aftrap. Daarna wordt de wedstrijd vergrendeld.
+const LOCK_LEAD_MS = 5 * 60 * 1000;
 function tipDeadline(md) {
   const start = parseMatchDate(md);
   return start ? new Date(start.getTime() - LOCK_LEAD_MS) : null;
@@ -807,9 +807,12 @@ function KOCard({ phase, matches, isAdmin, myPreds, onScore, onLock, onPred, all
         const done = m.home_goals != null && m.away_goals != null;
         const hasTeams = !isPlaceholder(m.home) && !isPlaceholder(m.away);
         const isE = ed === m.id, isP = pe === m.id;
+        // Gesloten = DB-lock OF binnen 5 min voor aftrap (werkt ook als admin offline is)
+        const dl = tipDeadline(m.match_date);
+        const closed = m.locked || (dl && new Date() >= dl);
         // FIX #8: admin kan altijd bewerken
         const canEdit = isAdmin;
-        const canP = !isAdmin && !m.locked && hasTeams;
+        const canP = !isAdmin && !closed && hasTeams;
         let cls = "", lbl = "";
         if (!isAdmin && mp && done) {
           const r = scorePts(mp.home_goals, mp.away_goals, m.home_goals, m.away_goals);
@@ -885,7 +888,7 @@ function KOCard({ phase, matches, isAdmin, myPreds, onScore, onLock, onPred, all
             <div className="mr-meta">
               <span></span>
               <div className="mr-actions">
-                {m.locked && !isAdmin && <span className="lock-tag">🔒</span>}
+                {closed && !isAdmin && <span className="lock-tag">🔒</span>}
                 {!isAdmin && mp && done && <span className={`pts-badge ${cls}`}>{lbl}</span>}
                 {!isAdmin && mp && !isP && <span className="pill">{mp.home_goals}–{mp.away_goals}</span>}
                 {onShowPreds && hasTeams && <button className="btn btn-out btn-sm" title="Wie tipte wat?" onClick={() => onShowPreds(m)}>👥</button>}
@@ -894,7 +897,7 @@ function KOCard({ phase, matches, isAdmin, myPreds, onScore, onLock, onPred, all
                     {mp ? "✏️ Wijzig" : "⚽ Voorspel"}
                   </button>
                 )}
-                {!isAdmin && m.locked && !mp && hasTeams && <span className="too-late">Te laat</span>}
+                {!isAdmin && closed && !mp && hasTeams && <span className="too-late">Te laat</span>}
                 {isAdmin && !isE && <button className="btn btn-out btn-sm" onClick={() => onLock(m.id, m.locked)}>{m.locked ? "🔓 Open" : "🔒 Sluit"}</button>}
               </div>
             </div>
@@ -1846,7 +1849,7 @@ export default function App() {
     const mGuard = matchMap.get(mid);
     const deadline = mGuard ? tipDeadline(mGuard.match_date) : null;
     if (mGuard?.locked || (deadline && new Date() >= deadline)) {
-      showToast("🔒 Te laat — tippen sluit 1 uur voor aftrap", 3000); return false;
+      showToast("🔒 Te laat — tippen sluit 5 minuten voor aftrap", 3000); return false;
     }
 
     // Beide velden leeg → tip verwijderen (op user_id+match_id, niet op geheugen-id)
@@ -2547,6 +2550,8 @@ export default function App() {
                 const timeParts = (parts[3] || "00:00").split(":");
                 const matchTime = new Date(now.getFullYear(), month, day, parseInt(timeParts[0]), parseInt(timeParts[1]));
                 const started = now >= matchTime;
+                // Tippen gesloten = DB-lock OF binnen 5 min voor aftrap (ook als admin offline is)
+                const tipClosed = m.locked || now >= (matchTime - LOCK_LEAD_MS);
                 const live = started && !done;
                 const minsUntil = Math.max(0, Math.round((matchTime - now) / 60000));
                 // Live-data koppelen (stand, minuut, fase, rode kaarten).
@@ -2574,7 +2579,7 @@ export default function App() {
                     <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"7px 12px", background: live ? "rgba(34,197,94,.08)" : "rgba(255,255,255,.03)", borderBottom:`1px solid ${live ? "rgba(34,197,94,.2)" : "var(--c2)"}` }}>
                       <span style={{ fontSize:10, fontWeight:700, color: live ? "#22c55e" : "var(--t3)", textTransform:"uppercase", letterSpacing:.5, display:"flex", alignItems:"center", gap:5, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
                         {live && <span className="live" style={{ margin:0 }}/>}
-                        {m.locked ? "🔒 " : ""}{phaseLabel}{statusLabel ? ` · ${statusLabel}` : ""}
+                        {tipClosed ? "🔒 " : ""}{phaseLabel}{statusLabel ? ` · ${statusLabel}` : ""}
                       </span>
                       <span style={{ fontSize:10, color: (!done && !live && cdU) ? "var(--gr)" : "var(--t3)", fontWeight: (!done && !live && cdU) ? 700 : 400, flexShrink:0 }}>{(done || live) ? (parts[3] || "") : (cdU || "")}</span>
                     </div>
@@ -2611,8 +2616,8 @@ export default function App() {
                       <div style={{ display:"flex", alignItems:"center", gap:8, minWidth:0, flexWrap:"wrap" }}>
                         {!isAdmin && mp && <><span style={{ fontSize:11, color:"var(--t3)" }}>Jouw tip:</span><span style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:13, color:"var(--am)" }}>{mp.home_goals}–{mp.away_goals}</span></>}
                         {!isAdmin && mp && done && lbl && <span className={`pts-badge ${cls}`}>{lbl}</span>}
-                        {!isAdmin && !mp && !m.locked && !started && <span style={{ fontSize:11, color:"var(--re)", fontWeight:700 }}>⚠️ Nog geen tip!</span>}
-                        {!isAdmin && !mp && (m.locked || started) && <span className="too-late">Te laat</span>}
+                        {!isAdmin && !mp && !tipClosed && <span style={{ fontSize:11, color:"var(--re)", fontWeight:700 }}>⚠️ Nog geen tip!</span>}
+                        {!isAdmin && !mp && tipClosed && <span className="too-late">Te laat</span>}
                       </div>
                       {(() => {
                         const tipCount = preds.filter(p => p.match_id === m.id && p.home_goals != null).length;
