@@ -1243,9 +1243,17 @@ function CountdownCard() {
 }
 
 // ── LIVE / VOLGENDE WEDSTRIJD (tikt elke seconde, zonder hele app mee te slepen) ──
-function LiveOrNext({ matches, nextMatch, liveData = [] }) {
+function LiveOrNext({ matches, nextMatch, liveData = [], isAdmin = false, myPreds = [], onPred }) {
   const [, setTick] = useState(0);
   useEffect(() => { const id = setInterval(() => setTick(t => t + 1), 1000); return () => clearInterval(id); }, []);
+  const [th, setTh] = useState("");
+  const [ta, setTa] = useState("");
+  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    const tip = myPreds.find(p => p.match_id === nextMatch?.id);
+    setTh(tip ? String(tip.home_goals) : "");
+    setTa(tip ? String(tip.away_goals) : "");
+  }, [nextMatch?.id, myPreds]);
   const now = new Date();
 
   const liveMatches = matches.filter(m => {
@@ -1343,6 +1351,26 @@ function LiveOrNext({ matches, nextMatch, liveData = [] }) {
       <div style={{ fontSize:11, color:"var(--t3)", marginTop:6 }}>
         📅 {nextMatch.match_date} · {nextMatch.phase === "group" ? `Groep ${nextMatch.grp}` : KO_PHASES.find(p => p.id === nextMatch.phase)?.full || nextMatch.phase}
       </div>
+      {!isAdmin && onPred && (() => {
+        const dl = tipDeadline(nextMatch.match_date);
+        const closed = nextMatch.locked || (dl && now >= dl);
+        if (closed) return <div style={{ marginTop:11, fontSize:12, fontWeight:700, color:"var(--am)" }}>🔒 Tippen gesloten</div>;
+        return (
+          <div style={{ display:"flex", alignItems:"center", gap:7, marginTop:11, flexWrap:"wrap" }}>
+            <span style={{ fontSize:11, color:"var(--t2)", fontWeight:700 }}>Jouw tip:</span>
+            <input type="number" min="0" max="20" className="ni" value={th} onChange={e => setTh(e.target.value)} aria-label="thuis" />
+            <span style={{ color:"var(--t3)", fontWeight:700 }}>–</span>
+            <input type="number" min="0" max="20" className="ni" value={ta} onChange={e => setTa(e.target.value)} aria-label="uit" />
+            <button className="btn-confirm" disabled={saving} onClick={async () => {
+              setSaving(true);
+              const hg = th === "" ? null : parseInt(th, 10);
+              const ag = ta === "" ? null : parseInt(ta, 10);
+              await onPred(nextMatch.id, hg, ag);
+              setSaving(false);
+            }}>{saving ? "…" : "✓ Opslaan"}</button>
+          </div>
+        );
+      })()}
     </div>
   );
 }
@@ -2357,7 +2385,7 @@ export default function App() {
 
             <CountdownCard />
 
-            {wkStarted && <LiveOrNext matches={matches} nextMatch={nextMatch} liveData={liveData} />}
+            {wkStarted && <LiveOrNext matches={matches} nextMatch={nextMatch} liveData={liveData} isAdmin={isAdmin} myPreds={myPreds} onPred={savePred} />}
 
             <div className="sec-title">Tussenstand</div>
             <div className="sec-sub">3pt winnaar · +1pt per team-goals · +2 bonus bij exact (= 7pt) · 10pt bonusvragen · 5pt eindstand</div>
