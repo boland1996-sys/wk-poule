@@ -26,7 +26,7 @@ Een WK 2026 poule-app voor Ramon Boland en vrienden ("Boland's Special"). Deelne
 | `src/assets/` | hero.png / gullit.jpg |
 | `api/auth.js` | Server-side login & registratie (verbergt wachtwoord-hash) |
 | `api/football-scores.js` | Proxy naar flashscore (verbergt RapidAPI-key) |
-| `api/cron-import.js` | Server-side import van eindstanden naar Supabase |
+| `api/cron-import.js` | Server-side (elke minuut): importeert eindstanden + vult tegenstanders volgende KO-ronde in + vergrendelt wedstrijden 5 min voor aftrap |
 | `vercel.json` | Alleen rewrite voor `/api/*`. Geen Vercel-cron |
 
 ## Database-tabellen (Supabase)
@@ -52,9 +52,10 @@ Een WK 2026 poule-app voor Ramon Boland en vrienden ("Boland's Special"). Deelne
 **Uitslagen-import:**
 - Bron: flashscore4 (`flashscore4.p.rapidapi.com`, `/api/flashscore/v2/`, Ultra-plan: 10.000 req/dag).
 - **cron-job.org** (externe dienst, NIET in repo) roept **elke minuut** `https://www.ramonboland.com/api/cron-import?secret=...` aan.
-- `cron-import.js` pakt afgewerkte matches, vertaalt teamnamen via `TEAM_MAP` (EN→NL), matcht op DB-wedstrijden zonder uitslag, en PATCH't de score.
+- `cron-import.js` pakt afgewerkte matches, vertaalt teamnamen via `TEAM_MAP` (EN→NL), matcht op DB-wedstrijden zonder uitslag, en PATCH't de score. Daarnaast (stappen 4 en 5, kosten geen flashscore-calls): (4) vult `"Winnaar duel N"` / `"Verliezer duel N"` van de volgende ronde met het echte team zodra duel N een duidelijke winnaar heeft, en (5) zet `locked=true` zodra het 5 min voor aftrap is (CEST→UTC via `Date.UTC(...,hh-2,...)`).
 - GitHub Actions (`.github/workflows/import-scores.yml`) is nu **alleen handmatig** (`workflow_dispatch`) als reserve — geen schema meer.
-- Client-side aanvulling: admin-app draait import elke 5 min als die open is (alleen bij actieve wedstrijd).
+- Client-side aanvulling: admin-app draait import + doorstroom + lock elke 5 min/60s als die open is.
+- **Penalty's:** flashscore geeft alleen de stand ná verlenging (geen penalty-uitslag/winnaar; `winner`-veld is altijd null). Wedstrijden met `is_finished_after_penalties` worden door de import **overgeslagen** — admin vult de beslissende uitslag handmatig in, daarna stroomt de winnaar alsnog door.
 
 **Realtime (Supabase channel "wkpoule_presence"):** live chat (chat_messages INSERT/DELETE), live score/lock updates (matches UPDATE), en online-indicator via presence. RLS staat UIT.
 
@@ -72,13 +73,18 @@ Klassement: punten → bij gelijk aantal exacte uitslagen als tiebreak. Admin-ac
 
 ## Tabs
 
-Deelnemer: 🏆 Stand · 📅 Vandaag · ⚽ Groepen · 🥊 KO · 📊 Standen · 🎯 Bonus · 💶 Pot · 📋 Mijn
-Admin: idem, laatste tab = 👑 Beheer
+Deelnemer: 🏆 Stand · 📅 Vandaag · ⚽ Groepen · 🥊 KO · 🗺️ Schema · 📊 Standen · 🎯 Bonus · 💶 Pot · 📋 Mijn
+Admin: idem, laatste tab = 👑 Beheer (i.p.v. Mijn). 9 tabs; op smalle telefoons (<360px) tonen de knoppen alleen het icoon.
 
 ## Belangrijke features / gedrag
 
-- **Auto-lock:** admin-client vergrendelt een wedstrijd automatisch zodra de aftraptijd voorbij is (check elke 60s). Daarna kan niemand meer tippen ("Te laat").
-- **Tip opslaan:** upsert; beide velden leeg = tip verwijderen. Exacte uitslag → confetti + "+7 Exact!". "Twin"-melding als iemand dezelfde tip had.
+- **Auto-lock (5 min voor aftrap):** wedstrijden sluiten **5 minuten vóór aftrap** (helper `tipDeadline(md) = parseMatchDate - 5min`). Op 4 niveaus: (a) server-side `cron-import.js` zet de DB-lock — 100% dicht, ook als admin offline is; (b) admin-client zet de lock ook (60s, realtime); (c) `savePred`-guard weigert tips binnen 5 min; (d) UI toont "🔒 Te laat" / "Tippen gesloten". Eerdere bredere 1u-variant met tip-invoer op Vandaag was teruggedraaid; huidige is bewust beperkt.
+- **Auto-doorstroom KO:** `"Winnaar duel N"`/`"Verliezer duel N"` worden automatisch het echte team zodra duel N een duidelijke winnaar heeft. Client-side (admin online) + server-side (cron, altijd). Cascadeert door de rondes. Match-ids 73–104 = officiële FIFA-nummers; structuur geverifieerd tegen het echte WK 2026 schema.
+- **KO = geen gelijkspel:** `savePred` weigert een gelijke tip als `phase !== "group"` ("kies een winnaar"). In de KO-tab staat hierover een oranje banner voor deelnemers.
+- **Tip opslaan:** upsert; beide velden leeg = tip verwijderen. Exacte uitslag → confetti + "+7 Exact!". "Twin"-melding (zelfde tip als ander) alleen nog in de **groepsfase** (in KO tipt iedereen hetzelfde → uitgezet).
+- **🗺️ Schema-tab:** visueel KO-bracket (`Bracket`-component, dynamische SVG): gespiegeld model met de finale in het midden (NOS-stijl), vlag + landnaam, winnaar oranje + score, placeholders cursief, 3e-plaats apart. Horizontaal scrollbaar op mobiel. Vult automatisch mee met de doorstroom.
+- **Tippen vanaf Stand-pagina:** de "⚽ Volgende wedstrijd"-kaart (`LiveOrNext`) heeft een inline tip-invoer (zelfde regels: KO-blok + 5-min-deadline). Toont ook náást de live-balk de eerstvolgende nog niet begonnen wedstrijd. Tip is **bevroren** na opslaan (read-only + ✏️ Wijzig om aan te passen).
+- **KO-tab sortering:** wedstrijden binnen een fase chronologisch op aftraptijd.
 - **Live-balk:** pollt `/api/football-scores?live=1` elke 8s, broadcast-stijl met wedstrijdfase + rode kaarten. Gecached in localStorage voor directe weergave bij refresh.
 - **Klassement:** top 3 = 🥇🥈🥉, daarna gewone nummers. Positiepijltjes ▲/▼/– via `prevRanks` in localStorage.
 - **Auto-reload:** checkt elke 10 min op een nieuwe build (asset-hash) en herlaadt automatisch, zodat niemand op oude cache blijft.
@@ -92,9 +98,11 @@ Inleg × aantal deelnemers. Verdeling: winnaar 50% · nr.2 30% · nr.3 20%.
 ## Bekende beperkingen
 
 - **Geen doelpuntenmakers:** flashscore4 heeft alleen `matches/{list-by-date,live,h2h,odds,standings}` — geen events/scorers. ~60 endpoint-combinaties getest (juni 2026), niet mogelijk. Zou een andere API vereisen (bv. API-Football). Niet opnieuw onderzoeken.
+- **Geen penalty-uitslag:** flashscore geeft bij een shootout alleen de gelijke stand na verlenging, geen penalty-score of winnaar. Daarom worden penalty-wedstrijden niet automatisch geïmporteerd; admin vult ze handmatig in. Niet opnieuw onderzoeken.
 - **Wachtwoord-hash** is nog de zwakke `hashPw` (32-bit, niet-cryptografisch) — toekomstige verbetering.
 - **Admin-rechten** (`isAdmin`) zitten client-side; schrijfacties lopen via de anon-key (RLS uit).
 
 ## Workflow-afspraak
 
-Na elke code-wijziging: direct `git add` → `commit` → `push` (geen aparte bevestiging nodig). Push naar `main` triggert automatisch de Vercel-deploy.
+- Na elke code-wijziging: direct `git add` → `commit` → `push` (geen aparte bevestiging nodig). Push naar `main` triggert automatisch de Vercel-deploy.
+- Na betekenisvolle wijzigingen ook dit `CLAUDE.md` bijwerken, zodat de kennis online (op GitHub) blijft staan en op elke pc terug te lezen is.
