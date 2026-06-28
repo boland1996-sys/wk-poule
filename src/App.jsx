@@ -1868,6 +1868,11 @@ export default function App() {
       showToast("❌ Vul beide scores in", 3000); return false;
     }
 
+    // In de knockout-fase bestaat geen gelijkspel — er moet een winnaar getipt worden.
+    if (mGuard && mGuard.phase !== "group" && hg === ag) {
+      showToast("❌ In de knockout kan het geen gelijkspel zijn — kies een winnaar", 3500); return false;
+    }
+
     // Upsert op de unieke index (user_id, match_id): werkt ongeacht of de tip
     // al in het geheugen geladen is. Lost de 409 Conflict op bij grote datasets.
     const { data, error } = await sb.from("predictions")
