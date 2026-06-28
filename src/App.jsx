@@ -1426,13 +1426,19 @@ function CropTool({ src, onCrop, onCancel }) {
 const BRACKET_LEFT  = [[74, 77, 73, 75, 83, 84, 81, 82], [89, 90, 93, 94], [97, 98], [101]];
 const BRACKET_RIGHT = [[76, 78, 79, 80, 86, 88, 85, 87], [91, 92, 95, 96], [99, 100], [102]];
 const BRACKET_FINAL = 104;
-const stripFlag = s => !s ? "" : s.replace(/[\u{1F1E6}-\u{1F1FF}\u{1F3F4}\u{E0000}-\u{E007F}]/gu, "")
-  .replace("Winnaar duel", "Winnaar").replace("Verliezer duel", "Verliezer").trim();
 const truncName = (s, n) => s && s.length > n ? s.slice(0, n - 1) + "…" : s;
+// Toon vlag + landnaam (zoals bij Groepen). Placeholders ("Winnaar duel N")
+// krijgen geen vlag en worden ingekort tot "Winnaar N".
+const teamLabel = s => {
+  if (!s) return "";
+  const fm = s.match(/^([\u{1F1E6}-\u{1F1FF}\u{1F3F4}\u{E0000}-\u{E007F}]+)\s*(.*)$/u);
+  if (fm) return `${fm[1]} ${truncName(fm[2], 12)}`;
+  return truncName(s.replace("Winnaar duel", "Winnaar").replace("Verliezer duel", "Verliezer"), 13);
+};
 
 function Bracket({ matches }) {
   const byId = new Map(matches.map(m => [m.id, m]));
-  const bh = 34, gap = 12, startY = 70, step = 118, boxW = 104;
+  const bh = 34, gap = 12, startY = 70, step = 124, boxW = 114;
   const xL = i => 6 + i * step, xF = 6 + 4 * step, xR = lvl => 6 + (8 - lvl) * step;
   const calc = cols => { const C = []; C[0] = cols[0].map((_, k) => startY + k * (bh + gap) + bh / 2); for (let c = 1; c < 4; c++) C[c] = cols[c].map((_, j) => (C[c - 1][2 * j] + C[c - 1][2 * j + 1]) / 2); return C; };
   const cL = calc(BRACKET_LEFT), cR = calc(BRACKET_RIGHT), cF = cL[3][0];
@@ -1458,8 +1464,8 @@ function Bracket({ matches }) {
       <g key={"b" + id}>
         <rect x={x} y={y} width={boxW} height={bh} rx={5} fill="var(--c1)" stroke={done ? "var(--gr)" : "var(--c3)"} strokeWidth={done ? 1 : 0.75} />
         <line x1={x} y1={y + bh / 2} x2={x + boxW} y2={y + bh / 2} stroke="var(--c3)" strokeWidth={0.5} />
-        <text x={tx} y={y + 13.5} textAnchor={anc} fill={colFor(hWin, hPh, done)} fontSize={11} fontWeight={hWin ? 800 : 600} fontStyle={hPh ? "italic" : "normal"}>{truncName(stripFlag(m?.home), 12)}</text>
-        <text x={tx} y={y + 29} textAnchor={anc} fill={colFor(aWin, aPh, done)} fontSize={11} fontWeight={aWin ? 800 : 600} fontStyle={aPh ? "italic" : "normal"}>{truncName(stripFlag(m?.away), 12)}</text>
+        <text x={tx} y={y + 13.5} textAnchor={anc} fill={colFor(hWin, hPh, done)} fontSize={11} fontWeight={hWin ? 800 : 600} fontStyle={hPh ? "italic" : "normal"}>{teamLabel(m?.home)}</text>
+        <text x={tx} y={y + 29} textAnchor={anc} fill={colFor(aWin, aPh, done)} fontSize={11} fontWeight={aWin ? 800 : 600} fontStyle={aPh ? "italic" : "normal"}>{teamLabel(m?.away)}</text>
         {done && <text x={sx} y={y + 13.5} textAnchor={sAnc} fill={colFor(hWin, false, done)} fontSize={11} fontWeight={800}>{m.home_goals}</text>}
         {done && <text x={sx} y={y + 29} textAnchor={sAnc} fill={colFor(aWin, false, done)} fontSize={11} fontWeight={800}>{m.away_goals}</text>}
       </g>
