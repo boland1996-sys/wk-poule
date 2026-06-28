@@ -1420,63 +1420,57 @@ function CropTool({ src, onCrop, onCancel }) {
   );
 }
 
-// ── KO-BRACKET (visueel schema met verbindingslijnen) ──────────────────────
-// Vaste toernooistructuur op match-id (duel-nummers 73–104). Per kolom de ids
-// in bracket-volgorde, zodat siblings naast elkaar staan en de boom netjes nest.
-const BRACKET_COLS = [
-  [74, 77, 73, 75, 83, 84, 81, 82, 76, 78, 79, 80, 86, 88, 85, 87], // 1/16
-  [89, 90, 93, 94, 91, 92, 95, 96],                                 // 1/8
-  [97, 98, 99, 100],                                                // kwart
-  [101, 102],                                                       // halve
-  [104],                                                            // finale
-];
-const BRACKET_HEADS = ["1/16e", "1/8e", "Kwart", "Halve", "Finale"];
+// ── KO-BRACKET (gespiegeld schema met verbindingslijnen, finale in't midden) ─
+// Vaste toernooistructuur op match-id (duel-nummers 73–104). Linkerhelft en
+// rechterhelft elk per niveau in bracket-volgorde (R32 → SF), finale centraal.
+const BRACKET_LEFT  = [[74, 77, 73, 75, 83, 84, 81, 82], [89, 90, 93, 94], [97, 98], [101]];
+const BRACKET_RIGHT = [[76, 78, 79, 80, 86, 88, 85, 87], [91, 92, 95, 96], [99, 100], [102]];
+const BRACKET_FINAL = 104;
 const stripFlag = s => !s ? "" : s.replace(/[\u{1F1E6}-\u{1F1FF}\u{1F3F4}\u{E0000}-\u{E007F}]/gu, "")
   .replace("Winnaar duel", "Winnaar").replace("Verliezer duel", "Verliezer").trim();
 const truncName = (s, n) => s && s.length > n ? s.slice(0, n - 1) + "…" : s;
 
 function Bracket({ matches }) {
   const byId = new Map(matches.map(m => [m.id, m]));
-  const bh = 34, gap = 12, startY = 64, stepX = 134, boxW = 116, vbW = 680;
-  const colX = i => 6 + i * stepX;
-  const centers = [];
-  centers[0] = BRACKET_COLS[0].map((_, k) => startY + k * (bh + gap) + bh / 2);
-  for (let c = 1; c < BRACKET_COLS.length; c++)
-    centers[c] = BRACKET_COLS[c].map((_, j) => (centers[c - 1][2 * j] + centers[c - 1][2 * j + 1]) / 2);
-  const H = startY + BRACKET_COLS[0].length * (bh + gap) + 16;
+  const bh = 34, gap = 12, startY = 70, step = 118, boxW = 104;
+  const xL = i => 6 + i * step, xF = 6 + 4 * step, xR = lvl => 6 + (8 - lvl) * step;
+  const calc = cols => { const C = []; C[0] = cols[0].map((_, k) => startY + k * (bh + gap) + bh / 2); for (let c = 1; c < 4; c++) C[c] = cols[c].map((_, j) => (C[c - 1][2 * j] + C[c - 1][2 * j + 1]) / 2); return C; };
+  const cL = calc(BRACKET_LEFT), cR = calc(BRACKET_RIGHT), cF = cL[3][0];
+  const W = xR(0) + boxW + 6, H = startY + 8 * (bh + gap) + 16;
   const colFor = (win, ph, done) => ph ? "var(--t3)" : win ? "var(--gr)" : done ? "var(--t3)" : "var(--t1)";
   const els = [];
-  BRACKET_HEADS.forEach((h, i) => els.push(
-    <text key={"h" + i} x={colX(i) + boxW / 2} y={46} textAnchor="middle" fill="var(--t3)" fontSize={11} fontWeight={800}>{h}</text>
-  ));
-  for (let c = 0; c < BRACKET_COLS.length - 1; c++) {
-    const xr = colX(c) + boxW, xn = colX(c + 1), mid = (xr + xn) / 2;
-    for (let j = 0; j < BRACKET_COLS[c + 1].length; j++) {
-      const top = centers[c][2 * j], bot = centers[c][2 * j + 1], nc = centers[c + 1][j];
-      els.push(<polyline key={`cn${c}-${j}`} points={`${xr},${top} ${mid},${top} ${mid},${bot} ${xr},${bot}`} fill="none" stroke="var(--c3)" strokeWidth={1} />);
-      els.push(<line key={`cl${c}-${j}`} x1={mid} y1={nc} x2={xn} y2={nc} stroke="var(--c3)" strokeWidth={1} />);
-    }
-  }
-  BRACKET_COLS.forEach((ids, c) => ids.forEach((id, k) => {
-    const m = byId.get(id);
-    const cy = centers[c][k], y = cy - bh / 2, x = colX(c);
+  const hd = ["1/16e", "1/8e", "Kwart", "Halve", "Finale", "Halve", "Kwart", "1/8e", "1/16e"];
+  const hx = [xL(0), xL(1), xL(2), xL(3), xF, xR(3), xR(2), xR(1), xR(0)];
+  hd.forEach((h, i) => els.push(<text key={"h" + i} x={hx[i] + boxW / 2} y={52} textAnchor="middle" fill="var(--t3)" fontSize={11} fontWeight={800}>{h}</text>));
+  const elbow = (key, x0, top, bot, xn, nc) => { const mid = (x0 + xn) / 2; els.push(<polyline key={"p" + key} points={`${x0},${top} ${mid},${top} ${mid},${bot} ${x0},${bot}`} fill="none" stroke="var(--c3)" strokeWidth={1} />); els.push(<line key={"l" + key} x1={mid} y1={nc} x2={xn} y2={nc} stroke="var(--c3)" strokeWidth={1} />); };
+  for (let c = 0; c < 3; c++) for (let j = 0; j < BRACKET_LEFT[c + 1].length; j++) elbow(`L${c}-${j}`, xL(c) + boxW, cL[c][2 * j], cL[c][2 * j + 1], xL(c + 1), cL[c + 1][j]);
+  for (let c = 0; c < 3; c++) for (let j = 0; j < BRACKET_RIGHT[c + 1].length; j++) elbow(`R${c}-${j}`, xR(c), cR[c][2 * j], cR[c][2 * j + 1], xR(c + 1) + boxW, cR[c + 1][j]);
+  els.push(<line key="fL" x1={xL(3) + boxW} y1={cF} x2={xF} y2={cF} stroke="var(--c3)" strokeWidth={1} />);
+  els.push(<line key="fR" x1={xR(3)} y1={cF} x2={xF + boxW} y2={cF} stroke="var(--c3)" strokeWidth={1} />);
+  const box = (id, x, cy, right) => {
+    const m = byId.get(id), y = cy - bh / 2;
     const done = m && m.home_goals != null && m.away_goals != null;
     const hWin = done && m.home_goals > m.away_goals, aWin = done && m.away_goals > m.home_goals;
     const hPh = isPlaceholder(m?.home), aPh = isPlaceholder(m?.away);
+    const tx = right ? x + boxW - 7 : x + 7, anc = right ? "end" : "start";
+    const sx = right ? x + 7 : x + boxW - 7, sAnc = right ? "start" : "end";
     els.push(
       <g key={"b" + id}>
-        <rect x={x} y={y} width={boxW} height={bh} rx={5} fill="var(--c1)" stroke={done ? "var(--gr)" : "var(--c3)"} strokeWidth={done ? 1 : 0.75} opacity={done ? 1 : 0.92} />
+        <rect x={x} y={y} width={boxW} height={bh} rx={5} fill="var(--c1)" stroke={done ? "var(--gr)" : "var(--c3)"} strokeWidth={done ? 1 : 0.75} />
         <line x1={x} y1={y + bh / 2} x2={x + boxW} y2={y + bh / 2} stroke="var(--c3)" strokeWidth={0.5} />
-        <text x={x + 7} y={y + 13.5} fill={colFor(hWin, hPh, done)} fontSize={11} fontWeight={hWin ? 800 : 600} fontStyle={hPh ? "italic" : "normal"}>{truncName(stripFlag(m?.home), 13)}</text>
-        <text x={x + 7} y={y + 29} fill={colFor(aWin, aPh, done)} fontSize={11} fontWeight={aWin ? 800 : 600} fontStyle={aPh ? "italic" : "normal"}>{truncName(stripFlag(m?.away), 13)}</text>
-        {done && <text x={x + boxW - 7} y={y + 13.5} textAnchor="end" fill={colFor(hWin, false, done)} fontSize={11} fontWeight={800}>{m.home_goals}</text>}
-        {done && <text x={x + boxW - 7} y={y + 29} textAnchor="end" fill={colFor(aWin, false, done)} fontSize={11} fontWeight={800}>{m.away_goals}</text>}
+        <text x={tx} y={y + 13.5} textAnchor={anc} fill={colFor(hWin, hPh, done)} fontSize={11} fontWeight={hWin ? 800 : 600} fontStyle={hPh ? "italic" : "normal"}>{truncName(stripFlag(m?.home), 12)}</text>
+        <text x={tx} y={y + 29} textAnchor={anc} fill={colFor(aWin, aPh, done)} fontSize={11} fontWeight={aWin ? 800 : 600} fontStyle={aPh ? "italic" : "normal"}>{truncName(stripFlag(m?.away), 12)}</text>
+        {done && <text x={sx} y={y + 13.5} textAnchor={sAnc} fill={colFor(hWin, false, done)} fontSize={11} fontWeight={800}>{m.home_goals}</text>}
+        {done && <text x={sx} y={y + 29} textAnchor={sAnc} fill={colFor(aWin, false, done)} fontSize={11} fontWeight={800}>{m.away_goals}</text>}
       </g>
     );
-  }));
+  };
+  BRACKET_LEFT.forEach((ids, c) => ids.forEach((id, k) => box(id, xL(c), cL[c][k], false)));
+  BRACKET_RIGHT.forEach((ids, c) => ids.forEach((id, k) => box(id, xR(c), cR[c][k], true)));
+  box(BRACKET_FINAL, xF, cF, false);
   return (
     <div style={{ overflowX: "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch", paddingBottom: 6 }}>
-      <svg width={vbW} height={H} viewBox={`0 0 ${vbW} ${H}`} style={{ display: "block" }} role="img" aria-label="Knock-out schema">{els}</svg>
+      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ display: "block" }} role="img" aria-label="Knock-out schema">{els}</svg>
     </div>
   );
 }
