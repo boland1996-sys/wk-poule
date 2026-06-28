@@ -786,7 +786,8 @@ function GroupCard({ group, matches, isAdmin, myPreds, onScore, onLock, onPred, 
 
 // ── KO CARD ───────────────────────────────────────────────────────────────
 function KOCard({ phase, matches, isAdmin, myPreds, onScore, onLock, onPred, allTeams, onShowPreds }) {
-  const km = matches.filter(m => m.phase === phase);
+  const km = matches.filter(m => m.phase === phase)
+    .sort((a, b) => (parseMatchDate(a.match_date)?.getTime() ?? 9e15) - (parseMatchDate(b.match_date)?.getTime() ?? 9e15));
   const [ed, setEd] = useState(null);
   const [ts, setTs] = useState({ h:"", a:"", home:"", away:"", homeCustom:"", awayCustom:"" });
   const [pe, setPe] = useState(null);
