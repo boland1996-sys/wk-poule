@@ -1420,6 +1420,67 @@ function CropTool({ src, onCrop, onCancel }) {
   );
 }
 
+// ── KO-BRACKET (visueel schema met verbindingslijnen) ──────────────────────
+// Vaste toernooistructuur op match-id (duel-nummers 73–104). Per kolom de ids
+// in bracket-volgorde, zodat siblings naast elkaar staan en de boom netjes nest.
+const BRACKET_COLS = [
+  [74, 77, 73, 75, 83, 84, 81, 82, 76, 78, 79, 80, 86, 88, 85, 87], // 1/16
+  [89, 90, 93, 94, 91, 92, 95, 96],                                 // 1/8
+  [97, 98, 99, 100],                                                // kwart
+  [101, 102],                                                       // halve
+  [104],                                                            // finale
+];
+const BRACKET_HEADS = ["1/16e", "1/8e", "Kwart", "Halve", "Finale"];
+const stripFlag = s => !s ? "" : s.replace(/[\u{1F1E6}-\u{1F1FF}\u{1F3F4}\u{E0000}-\u{E007F}]/gu, "")
+  .replace("Winnaar duel", "Winnaar").replace("Verliezer duel", "Verliezer").trim();
+const truncName = (s, n) => s && s.length > n ? s.slice(0, n - 1) + "…" : s;
+
+function Bracket({ matches }) {
+  const byId = new Map(matches.map(m => [m.id, m]));
+  const bh = 34, gap = 12, startY = 64, stepX = 134, boxW = 116, vbW = 680;
+  const colX = i => 6 + i * stepX;
+  const centers = [];
+  centers[0] = BRACKET_COLS[0].map((_, k) => startY + k * (bh + gap) + bh / 2);
+  for (let c = 1; c < BRACKET_COLS.length; c++)
+    centers[c] = BRACKET_COLS[c].map((_, j) => (centers[c - 1][2 * j] + centers[c - 1][2 * j + 1]) / 2);
+  const H = startY + BRACKET_COLS[0].length * (bh + gap) + 16;
+  const colFor = (win, ph, done) => ph ? "var(--t3)" : win ? "var(--gr)" : done ? "var(--t3)" : "var(--t1)";
+  const els = [];
+  BRACKET_HEADS.forEach((h, i) => els.push(
+    <text key={"h" + i} x={colX(i) + boxW / 2} y={46} textAnchor="middle" fill="var(--t3)" fontSize={11} fontWeight={800}>{h}</text>
+  ));
+  for (let c = 0; c < BRACKET_COLS.length - 1; c++) {
+    const xr = colX(c) + boxW, xn = colX(c + 1), mid = (xr + xn) / 2;
+    for (let j = 0; j < BRACKET_COLS[c + 1].length; j++) {
+      const top = centers[c][2 * j], bot = centers[c][2 * j + 1], nc = centers[c + 1][j];
+      els.push(<polyline key={`cn${c}-${j}`} points={`${xr},${top} ${mid},${top} ${mid},${bot} ${xr},${bot}`} fill="none" stroke="var(--c3)" strokeWidth={1} />);
+      els.push(<line key={`cl${c}-${j}`} x1={mid} y1={nc} x2={xn} y2={nc} stroke="var(--c3)" strokeWidth={1} />);
+    }
+  }
+  BRACKET_COLS.forEach((ids, c) => ids.forEach((id, k) => {
+    const m = byId.get(id);
+    const cy = centers[c][k], y = cy - bh / 2, x = colX(c);
+    const done = m && m.home_goals != null && m.away_goals != null;
+    const hWin = done && m.home_goals > m.away_goals, aWin = done && m.away_goals > m.home_goals;
+    const hPh = isPlaceholder(m?.home), aPh = isPlaceholder(m?.away);
+    els.push(
+      <g key={"b" + id}>
+        <rect x={x} y={y} width={boxW} height={bh} rx={5} fill="var(--c1)" stroke={done ? "var(--gr)" : "var(--c3)"} strokeWidth={done ? 1 : 0.75} opacity={done ? 1 : 0.92} />
+        <line x1={x} y1={y + bh / 2} x2={x + boxW} y2={y + bh / 2} stroke="var(--c3)" strokeWidth={0.5} />
+        <text x={x + 7} y={y + 13.5} fill={colFor(hWin, hPh, done)} fontSize={11} fontWeight={hWin ? 800 : 600} fontStyle={hPh ? "italic" : "normal"}>{truncName(stripFlag(m?.home), 13)}</text>
+        <text x={x + 7} y={y + 29} fill={colFor(aWin, aPh, done)} fontSize={11} fontWeight={aWin ? 800 : 600} fontStyle={aPh ? "italic" : "normal"}>{truncName(stripFlag(m?.away), 13)}</text>
+        {done && <text x={x + boxW - 7} y={y + 13.5} textAnchor="end" fill={colFor(hWin, false, done)} fontSize={11} fontWeight={800}>{m.home_goals}</text>}
+        {done && <text x={x + boxW - 7} y={y + 29} textAnchor="end" fill={colFor(aWin, false, done)} fontSize={11} fontWeight={800}>{m.away_goals}</text>}
+      </g>
+    );
+  }));
+  return (
+    <div style={{ overflowX: "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch", paddingBottom: 6 }}>
+      <svg width={vbW} height={H} viewBox={`0 0 ${vbW} ${H}`} style={{ display: "block" }} role="img" aria-label="Knock-out schema">{els}</svg>
+    </div>
+  );
+}
+
 export default function App() {
   const [matches,       setMatches]       = useState([]);
   const matchesRef = useRef(matches);
@@ -2732,53 +2793,46 @@ export default function App() {
           </div>
         )}
 
-        {/* ── SCHEMA (KO-bracket per ronde, telefoon-vriendelijk) ── */}
+        {/* ── SCHEMA (visueel KO-bracket met verbindingslijnen) ── */}
         {tab === "schema" && (
           <div className="fu">
             <div className="sec-title">🗺️ Knock-out schema</div>
-            <div className="sec-sub">Van de zestiende finale tot de finale — vult zich automatisch</div>
-            {KO_PHASES.map(ph => {
-              const ms = matches.filter(m => m.phase === ph.id)
-                .sort((a, b) => (parseMatchDate(a.match_date)?.getTime() ?? 9e15) - (parseMatchDate(b.match_date)?.getTime() ?? 9e15));
-              if (!ms.length) return null;
+            <div className="sec-sub">Sleep zijwaarts · vult zich automatisch in</div>
+            <Bracket matches={matches} />
+            {(() => {
+              const tp = matches.find(m => m.phase === "3p");
+              if (!tp) return null;
+              const done = tp.home_goals != null && tp.away_goals != null;
+              const hWin = done && tp.home_goals > tp.away_goals;
+              const aWin = done && tp.away_goals > tp.home_goals;
+              const cell = (name, win, align) => {
+                const isPh = isPlaceholder(name);
+                return (
+                  <div style={{ textAlign:align, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap",
+                    fontSize:12.5, fontStyle: isPh ? "italic" : "normal", fontWeight: win ? 800 : 700,
+                    color: isPh ? "var(--t3)" : win ? "var(--gr)" : done ? "var(--t3)" : "var(--t1)" }}>{name || "—"}</div>
+                );
+              };
               return (
-                <div key={ph.id} style={{ marginBottom:18 }}>
+                <div style={{ marginTop:14 }}>
                   <div style={{ display:"flex", alignItems:"baseline", gap:8, margin:"0 2px 8px" }}>
-                    <span className="card-title">{ph.full}</span>
-                    <span style={{ fontSize:10, color:"var(--t3)" }}>{ms.length} {ms.length === 1 ? "wedstrijd" : "wedstrijden"}</span>
+                    <span className="card-title">🥉 Troostfinale</span>
+                    <span style={{ fontSize:10, color:"var(--t3)" }}>{tp.match_date}</span>
                   </div>
-                  {ms.map(m => {
-                    const done = m.home_goals != null && m.away_goals != null;
-                    const hWin = done && m.home_goals > m.away_goals;
-                    const aWin = done && m.away_goals > m.home_goals;
-                    const cell = (name, win, align) => {
-                      const isPh = isPlaceholder(name);
-                      return (
-                        <div style={{ textAlign:align, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap",
-                          fontSize:12.5, fontStyle: isPh ? "italic" : "normal", fontWeight: win ? 800 : 700,
-                          color: isPh ? "var(--t3)" : win ? "var(--gr)" : done ? "var(--t3)" : "var(--t1)" }}>
-                          {name || "—"}
-                        </div>
-                      );
-                    };
-                    return (
-                      <div key={m.id} style={{ background:"var(--c1)", border:"1px solid var(--c3)", borderRadius:10, padding:"9px 12px", marginBottom:7 }}>
-                        <div style={{ display:"grid", gridTemplateColumns:"1fr auto 1fr", alignItems:"center", gap:10 }}>
-                          {cell(m.home, hWin, "right")}
-                          <div style={{ flexShrink:0, textAlign:"center", minWidth:46 }}>
-                            {done
-                              ? <span style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:18, color:"var(--gr)", letterSpacing:1 }}>{m.home_goals}<span style={{ color:"var(--bd)", margin:"0 3px" }}>–</span>{m.away_goals}</span>
-                              : <span style={{ fontSize:13, fontWeight:700, color:"var(--t3)", fontFamily:"'Oswald',sans-serif" }}>vs</span>}
-                          </div>
-                          {cell(m.away, aWin, "left")}
-                        </div>
-                        <div style={{ textAlign:"center", fontSize:9.5, color:"var(--t3)", fontWeight:700, textTransform:"uppercase", letterSpacing:.5, marginTop:5 }}>{m.match_date}</div>
+                  <div style={{ background:"var(--c1)", border:"1px solid var(--c3)", borderRadius:10, padding:"9px 12px" }}>
+                    <div style={{ display:"grid", gridTemplateColumns:"1fr auto 1fr", alignItems:"center", gap:10 }}>
+                      {cell(tp.home, hWin, "right")}
+                      <div style={{ flexShrink:0, textAlign:"center", minWidth:46 }}>
+                        {done
+                          ? <span style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:18, color:"var(--gr)", letterSpacing:1 }}>{tp.home_goals}<span style={{ color:"var(--bd)", margin:"0 3px" }}>–</span>{tp.away_goals}</span>
+                          : <span style={{ fontSize:13, fontWeight:700, color:"var(--t3)", fontFamily:"'Oswald',sans-serif" }}>vs</span>}
                       </div>
-                    );
-                  })}
+                      {cell(tp.away, aWin, "left")}
+                    </div>
+                  </div>
                 </div>
               );
-            })}
+            })()}
           </div>
         )}
 
