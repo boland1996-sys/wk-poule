@@ -103,6 +103,13 @@ function parseMatchDate(md) {
   return new Date(2026, month, day, hh || 0, mm || 0);
 }
 
+// Tippen sluit 1 uur vóór aftrap. Daarna wordt de wedstrijd vergrendeld.
+const LOCK_LEAD_MS = 60 * 60 * 1000;
+function tipDeadline(md) {
+  const start = parseMatchDate(md);
+  return start ? new Date(start.getTime() - LOCK_LEAD_MS) : null;
+}
+
 // Speelminuut netjes tonen: "45" → "45'", niet-numeriek (bv. "HT") ongewijzigd.
 const fmtMin = (mn) => mn == null ? null : (/^\d+$/.test(String(mn)) ? `${mn}'` : String(mn));
 
@@ -1698,8 +1705,8 @@ export default function App() {
       const now = new Date();
       for (const m of matches) {
         if (m.locked) continue;
-        const matchTime = parseMatchDate(m.match_date);
-        if (matchTime && now >= matchTime) {
+        const deadline = tipDeadline(m.match_date);
+        if (deadline && now >= deadline) {
           await sb.from("matches").update({ locked: true }).eq("id", m.id);
           setMatches(ms => ms.map(x => x.id === m.id ? { ...x, locked: true } : x));
         }
@@ -1837,9 +1844,9 @@ export default function App() {
   const savePred = async (mid, hg, ag) => {
     if (!session?.id) return false;
     const mGuard = matchMap.get(mid);
-    const start = mGuard ? parseMatchDate(mGuard.match_date) : null;
-    if (mGuard?.locked || (start && new Date() >= start)) {
-      showToast("🔒 Te laat — wedstrijd is begonnen", 3000); return false;
+    const deadline = mGuard ? tipDeadline(mGuard.match_date) : null;
+    if (mGuard?.locked || (deadline && new Date() >= deadline)) {
+      showToast("🔒 Te laat — tippen sluit 1 uur voor aftrap", 3000); return false;
     }
 
     // Beide velden leeg → tip verwijderen (op user_id+match_id, niet op geheugen-id)
