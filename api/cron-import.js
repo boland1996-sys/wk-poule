@@ -18,6 +18,21 @@ const TEAM_MAP = {
   "England":"Engeland","Croatia":"Kroatië","Ghana":"Ghana","Panama":"Panama",
 };
 
+// match_date bv. "zo 28 jun 21:00" → echte UTC-instant. Wedstrijdtijden zijn
+// CEST (UTC+2) gedurende het hele WK (juni/juli), dus 2 uur aftrekken. We werken
+// met Date.UTC zodat dit klopt ongeacht de tijdzone van de server (Vercel = UTC).
+const NL_MONTHS = { jan:0, feb:1, mrt:2, apr:3, mei:4, jun:5, jul:6, aug:7, sep:8, okt:9, nov:10, dec:11 };
+function matchStartMs(md) {
+  if (!md) return null;
+  const p = md.trim().split(" ");
+  if (p.length < 4) return null;
+  const day = parseInt(p[1], 10);
+  const month = NL_MONTHS[p[2]?.toLowerCase()];
+  if (isNaN(day) || month === undefined) return null;
+  const [hh, mm] = (p[3] || "00:00").split(":").map(n => parseInt(n, 10));
+  return Date.UTC(2026, month, day, (hh || 0) - 2, mm || 0);
+}
+
 export default async function handler(req, res) {
   // Beveiliging: alleen met juist token (voorkomt misbruik van je API-quota).
   const secret = process.env.CRON_SECRET;
@@ -111,5 +126,29 @@ export default async function handler(req, res) {
     }
   }
 
-  res.json({ ok: true, updated, filled, log });
+  // 5. Wedstrijden vergrendelen vanaf 5 min voor aftrap (100% server-side, ook als
+  //    de admin offline is). Daarna kan niemand de tip meer aanpassen. Kost geen
+  //    flashscore-calls, alleen Supabase.
+  let locked = 0;
+  const LOCK_LEAD_MS = 5 * 60 * 1000;
+  const lockRes = await fetch(`${supaUrl}/rest/v1/matches?select=id,match_date,locked`, { headers: sbHeaders });
+  if (lockRes.ok) {
+    const all = await lockRes.json();
+    const nowMs = Date.now();
+    for (const m of all) {
+      if (m.locked) continue;
+      const startMs = matchStartMs(m.match_date);
+      if (startMs == null) continue;
+      if (nowMs >= startMs - LOCK_LEAD_MS) {
+        const up = await fetch(`${supaUrl}/rest/v1/matches?id=eq.${m.id}`, {
+          method: "PATCH",
+          headers: { ...sbHeaders, Prefer: "return=minimal" },
+          body: JSON.stringify({ locked: true }),
+        });
+        if (up.ok) locked++;
+      }
+    }
+  }
+
+  res.json({ ok: true, updated, filled, locked, log });
 }
