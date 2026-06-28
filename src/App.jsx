@@ -1721,6 +1721,41 @@ export default function App() {
     return () => clearInterval(id);
   }, [matches.length, isAdmin]);
 
+  // ── AUTO TEGENSTANDERS INVULLEN BIJ DOORSTROOM KO ────────────────────
+  // Zodra een KO-duel een duidelijke winnaar heeft (geen gelijkspel), vullen
+  // "Winnaar duel N" / "Verliezer duel N" in de volgende ronde zich met het
+  // echte team. Alleen admin-client schrijft; propageert via realtime. Cascadeert
+  // vanzelf door de rondes omdat matches na elke invulling opnieuw wijzigt.
+  useEffect(() => {
+    if (!matches.length || !isAdmin) return;
+    const fillNext = async () => {
+      const byId = new Map(matches.map(m => [m.id, m]));
+      for (const m of matches) {
+        for (const col of ["home", "away"]) {
+          const val = m[col];
+          const win = /^Winnaar duel (\d+)$/.exec(val || "");
+          const los = /^Verliezer duel (\d+)$/.exec(val || "");
+          const mt = win || los;
+          if (!mt) continue;
+          const src = byId.get(parseInt(mt[1], 10));
+          if (!src) continue;
+          if (src.home_goals == null || src.away_goals == null) continue;
+          if (src.home_goals === src.away_goals) continue; // gelijkspel → winnaar onbekend (admin vult beslissende uitslag in)
+          if (isPlaceholder(src.home) || isPlaceholder(src.away)) continue; // bron nog niet ingevuld
+          const winner = src.home_goals > src.away_goals ? src.home : src.away;
+          const loser  = src.home_goals > src.away_goals ? src.away : src.home;
+          const desired = win ? winner : loser;
+          if (!desired || desired === val) continue;
+          const { error } = await sb.from("matches").update({ [col]: desired }).eq("id", m.id);
+          if (!error) setMatches(ms => ms.map(x => x.id === m.id ? { ...x, [col]: desired } : x));
+        }
+      }
+    };
+    fillNext();
+    const id = setInterval(fillNext, 60 * 1000);
+    return () => clearInterval(id);
+  }, [matches, isAdmin]);
+
   // ── CHAT LADEN EN REALTIME + PRESENCE ──────────────────────────────
   useEffect(() => {
     if (!session) return;
