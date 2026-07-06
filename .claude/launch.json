@@ -6,6 +6,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["serve", "-l", "4178", "C:/Users/Naam/warrock-fps"],
       "port": 4178
+    },
+    {
+      "name": "wk-poule",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 5173
     }
   ]
 }
