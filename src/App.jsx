@@ -5,7 +5,7 @@ import { usePrefersReducedMotion, isLowPowerDevice } from "./components/deviceCa
 // Lazy geladen zodat three.js/@react-three niet in de hoofdbundel zitten -
 // laadt pas als de Stand-tab de hero daadwerkelijk toont.
 const Hero3D = lazy(() => import("./components/Hero3D.jsx"));
-const PodiumScene = lazy(() => import("./components/PodiumScene.jsx"));
+const PodiumFigure = lazy(() => import("./components/PodiumFigure.jsx"));
 
 // ── CONFIG ────────────────────────────────────────────────────────────────
 const sb = createClient(
@@ -34,6 +34,11 @@ const ALL_TEAMS = Object.values(GROUP_TEAMS).flat().sort((a,b)=>{
 });
 
 const AVATAR_COLORS = ["#10b981","#f59e0b","#3b82f6","#ec4899","#8b5cf6","#ef4444","#14b8a6","#f97316","#84cc16","#06b6d4","#a855f7","#d946ef"];
+// Podium-danspoppetje: enige vrouw in de poule op dit moment - simpele lijst
+// i.p.v. een aanname, makkelijk uit te breiden als er meer vrouwen meedoen.
+const FEMALE_USERS = new Set(["monica"]);
+// Dans per podiumplek (niet per persoon - wie er ook op die plek staat doet die dans).
+const RANK_DANCE = ["takeL", "floss", "griddy"];
 
 const BONUS_QS = [
   {id:"b3",label:"🥅 Hoeveel goals in de finale (binnen 120 min)?",type:"number"},
@@ -2311,29 +2316,35 @@ export default function App() {
             {leaderboard.length > 0 && (() => {
               const top3 = leaderboard.slice(0, 3);
               const order = [1, 0, 2]; // 2e, 1e, 3e - klassieke podium-volgorde
+              const heights = [104, 78, 60]; // px, per rank-index (0=1e,1=2e,2=3e)
               return (
                 <div className="podium">
-                  {showHero3D && (
-                    <div className="podium-scene">
-                      <Suspense fallback={null}>
-                        <PodiumScene people={order.map(i => top3[i] ? { color: avatarColor(top3[i].username), username: top3[i].username } : null)} />
-                      </Suspense>
-                    </div>
-                  )}
-                  <div className="podium-cols">
-                    {order.filter(i => top3[i]).map(i => {
-                      const u = top3[i];
-                      const isMe = u.id === session?.id;
-                      return (
-                        <div key={u.id} className={`podium-col rank-${i + 1}${isMe ? " me" : ""} fu`} style={{ animationDelay:`${i * 60}ms` }}>
-                          <div className="podium-medal">{["🥇", "🥈", "🥉"][i]}</div>
-                          <Avatar userId={u.id} username={u.username} size={i === 0 ? 56 : 46} profiles={userProfiles} />
-                          <div className="podium-name">{u.username}</div>
-                          <div className="podium-pts">{u.pts}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  {order.filter(i => top3[i]).map(i => {
+                    const u = top3[i];
+                    const isMe = u.id === session?.id;
+                    return (
+                      <div key={u.id} className={`podium-col rank-${i + 1}${isMe ? " me" : ""} fu`} style={{ animationDelay:`${i * 60}ms` }}>
+                        <div className="podium-medal">{["🥇", "🥈", "🥉"][i]}</div>
+                        <Avatar userId={u.id} username={u.username} size={i === 0 ? 56 : 46} profiles={userProfiles} />
+                        <div className="podium-name">{u.username}</div>
+                        <div className="podium-pts">{u.pts}</div>
+                        {showHero3D && (
+                          <div className="podium-figure">
+                            <Suspense fallback={null}>
+                              <PodiumFigure
+                                color={avatarColor(u.username)}
+                                phase={i * 1.7}
+                                big={i === 0}
+                                gender={FEMALE_USERS.has(u.username.toLowerCase()) ? "f" : "m"}
+                                dance={RANK_DANCE[i]}
+                              />
+                            </Suspense>
+                          </div>
+                        )}
+                        <div className="podium-block" style={{ height: heights[i] }} />
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })()}
