@@ -78,12 +78,13 @@ Admin: idem, laatste tab = 👑 Beheer (i.p.v. Mijn). 9 tabs; op smalle telefoon
 
 ## Belangrijke features / gedrag
 
-- **Auto-lock (5 min voor aftrap):** wedstrijden sluiten **5 minuten vóór aftrap** (helper `tipDeadline(md) = parseMatchDate - 5min`). Op 4 niveaus: (a) server-side `cron-import.js` zet de DB-lock — 100% dicht, ook als admin offline is; (b) admin-client zet de lock ook (60s, realtime); (c) `savePred`-guard weigert tips binnen 5 min; (d) UI toont "🔒 Te laat" / "Tippen gesloten". Eerdere bredere 1u-variant met tip-invoer op Vandaag was teruggedraaid; huidige is bewust beperkt.
+- **Auto-lock (5 min voor aftrap):** wedstrijden sluiten **5 minuten vóór aftrap** (helper `tipDeadline(md) = parseMatchDate - 5min`). Op 4 niveaus: (a) server-side `cron-import.js` zet de DB-lock — 100% dicht, ook als admin offline is; (b) admin-client zet de lock ook (60s, realtime); (c) `savePred`-guard weigert tips binnen 5 min; (d) UI toont "🔒 Te laat" / "Tippen gesloten".
 - **Auto-doorstroom KO:** `"Winnaar duel N"`/`"Verliezer duel N"` worden automatisch het echte team zodra duel N een duidelijke winnaar heeft. Client-side (admin online) + server-side (cron, altijd). Cascadeert door de rondes. Match-ids 73–104 = officiële FIFA-nummers; structuur geverifieerd tegen het echte WK 2026 schema.
 - **KO = geen gelijkspel:** `savePred` weigert een gelijke tip als `phase !== "group"` ("kies een winnaar"). In de KO-tab staat hierover een oranje banner voor deelnemers.
 - **Tip opslaan:** upsert; beide velden leeg = tip verwijderen. Exacte uitslag → confetti + "+7 Exact!". "Twin"-melding (zelfde tip als ander) alleen nog in de **groepsfase** (in KO tipt iedereen hetzelfde → uitgezet).
 - **🗺️ Schema-tab:** visueel KO-bracket (`Bracket`-component, dynamische SVG): gespiegeld model met de finale in het midden (NOS-stijl), vlag + landnaam, winnaar oranje + score, placeholders cursief, 3e-plaats apart. Horizontaal scrollbaar op mobiel. Vult automatisch mee met de doorstroom.
 - **Tippen vanaf Stand-pagina:** de "⚽ Volgende wedstrijd"-kaart (`LiveOrNext`) heeft een inline tip-invoer (zelfde regels: KO-blok + 5-min-deadline). Toont ook náást de live-balk de eerstvolgende nog niet begonnen wedstrijd. Tip is **bevroren** na opslaan (read-only + ✏️ Wijzig om aan te passen).
+- **Tippen vanaf Vandaag-tab:** elke wedstrijdkaart (`TodayMatchCard`) heeft dezelfde bevroren inline tip-editor als de Stand-pagina (✏️ Wijzig / ⚽ Tip-knop → invoervelden → ✓ opslaan, via `savePred` dus zelfde KO- en deadline-regels). Was eerder alleen read-only tekst.
 - **KO-tab sortering:** wedstrijden binnen een fase chronologisch op aftraptijd.
 - **Live-balk:** pollt `/api/football-scores?live=1` elke 8s, broadcast-stijl met wedstrijdfase + rode kaarten. Gecached in localStorage voor directe weergave bij refresh.
 - **Klassement:** top 3 = 🥇🥈🥉, daarna gewone nummers. Positiepijltjes ▲/▼/– via `prevRanks` in localStorage.
