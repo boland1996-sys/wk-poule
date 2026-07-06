@@ -1409,6 +1409,127 @@ function LiveOrNext({ matches, nextMatch, liveData = [], isAdmin = false, myPred
   return (<>{liveBlock}{nextCard}</>);
 }
 
+// ── VANDAAG-KAART (met inline tip-invoer, zelfde stijl als op de Stand-pagina) ──
+function TodayMatchCard({ m, myPreds, allPreds, isAdmin, liveData, onPred, onShowPreds }) {
+  const [editing, setEditing] = useState(false);
+  const [th, setTh] = useState("");
+  const [ta, setTa] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const mp = myPreds.find(p => p.match_id === m.id);
+  const now = new Date();
+  const done = m.home_goals != null && m.away_goals != null;
+  const parts = m.match_date.trim().split(" ");
+  const day = parseInt(parts[1]);
+  const month = NL_MONTHS[parts[2]?.toLowerCase()];
+  const timeParts = (parts[3] || "00:00").split(":");
+  const matchTime = new Date(now.getFullYear(), month, day, parseInt(timeParts[0]), parseInt(timeParts[1]));
+  const started = now >= matchTime;
+  // Tippen gesloten = DB-lock OF binnen 5 min voor aftrap (ook als admin offline is)
+  const tipClosed = m.locked || now >= (matchTime - LOCK_LEAD_MS);
+  const live = started && !done;
+  const minsUntil = Math.max(0, Math.round((matchTime - now) / 60000));
+  // Live-data koppelen (stand, minuut, fase, rode kaarten).
+  const apiLive = live ? liveMatchFor(m, liveData) : null;
+  const liveScore = apiLive && apiLive.homeScore != null && apiLive.awayScore != null;
+  const liveMin = apiLive ? fmtMin(apiLive.minute) : null;
+  const liveStage = apiLive?.stage ? (STAGE_NL[apiLive.stage] || apiLive.stage) : "";
+  const liveStatus = [liveStage, (/half|extra/i.test(apiLive?.stage || "") && liveMin) ? liveMin : null].filter(Boolean).join(" · ");
+  const hr = apiLive?.homeRed || 0, ar = apiLive?.awayRed || 0;
+  const redTag = (n) => n > 0 ? <span style={{ display:"inline-flex", alignItems:"center", gap:2 }}><span style={{ width:8, height:11, background:"#ef4444", borderRadius:1.5, display:"inline-block" }}/>{n > 1 && <span style={{ fontSize:9, fontWeight:800, color:"#ef4444" }}>{n}</span>}</span> : null;
+  // Aftrap-countdown (alleen binnen 24u, anders "aftrap").
+  const untilMs = matchTime - now;
+  const cdU = untilMs > 0 ? (() => { const d = Math.floor(untilMs/86400000), H = Math.floor(untilMs/3600000)%24, M = Math.floor(untilMs/60000)%60; return d > 0 ? `over ${d}d ${H}u` : (H > 0 ? `over ${H}u ${M}m` : `over ${M}m`); })() : "";
+  let cls = "", lbl = "";
+  if (!isAdmin && mp && done) {
+    const r = scorePts(mp.home_goals, mp.away_goals, m.home_goals, m.away_goals);
+    cls = r.cls; lbl = r.label;
+  }
+  const splitTeam = (t) => { const s = t || "?"; const i = s.indexOf(" "); return i === -1 ? { flag:"", name:s } : { flag: s.slice(0, i), name: s.slice(i + 1) }; };
+  const h = splitTeam(m.home), a = splitTeam(m.away);
+  const phaseLabel = m.phase === "group" ? `Groep ${m.grp}` : (KO_PHASES.find(p => p.id === m.phase)?.full || m.phase);
+  const statusLabel = done ? "gespeeld" : live ? (liveStatus || "live") : (minsUntil > 0 && minsUntil <= 60 ? `nog ${minsUntil} min` : "");
+  const tipCount = allPreds.filter(p => p.match_id === m.id && p.home_goals != null).length;
+
+  return (
+    <div style={{ background:"var(--c1)", border:`1px solid ${live ? "rgba(34,197,94,.3)" : "var(--c3)"}`, borderRadius:12, overflow:"hidden", marginBottom:8 }}>
+      {/* kop */}
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"7px 12px", background: live ? "rgba(34,197,94,.08)" : "rgba(255,255,255,.03)", borderBottom:`1px solid ${live ? "rgba(34,197,94,.2)" : "var(--c2)"}` }}>
+        <span style={{ fontSize:10, fontWeight:700, color: live ? "#22c55e" : "var(--t3)", textTransform:"uppercase", letterSpacing:.5, display:"flex", alignItems:"center", gap:5, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+          {live && <span className="live" style={{ margin:0 }}/>}
+          {tipClosed ? "🔒 " : ""}{phaseLabel}{statusLabel ? ` · ${statusLabel}` : ""}
+        </span>
+        <span style={{ fontSize:10, color: (!done && !live && cdU) ? "var(--gr)" : "var(--t3)", fontWeight: (!done && !live && cdU) ? 700 : 400, flexShrink:0 }}>{(done || live) ? (parts[3] || "") : (cdU || "")}</span>
+      </div>
+      {/* scorebord */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr auto 1fr", alignItems:"center", gap:8, padding:"14px 12px" }}>
+        <div style={{ textAlign:"right", minWidth:0 }}>
+          <div style={{ fontSize:22, lineHeight:1 }}>{h.flag}</div>
+          <div style={{ fontSize:12, fontWeight:700, color:"var(--t1)", marginTop:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{h.name}</div>
+          {hr > 0 && <div style={{ marginTop:3 }}>{redTag(hr)}</div>}
+        </div>
+        <div style={{ flexShrink:0, textAlign:"center" }}>
+          {done
+            ? <span style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:30, color:"var(--gr)", letterSpacing:2 }}>{m.home_goals}<span style={{ color:"var(--bd)", margin:"0 4px" }}>–</span>{m.away_goals}</span>
+            : live
+              ? <div>
+                  {liveScore
+                    ? <span style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:30, color:"#22c55e", letterSpacing:2 }}>{apiLive.homeScore}<span style={{ color:"rgba(34,197,94,.4)", margin:"0 4px" }}>–</span>{apiLive.awayScore}</span>
+                    : <span style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:16, color:"#22c55e", border:"1.5px solid rgba(34,197,94,.4)", borderRadius:8, padding:"4px 10px" }}>BEZIG</span>}
+                  <div style={{ fontSize:9, color:"#22c55e", fontWeight:700, marginTop:3, textTransform:"uppercase", letterSpacing:.5 }}>{liveStatus || "live"}</div>
+                </div>
+              : <div>
+                  <div style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:24, color:"var(--gr)", lineHeight:1 }}>{parts[3] || "vs"}</div>
+                  <div style={{ fontSize:8, color:"var(--t3)", fontWeight:700, textTransform:"uppercase", letterSpacing:.5, marginTop:2 }}>aftrap</div>
+                </div>}
+        </div>
+        <div style={{ textAlign:"left", minWidth:0 }}>
+          <div style={{ fontSize:22, lineHeight:1 }}>{a.flag}</div>
+          <div style={{ fontSize:12, fontWeight:700, color:"var(--t1)", marginTop:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{a.name}</div>
+          {ar > 0 && <div style={{ marginTop:3 }}>{redTag(ar)}</div>}
+        </div>
+      </div>
+      {/* voet: jouw tip (bewerkbaar net als op Stand) + punten + wie-tipte-wat */}
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, padding:"8px 12px", borderTop:"1px solid var(--c2)", background:"rgba(0,0,0,.15)", flexWrap:"wrap" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:8, minWidth:0, flexWrap:"wrap" }}>
+          {!isAdmin && !editing && mp && <><span style={{ fontSize:11, color:"var(--t3)" }}>Jouw tip:</span><span style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:13, color:"var(--am)" }}>{mp.home_goals}–{mp.away_goals}</span></>}
+          {!isAdmin && mp && done && lbl && <span className={`pts-badge ${cls}`}>{lbl}</span>}
+          {!isAdmin && !mp && !tipClosed && !editing && <span style={{ fontSize:11, color:"var(--re)", fontWeight:700 }}>⚠️ Nog geen tip!</span>}
+          {!isAdmin && !mp && tipClosed && <span className="too-late">Te laat</span>}
+          {!isAdmin && !done && !tipClosed && !editing && (
+            <button className="btn btn-out btn-sm" onClick={() => { setEditing(true); setTh(mp ? String(mp.home_goals) : ""); setTa(mp ? String(mp.away_goals) : ""); }}>
+              {mp ? "✏️ Wijzig" : "⚽ Tip"}
+            </button>
+          )}
+          {!isAdmin && editing && (
+            <div style={{ display:"flex", alignItems:"center", gap:7, flexWrap:"wrap" }}>
+              <input type="number" min="0" max="20" className="ni" style={{ width:40, height:36, fontSize:16 }} value={th} onChange={e => setTh(e.target.value)} aria-label="thuis" />
+              <span style={{ color:"var(--t3)", fontWeight:700 }}>–</span>
+              <input type="number" min="0" max="20" className="ni" style={{ width:40, height:36, fontSize:16 }} value={ta} onChange={e => setTa(e.target.value)} aria-label="uit" />
+              <button className="btn-confirm" disabled={saving} onClick={async () => {
+                setSaving(true);
+                const hg = th === "" ? null : parseInt(th, 10);
+                const ag = ta === "" ? null : parseInt(ta, 10);
+                const ok = await onPred(m.id, hg, ag);
+                setSaving(false);
+                if (ok) setEditing(false);
+              }}>{saving ? "…" : "✓"}</button>
+              <button className="btn btn-out btn-sm" onClick={() => setEditing(false)}>✕</button>
+            </div>
+          )}
+        </div>
+        <button
+          title="Wie tipte wat?"
+          onClick={() => onShowPreds(m)}
+          style={{ flexShrink:0, background:"rgba(255,107,0,.12)", border:"1px solid rgba(255,107,0,.3)", color:"var(--gr)", padding:"6px 12px", fontSize:12, fontWeight:700, borderRadius:7, display:"inline-flex", alignItems:"center", gap:5, whiteSpace:"nowrap", cursor:"pointer" }}
+        >
+          👀 {tipCount > 0 ? `${tipCount} tip${tipCount === 1 ? "" : "s"} bekijken` : "Tips bekijken"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── MAIN APP ──────────────────────────────────────────────────────────────
 // ── CROP TOOL ─────────────────────────────────────────────────────────────
 function CropTool({ src, onCrop, onCancel }) {
@@ -2709,102 +2830,9 @@ export default function App() {
                 }).sort((a,b) => (a.match_date?.split(" ")[3] || "00:00").localeCompare(b.match_date?.split(" ")[3] || "00:00"));
               };
 
-              const splitTeam = (t) => { const s = t || "?"; const i = s.indexOf(" "); return i === -1 ? { flag:"", name:s } : { flag: s.slice(0, i), name: s.slice(i + 1) }; };
-
-              const renderRow = (m) => {
-                const mp = myPreds.find(p => p.match_id === m.id);
-                const done = m.home_goals != null && m.away_goals != null;
-                const parts = m.match_date.trim().split(" ");
-                const day = parseInt(parts[1]);
-                const month = NL_MONTHS[parts[2]?.toLowerCase()];
-                const timeParts = (parts[3] || "00:00").split(":");
-                const matchTime = new Date(now.getFullYear(), month, day, parseInt(timeParts[0]), parseInt(timeParts[1]));
-                const started = now >= matchTime;
-                // Tippen gesloten = DB-lock OF binnen 5 min voor aftrap (ook als admin offline is)
-                const tipClosed = m.locked || now >= (matchTime - LOCK_LEAD_MS);
-                const live = started && !done;
-                const minsUntil = Math.max(0, Math.round((matchTime - now) / 60000));
-                // Live-data koppelen (stand, minuut, fase, rode kaarten).
-                const apiLive = live ? liveMatchFor(m, liveData) : null;
-                const liveScore = apiLive && apiLive.homeScore != null && apiLive.awayScore != null;
-                const liveMin = apiLive ? fmtMin(apiLive.minute) : null;
-                const liveStage = apiLive?.stage ? (STAGE_NL[apiLive.stage] || apiLive.stage) : "";
-                const liveStatus = [liveStage, (/half|extra/i.test(apiLive?.stage || "") && liveMin) ? liveMin : null].filter(Boolean).join(" · ");
-                const hr = apiLive?.homeRed || 0, ar = apiLive?.awayRed || 0;
-                const redTag = (n) => n > 0 ? <span style={{ display:"inline-flex", alignItems:"center", gap:2 }}><span style={{ width:8, height:11, background:"#ef4444", borderRadius:1.5, display:"inline-block" }}/>{n > 1 && <span style={{ fontSize:9, fontWeight:800, color:"#ef4444" }}>{n}</span>}</span> : null;
-                // Aftrap-countdown (alleen binnen 24u, anders "aftrap").
-                const untilMs = matchTime - now;
-                const cdU = untilMs > 0 ? (() => { const d = Math.floor(untilMs/86400000), H = Math.floor(untilMs/3600000)%24, M = Math.floor(untilMs/60000)%60; return d > 0 ? `over ${d}d ${H}u` : (H > 0 ? `over ${H}u ${M}m` : `over ${M}m`); })() : "";
-                let cls = "", lbl = "";
-                if (!isAdmin && mp && done) {
-                  const r = scorePts(mp.home_goals, mp.away_goals, m.home_goals, m.away_goals);
-                  cls = r.cls; lbl = r.label;
-                }
-                const h = splitTeam(m.home), a = splitTeam(m.away);
-                const phaseLabel = m.phase === "group" ? `Groep ${m.grp}` : (KO_PHASES.find(p => p.id === m.phase)?.full || m.phase);
-                const statusLabel = done ? "gespeeld" : live ? (liveStatus || "live") : (minsUntil > 0 && minsUntil <= 60 ? `nog ${minsUntil} min` : "");
-                return (
-                  <div key={m.id} style={{ background:"var(--c1)", border:`1px solid ${live ? "rgba(34,197,94,.3)" : "var(--c3)"}`, borderRadius:12, overflow:"hidden", marginBottom:8 }}>
-                    {/* kop */}
-                    <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"7px 12px", background: live ? "rgba(34,197,94,.08)" : "rgba(255,255,255,.03)", borderBottom:`1px solid ${live ? "rgba(34,197,94,.2)" : "var(--c2)"}` }}>
-                      <span style={{ fontSize:10, fontWeight:700, color: live ? "#22c55e" : "var(--t3)", textTransform:"uppercase", letterSpacing:.5, display:"flex", alignItems:"center", gap:5, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                        {live && <span className="live" style={{ margin:0 }}/>}
-                        {tipClosed ? "🔒 " : ""}{phaseLabel}{statusLabel ? ` · ${statusLabel}` : ""}
-                      </span>
-                      <span style={{ fontSize:10, color: (!done && !live && cdU) ? "var(--gr)" : "var(--t3)", fontWeight: (!done && !live && cdU) ? 700 : 400, flexShrink:0 }}>{(done || live) ? (parts[3] || "") : (cdU || "")}</span>
-                    </div>
-                    {/* scorebord */}
-                    <div style={{ display:"grid", gridTemplateColumns:"1fr auto 1fr", alignItems:"center", gap:8, padding:"14px 12px" }}>
-                      <div style={{ textAlign:"right", minWidth:0 }}>
-                        <div style={{ fontSize:22, lineHeight:1 }}>{h.flag}</div>
-                        <div style={{ fontSize:12, fontWeight:700, color:"var(--t1)", marginTop:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{h.name}</div>
-                        {hr > 0 && <div style={{ marginTop:3 }}>{redTag(hr)}</div>}
-                      </div>
-                      <div style={{ flexShrink:0, textAlign:"center" }}>
-                        {done
-                          ? <span style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:30, color:"var(--gr)", letterSpacing:2 }}>{m.home_goals}<span style={{ color:"var(--bd)", margin:"0 4px" }}>–</span>{m.away_goals}</span>
-                          : live
-                            ? <div>
-                                {liveScore
-                                  ? <span style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:30, color:"#22c55e", letterSpacing:2 }}>{apiLive.homeScore}<span style={{ color:"rgba(34,197,94,.4)", margin:"0 4px" }}>–</span>{apiLive.awayScore}</span>
-                                  : <span style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:16, color:"#22c55e", border:"1.5px solid rgba(34,197,94,.4)", borderRadius:8, padding:"4px 10px" }}>BEZIG</span>}
-                                <div style={{ fontSize:9, color:"#22c55e", fontWeight:700, marginTop:3, textTransform:"uppercase", letterSpacing:.5 }}>{liveStatus || "live"}</div>
-                              </div>
-                            : <div>
-                                <div style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:24, color:"var(--gr)", lineHeight:1 }}>{parts[3] || "vs"}</div>
-                                <div style={{ fontSize:8, color:"var(--t3)", fontWeight:700, textTransform:"uppercase", letterSpacing:.5, marginTop:2 }}>aftrap</div>
-                              </div>}
-                      </div>
-                      <div style={{ textAlign:"left", minWidth:0 }}>
-                        <div style={{ fontSize:22, lineHeight:1 }}>{a.flag}</div>
-                        <div style={{ fontSize:12, fontWeight:700, color:"var(--t1)", marginTop:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{a.name}</div>
-                        {ar > 0 && <div style={{ marginTop:3 }}>{redTag(ar)}</div>}
-                      </div>
-                    </div>
-                    {/* voet: jouw tip + punten + wie-tipte-wat */}
-                    <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, padding:"8px 12px", borderTop:"1px solid var(--c2)", background:"rgba(0,0,0,.15)" }}>
-                      <div style={{ display:"flex", alignItems:"center", gap:8, minWidth:0, flexWrap:"wrap" }}>
-                        {!isAdmin && mp && <><span style={{ fontSize:11, color:"var(--t3)" }}>Jouw tip:</span><span style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:13, color:"var(--am)" }}>{mp.home_goals}–{mp.away_goals}</span></>}
-                        {!isAdmin && mp && done && lbl && <span className={`pts-badge ${cls}`}>{lbl}</span>}
-                        {!isAdmin && !mp && !tipClosed && <span style={{ fontSize:11, color:"var(--re)", fontWeight:700 }}>⚠️ Nog geen tip!</span>}
-                        {!isAdmin && !mp && tipClosed && <span className="too-late">Te laat</span>}
-                      </div>
-                      {(() => {
-                        const tipCount = preds.filter(p => p.match_id === m.id && p.home_goals != null).length;
-                        return (
-                          <button
-                            title="Wie tipte wat?"
-                            onClick={() => setPredsModal(m)}
-                            style={{ flexShrink:0, background:"rgba(255,107,0,.12)", border:"1px solid rgba(255,107,0,.3)", color:"var(--gr)", padding:"6px 12px", fontSize:12, fontWeight:700, borderRadius:7, display:"inline-flex", alignItems:"center", gap:5, whiteSpace:"nowrap", cursor:"pointer" }}
-                          >
-                            👀 {tipCount > 0 ? `${tipCount} tip${tipCount === 1 ? "" : "s"} bekijken` : "Tips bekijken"}
-                          </button>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                );
-              };
+              const renderRow = (m) => (
+                <TodayMatchCard key={m.id} m={m} myPreds={myPreds} allPreds={preds} isAdmin={isAdmin} liveData={liveData} onPred={savePred} onShowPreds={setPredsModal} />
+              );
 
               const sections = [
                 { label: "Vandaag", offset: 0 },
