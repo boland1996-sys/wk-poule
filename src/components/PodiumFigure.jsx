@@ -9,22 +9,22 @@ import { BackSide } from "three";
 function choreograph(dance, t) {
   const s = {
     armL: { sh: 0, el: 0.25 }, armR: { sh: 0, el: 0.25 },
-    legL: { hip: 0, knee: 0 }, legR: { hip: 0, knee: 0 },
+    legL: { hip: 0, hipZ: 0, knee: 0 }, legR: { hip: 0, hipZ: 0, knee: 0 },
     torsoY: 0, hipY: 0, hipZ: 0, hipX: 0, bounce: 0,
   };
   if (dance === "floss") {
     // Armen als paar side-to-side over het lichaam, heupen/romp tegengesteld.
     const swing = Math.sin(t * 4.4);
-    s.armL.sh = 0.15 + swing * 1.05;
-    s.armR.sh = -0.15 + swing * 1.05;
-    s.armL.el = 0.5 + Math.abs(swing) * 0.3;
-    s.armR.el = 0.5 + Math.abs(swing) * 0.3;
-    s.torsoY = -swing * 0.32;
-    s.hipY = swing * 0.32;
-    s.hipX = -swing * 0.12;
-    s.legL.hip = swing * 0.18;
-    s.legR.hip = -swing * 0.18;
-    s.bounce = Math.abs(swing) * 0.05;
+    s.armL.sh = 0.2 + swing * 1.2;
+    s.armR.sh = -0.2 + swing * 1.2;
+    s.armL.el = 0.55 + Math.abs(swing) * 0.35;
+    s.armR.el = 0.55 + Math.abs(swing) * 0.35;
+    s.torsoY = -swing * 0.4;
+    s.hipY = swing * 0.4;
+    s.hipX = -swing * 0.14;
+    s.legL.hip = swing * 0.22;
+    s.legR.hip = -swing * 0.22;
+    s.bounce = Math.abs(swing) * 0.06;
   } else if (dance === "takeL") {
     // Rechterarm vormt de "L" (bovenarm opzij-omhoog, onderarm naar het
     // voorhoofd) - alleen mogelijk met een apart elleboog-gewricht.
@@ -42,21 +42,23 @@ function choreograph(dance, t) {
     s.legR.knee = Math.max(0, -Math.sin(t * 2.6)) * 0.5;
     s.bounce = Math.abs(Math.sin(t * 2.6)) * 0.04;
   } else if (dance === "griddy") {
-    // Snel afwisselend beenwerk: heup zijwaarts + voor-achter, knie buigt
-    // mee zoals bij hardlopen, armen zwaaien tegengesteld aan de benen.
+    // Snel afwisselend beenwerk: heup zwiept opzij ("flick") + voor-achter,
+    // knie buigt mee, armen zwaaien tegengesteld aan de benen.
     const kick = Math.sin(t * 8.2);
     const kick2 = Math.sin(t * 8.2 + Math.PI / 2);
-    s.legL.hip = kick * 0.55;
-    s.legL.knee = Math.max(0, kick) * 0.85;
-    s.legR.hip = -kick * 0.55;
-    s.legR.knee = Math.max(0, -kick) * 0.85;
-    s.armL.sh = -kick * 0.7;
-    s.armR.sh = kick * 0.7;
+    s.legL.hip = kick * 0.5;
+    s.legL.hipZ = Math.max(0, kick) * 0.4;
+    s.legL.knee = Math.max(0, kick) * 0.9;
+    s.legR.hip = -kick * 0.5;
+    s.legR.hipZ = -Math.max(0, -kick) * 0.4;
+    s.legR.knee = Math.max(0, -kick) * 0.9;
+    s.armL.sh = -kick * 0.75;
+    s.armR.sh = kick * 0.75;
     s.armL.el = 0.5 + Math.abs(kick2) * 0.3;
     s.armR.el = 0.5 + Math.abs(kick2) * 0.3;
-    s.hipY = kick * 0.3;
-    s.hipZ = kick * 0.1;
-    s.bounce = Math.abs(kick) * 0.075;
+    s.hipY = kick * 0.32;
+    s.hipZ = kick * 0.12;
+    s.bounce = Math.abs(kick) * 0.08;
   }
   return s;
 }
@@ -142,13 +144,13 @@ function DanceFigure({ color, phase = 0, big = false, gender = "m", dance = "flo
     if (armLel.current) armLel.current.rotation.z = s.armL.el;
     if (armRsh.current) armRsh.current.rotation.z = s.armR.sh;
     if (armRel.current) armRel.current.rotation.z = s.armR.el;
-    if (legLhip.current) legLhip.current.rotation.x = s.legL.hip;
+    if (legLhip.current) { legLhip.current.rotation.x = s.legL.hip; legLhip.current.rotation.z = s.legL.hipZ; }
     if (legLknee.current) legLknee.current.rotation.x = -s.legL.knee;
-    if (legRhip.current) legRhip.current.rotation.x = s.legR.hip;
+    if (legRhip.current) { legRhip.current.rotation.x = s.legR.hip; legRhip.current.rotation.z = s.legR.hipZ; }
     if (legRknee.current) legRknee.current.rotation.x = -s.legR.knee;
   });
 
-  const scale = big ? 1.34 : 1.24;
+  const scale = big ? 1.12 : 1.0;
   const isF = gender === "f";
   const skin = "#ffd7ad";
   const shoe = "#171417";
@@ -157,23 +159,21 @@ function DanceFigure({ color, phase = 0, big = false, gender = "m", dance = "flo
 
   return (
     <group ref={hips} scale={scale}>
-      {/* Benen (man) / rok (vrouw) - vanuit de heup */}
-      {isF ? (
-        <group position={[0, -0.2, 0]}>
+      {/* Benen - altijd aanwezig en bewegend, ook bij het vrouwelijke poppetje */}
+      <Leg hipRef={legLhip} kneeRef={legLknee} side={-1} color={color} shoe={shoe} />
+      <Leg hipRef={legRhip} kneeRef={legRknee} side={1} color={color} shoe={shoe} />
+      {/* Kort rokje - alleen decoratief bovenop de heupen, benen blijven zichtbaar/los */}
+      {isF && (
+        <group position={[0, -0.02, 0]}>
           <mesh>
-            <coneGeometry args={[0.26, 0.34, 8]} />
+            <coneGeometry args={[0.3, 0.22, 10]} />
             <meshStandardMaterial color={color} roughness={0.5} />
           </mesh>
-          <mesh scale={1.14}>
-            <coneGeometry args={[0.26, 0.34, 8]} />
+          <mesh scale={1.12}>
+            <coneGeometry args={[0.3, 0.22, 10]} />
             <meshBasicMaterial color="#141014" side={BackSide} />
           </mesh>
         </group>
-      ) : (
-        <>
-          <Leg hipRef={legLhip} kneeRef={legLknee} side={-1} color={color} shoe={shoe} />
-          <Leg hipRef={legRhip} kneeRef={legRknee} side={1} color={color} shoe={shoe} />
-        </>
       )}
 
       <group ref={torso} position={[0, 0.14, 0]}>
@@ -209,7 +209,7 @@ export default function PodiumFigure({ color = "#ff6b00", phase = 0, big = false
       <Canvas
         dpr={[1, 1.5]}
         gl={{ antialias: true, alpha: true, powerPreference: "low-power" }}
-        camera={{ position: [0, 0.12, 2.85], fov: 34 }}
+        camera={{ position: [0, 0.1, 3.2], fov: 34 }}
       >
         <ambientLight intensity={0.8} />
         <directionalLight position={[2, 3, 2]} intensity={1.1} color="#fff2df" />
