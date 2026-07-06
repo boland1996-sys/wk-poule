@@ -5,7 +5,7 @@ import { usePrefersReducedMotion, isLowPowerDevice } from "./components/deviceCa
 // Lazy geladen zodat three.js/@react-three niet in de hoofdbundel zitten -
 // laadt pas als de Stand-tab de hero daadwerkelijk toont.
 const Hero3D = lazy(() => import("./components/Hero3D.jsx"));
-const PodiumFigure = lazy(() => import("./components/PodiumFigure.jsx"));
+const PodiumScene = lazy(() => import("./components/PodiumScene.jsx"));
 
 // ── CONFIG ────────────────────────────────────────────────────────────────
 const sb = createClient(
@@ -2311,29 +2311,29 @@ export default function App() {
             {leaderboard.length > 0 && (() => {
               const top3 = leaderboard.slice(0, 3);
               const order = [1, 0, 2]; // 2e, 1e, 3e - klassieke podium-volgorde
-              const heights = [104, 78, 60]; // px, per rank-index (0=1e,1=2e,2=3e)
               return (
                 <div className="podium">
-                  {order.filter(i => top3[i]).map(i => {
-                    const u = top3[i];
-                    const isMe = u.id === session?.id;
-                    return (
-                      <div key={u.id} className={`podium-col rank-${i + 1}${isMe ? " me" : ""} fu`} style={{ animationDelay:`${i * 60}ms` }}>
-                        <div className="podium-medal">{["🥇", "🥈", "🥉"][i]}</div>
-                        <Avatar userId={u.id} username={u.username} size={i === 0 ? 56 : 46} profiles={userProfiles} />
-                        <div className="podium-name">{u.username}</div>
-                        <div className="podium-pts">{u.pts}</div>
-                        {showHero3D && (
-                          <div className="podium-figure">
-                            <Suspense fallback={null}>
-                              <PodiumFigure color={avatarColor(u.username)} phase={i * 1.7} big={i === 0} />
-                            </Suspense>
-                          </div>
-                        )}
-                        <div className="podium-block" style={{ height: heights[i] }} />
-                      </div>
-                    );
-                  })}
+                  {showHero3D && (
+                    <div className="podium-scene">
+                      <Suspense fallback={null}>
+                        <PodiumScene people={order.map(i => top3[i] ? { color: avatarColor(top3[i].username), username: top3[i].username } : null)} />
+                      </Suspense>
+                    </div>
+                  )}
+                  <div className="podium-cols">
+                    {order.filter(i => top3[i]).map(i => {
+                      const u = top3[i];
+                      const isMe = u.id === session?.id;
+                      return (
+                        <div key={u.id} className={`podium-col rank-${i + 1}${isMe ? " me" : ""} fu`} style={{ animationDelay:`${i * 60}ms` }}>
+                          <div className="podium-medal">{["🥇", "🥈", "🥉"][i]}</div>
+                          <Avatar userId={u.id} username={u.username} size={i === 0 ? 56 : 46} profiles={userProfiles} />
+                          <div className="podium-name">{u.username}</div>
+                          <div className="podium-pts">{u.pts}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               );
             })()}
