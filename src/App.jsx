@@ -38,7 +38,7 @@ const AVATAR_COLORS = ["#10b981","#f59e0b","#3b82f6","#ec4899","#8b5cf6","#ef444
 // i.p.v. een aanname, makkelijk uit te breiden als er meer vrouwen meedoen.
 const FEMALE_USERS = new Set(["monica"]);
 // Dans per podiumplek (niet per persoon - wie er ook op die plek staat doet die dans).
-const RANK_DANCE = ["takeL", "floss", "griddy"];
+const RANK_DANCE = ["floss", "takeL", "griddy"];
 
 const BONUS_QS = [
   {id:"b3",label:"🥅 Hoeveel goals in de finale (binnen 120 min)?",type:"number"},
