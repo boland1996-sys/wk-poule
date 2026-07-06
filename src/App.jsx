@@ -2307,6 +2307,29 @@ export default function App() {
 
             {wkStarted && <LiveOrNext matches={matches} nextMatch={nextMatch} liveData={liveData} isAdmin={isAdmin} myPreds={myPreds} onPred={savePred} />}
 
+            {leaderboard.length > 0 && (() => {
+              const top3 = leaderboard.slice(0, 3);
+              const order = [1, 0, 2]; // 2e, 1e, 3e - klassieke podium-volgorde
+              const heights = [104, 78, 60]; // px, per rank-index (0=1e,1=2e,2=3e)
+              return (
+                <div className="podium">
+                  {order.filter(i => top3[i]).map(i => {
+                    const u = top3[i];
+                    const isMe = u.id === session?.id;
+                    return (
+                      <div key={u.id} className={`podium-col rank-${i + 1}${isMe ? " me" : ""} fu`} style={{ animationDelay:`${i * 60}ms` }}>
+                        <div className="podium-medal">{["🥇", "🥈", "🥉"][i]}</div>
+                        <Avatar userId={u.id} username={u.username} size={i === 0 ? 56 : 46} profiles={userProfiles} />
+                        <div className="podium-name">{u.username}</div>
+                        <div className="podium-pts">{u.pts}</div>
+                        <div className="podium-block" style={{ height: heights[i] }} />
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+
             <div className="sec-title">Tussenstand</div>
             <div className="sec-sub">3pt winnaar · +1pt per team-goals · +2 bonus bij exact (= 7pt) · 10pt bonusvragen · 5pt eindstand</div>
 
