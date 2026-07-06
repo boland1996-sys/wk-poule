@@ -5,6 +5,7 @@ import { usePrefersReducedMotion, isLowPowerDevice } from "./components/deviceCa
 // Lazy geladen zodat three.js/@react-three niet in de hoofdbundel zitten -
 // laadt pas als de Stand-tab de hero daadwerkelijk toont.
 const Hero3D = lazy(() => import("./components/Hero3D.jsx"));
+const PodiumFigure = lazy(() => import("./components/PodiumFigure.jsx"));
 
 // ── CONFIG ────────────────────────────────────────────────────────────────
 const sb = createClient(
@@ -2322,6 +2323,13 @@ export default function App() {
                         <Avatar userId={u.id} username={u.username} size={i === 0 ? 56 : 46} profiles={userProfiles} />
                         <div className="podium-name">{u.username}</div>
                         <div className="podium-pts">{u.pts}</div>
+                        {showHero3D && (
+                          <div className="podium-figure">
+                            <Suspense fallback={null}>
+                              <PodiumFigure color={avatarColor(u.username)} phase={i * 1.7} big={i === 0} />
+                            </Suspense>
+                          </div>
+                        )}
                         <div className="podium-block" style={{ height: heights[i] }} />
                       </div>
                     );
