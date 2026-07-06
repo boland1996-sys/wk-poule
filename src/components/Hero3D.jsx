@@ -1,28 +1,6 @@
 import { useRef, useMemo, useState, useEffect } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 
-// Detecteert of prefers-reduced-motion actief staat, live (luistert naar wijzigingen).
-export function usePrefersReducedMotion() {
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(mq.matches);
-    const onChange = (e) => setReduced(e.matches);
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, []);
-  return reduced;
-}
-
-// Ruwe hardware-heuristiek zodat oudere/goedkopere telefoons de CSS-banner
-// krijgen i.p.v. de zwaardere 3D-canvas.
-export function isLowPowerDevice() {
-  if (typeof navigator === "undefined") return false;
-  const cores = navigator.hardwareConcurrency || 4;
-  const mem = navigator.deviceMemory || 4;
-  return cores <= 2 || mem <= 2;
-}
-
 // Pauzeert de render-loop zodra het tabblad niet zichtbaar is (batterij sparen).
 function usePageVisible() {
   const [visible, setVisible] = useState(!document.hidden);
@@ -34,7 +12,9 @@ function usePageVisible() {
   return visible;
 }
 
-function FacetedBall() {
+// position: waar de bal in de scene staat - standaard rechts-onder zodat
+// titeltekst links altijd vrij blijft (zelfde hoek als de oude ⚽-watermark).
+function FacetedBall({ position = [1.5, -0.4, 0] }) {
   const group = useRef();
   useFrame((_, delta) => {
     if (!group.current) return;
@@ -42,7 +22,7 @@ function FacetedBall() {
     group.current.rotation.x += delta * 0.06;
   });
   return (
-    <group ref={group}>
+    <group ref={group} position={position} scale={0.85}>
       <mesh>
         <icosahedronGeometry args={[1.35, 1]} />
         <meshStandardMaterial
@@ -92,10 +72,20 @@ function Sparks({ count = 140 }) {
 
 // 3D-achtergrond voor de Stand-hero. Puur decoratief: geen game-state,
 // geen countdown-logica - die blijft in CountdownCard/banner-JSX zelf.
-export default function Hero3D({ className, style }) {
+// maskLeft: vervaagt de linkerkant naar transparant, zodat titeltekst die daar
+// staat (bv. "WK 2026") nooit met de bal kan overlappen, ongeacht schermbreedte.
+export default function Hero3D({ className, style, maskLeft = true }) {
   const visible = usePageVisible();
+  const mask = maskLeft ? "linear-gradient(to right, transparent 0%, transparent 40%, black 62%)" : undefined;
   return (
-    <div className={className} style={{ position: "absolute", inset: 0, ...style }}>
+    <div
+      className={className}
+      style={{
+        position: "absolute", inset: 0,
+        maskImage: mask, WebkitMaskImage: mask,
+        ...style,
+      }}
+    >
       <Canvas
         dpr={[1, 1.5]}
         frameloop={visible ? "always" : "never"}

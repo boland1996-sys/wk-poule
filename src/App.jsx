@@ -1,5 +1,10 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, lazy, Suspense } from "react";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { usePrefersReducedMotion, isLowPowerDevice } from "./components/deviceCapabilities.js";
+
+// Lazy geladen zodat three.js/@react-three niet in de hoofdbundel zitten -
+// laadt pas als de Stand-tab de hero daadwerkelijk toont.
+const Hero3D = lazy(() => import("./components/Hero3D.jsx"));
 
 // ── CONFIG ────────────────────────────────────────────────────────────────
 const sb = createClient(
@@ -1432,6 +1437,10 @@ export default function App() {
   const [form,          setForm]          = useState({ u:"", p:"", p2:"" });
   const [err,           setErr]           = useState("");
   const [loading,       setLoading]       = useState(false);
+  // Hero3D op de Stand-tab: uit bij reduced-motion of low-power devices, dan valt
+  // de bestaande CSS-banner terug als enige achtergrond (geen functionele wijziging).
+  const reducedMotion = usePrefersReducedMotion();
+  const showHero3D = !reducedMotion && !isLowPowerDevice();
   const [booting,       setBooting]       = useState(true);
   const [grp,           setGrp]           = useState("A");
   const [kphase,        setKphase]        = useState("r32");
@@ -2276,6 +2285,11 @@ export default function App() {
         {tab === "stand" && (
           <div className="fu">
             <div className="banner">
+              {showHero3D && (
+                <Suspense fallback={null}>
+                  <Hero3D />
+                </Suspense>
+              )}
               <div style={{ position:"relative", zIndex:1 }}>
                 <div className="banner-flags"><span>🇺🇸</span><span>🇲🇽</span><span>🇨🇦</span></div>
                 <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:6 }}>
