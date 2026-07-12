@@ -66,7 +66,7 @@ Een WK 2026 poule-app voor Ramon Boland en vrienden ("Boland's Special"). Deelne
 - 3pt: winnaar/gelijkspel goed
 - +1pt: thuisgoals exact goed · +1pt: uitgoals exact goed
 - Exacte uitslag = 5pt + 2 bonus = **7pt**
-- **10pt** per goed bonusvraag-antwoord (8 vragen)
+- **10pt** per goed bonusvraag-antwoord (8 vragen). Admin kan per bonusvraag **meerdere** correcte antwoorden opgeven (bij gelijke stand, bv. twee landen met de meeste goals tegen) via "+ antwoord toevoegen". Opgeslagen als array in `bonus_results`; een deelnemer met één van de goede antwoorden krijgt de punten. Centrale check: `bonusIsCorrect(a, r, type)` (r = string óf array).
 - **5pt** per correct geplaatst team in groepseindstand (telt pas als groep volledig gespeeld)
 
 Klassement: punten → bij gelijk aantal exacte uitslagen als tiebreak. Admin-account telt niet mee.
