@@ -144,27 +144,38 @@ function calcMatchPts(preds, matchMap) {
   return { pts, exact };
 }
 
+// Een correct bonus-antwoord kan één waarde zijn óf meerdere geldige waarden
+// (bijv. bij een gelijke stand: twee landen met de meeste goals tegen). We slaan
+// het dan op als array; overal wordt het als lijst van geldige antwoorden gelezen.
+const bonusAnswerList = v =>
+  (Array.isArray(v) ? v : [v]).map(x => (x == null ? "" : x.toString())).filter(x => x.trim() !== "");
+
+// Normaliseer tekst: kleine letters, accenten/leestekens weg, spaties samengevoegd.
+const bonusNorm = s => s.toString().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\w\s]/g, " ").replace(/\s+/g, " ").trim();
+// Heel-woord-bevatting: komt "needle" als volledig woord voor in "hay"?
+const bonusWordIn = (hay, needle) => (" " + hay + " ").includes(" " + needle + " ");
+
+// Is antwoord `a` goed, gegeven het correcte antwoord `r` (string óf array)?
+function bonusIsCorrect(a, r, type) {
+  if (a == null || a.toString().trim() === "") return false;
+  const rList = bonusAnswerList(r);
+  if (rList.length === 0) return false;
+  if (type === "text") {
+    // Open tekst (topscorer / speler v.h. toernooi): tel goed bij exacte match
+    // óf als de één als heel woord in de ander zit ("Kane" ↔ "Harry Kane").
+    const na = bonusNorm(a);
+    return !!na && rList.some(rr => {
+      const nr = bonusNorm(rr);
+      return !!nr && (na === nr || bonusWordIn(na, nr) || bonusWordIn(nr, na));
+    });
+  }
+  // Team/getal: exacte match (komen uit een keuzelijst of zijn een getal).
+  return rList.some(rr => a.toString().toLowerCase().trim() === rr.toString().toLowerCase().trim());
+}
+
 function calcBonusPts(ans, res) {
   if (!res || !ans) return 0;
-  // Normaliseer tekst: kleine letters, accenten/leestekens weg, spaties samengevoegd.
-  const norm = s => s.toString().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\w\s]/g, " ").replace(/\s+/g, " ").trim();
-  // Heel-woord-bevatting: komt "needle" als volledig woord voor in "hay"?
-  const wordIn = (hay, needle) => (" " + hay + " ").includes(" " + needle + " ");
-  return BONUS_QS.reduce((s, q) => {
-    const a = ans[q.id], r = res[q.id];
-    if (a == null || a === "" || r == null || r === "") return s;
-    let ok;
-    if (q.type === "text") {
-      // Open tekst (topscorer / speler v.h. toernooi): tel goed bij exacte match
-      // óf als de één als heel woord in de ander zit ("Kane" ↔ "Harry Kane").
-      const na = norm(a), nr = norm(r);
-      ok = !!na && !!nr && (na === nr || wordIn(na, nr) || wordIn(nr, na));
-    } else {
-      // Team/getal: exacte match (komen uit een keuzelijst of zijn een getal).
-      ok = a.toString().toLowerCase().trim() === r.toString().toLowerCase().trim();
-    }
-    return s + (ok ? 10 : 0);
-  }, 0);
+  return BONUS_QS.reduce((s, q) => s + (bonusIsCorrect(ans[q.id], res[q.id], q.type) ? 10 : 0), 0);
 }
 
 function calcStandingPts(userOrder, realOrder) {
@@ -932,8 +943,7 @@ function BonusUser({ myAns, bonusR, onSave, wkStarted }) {
   const [ans, setAns] = useState(myAns || {});
   useEffect(() => { setAns(myAns || {}); }, [myAns]);
   const [sav, setSav] = useState(false);
-  // FIX #2: dubbele conditie samengevoegd
-  const correct = BONUS_QS.filter(q => bonusR?.[q.id] && ans[q.id]?.toString().toLowerCase().trim() === bonusR[q.id].toString().toLowerCase().trim()).length;
+  const correct = BONUS_QS.filter(q => bonusIsCorrect(ans[q.id], bonusR?.[q.id], q.type)).length;
   const locked = wkStarted;
 
   return (
@@ -947,9 +957,10 @@ function BonusUser({ myAns, bonusR, onSave, wkStarted }) {
         </div>
       </div>
       {BONUS_QS.map((q, i) => {
-        const r = bonusR?.[q.id];
+        const rList = bonusAnswerList(bonusR?.[q.id]);
+        const r = rList.length > 0;
         const a = ans[q.id] || "";
-        const ok = r && a.toString().toLowerCase().trim() === r.toString().toLowerCase().trim();
+        const ok = bonusIsCorrect(a, bonusR?.[q.id], q.type);
         return (
           <div key={q.id} className={`bq${r ? ok ? " ok" : " no" : !a ? " empty" : ""}`} style={{ animationDelay:`${i * 40}ms` }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:9, gap:8 }}>
@@ -969,7 +980,7 @@ function BonusUser({ myAns, bonusR, onSave, wkStarted }) {
                   placeholder={q.type === "number" ? "Aantal goals..." : "Naam speler..."}
                   value={a} onChange={e => setAns(v => ({ ...v, [q.id]: e.target.value }))} />
             }
-            {r && <div style={{ fontSize:11, color:"var(--t3)", marginTop:7 }}>Correct antwoord: <b style={{ color:"var(--t1)" }}>{r}</b></div>}
+            {r && <div style={{ fontSize:11, color:"var(--t3)", marginTop:7 }}>Correct antwoord{rList.length > 1 ? "en" : ""}: <b style={{ color:"var(--t1)" }}>{rList.join(" / ")}</b></div>}
           </div>
         );
       })}
@@ -1009,23 +1020,55 @@ function BonusAdmin({ bonusR, onSave, bonusLocked, onToggleLock }) {
       </div>
       <div className="infobox">
         <span className="infobox-i">👑</span>
-        <div className="infobox-t">Vul de correcte antwoorden in. Punten worden direct bijgewerkt voor alle deelnemers.</div>
+        <div className="infobox-t">Vul de correcte antwoorden in. Bij een gelijke stand (bijv. twee landen met de meeste goals tegen) kun je met <b>+ antwoord toevoegen</b> meerdere goede antwoorden opgeven — elk deelnemer met één daarvan krijgt de punten. Punten worden direct bijgewerkt voor alle deelnemers.</div>
       </div>
-      {BONUS_QS.map(q => (
-        <div key={q.id} className="bq">
-          <div style={{ fontWeight:700, fontSize:13, marginBottom:9 }}>{q.label}</div>
-          {q.type === "team"
-            ? <select className="sel" value={res[q.id] || ""} onChange={e => setRes(r => ({ ...r, [q.id]: e.target.value }))}>
-                <option value="">— Kies een land —</option>
-                {ALL_TEAMS.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-            : <input className="inp" type={q.type === "number" ? "number" : "text"}
-                placeholder={q.type === "number" ? "Aantal goals..." : "Naam speler..."}
-                value={res[q.id] || ""} onChange={e => setRes(r => ({ ...r, [q.id]: e.target.value }))} />
-          }
-        </div>
-      ))}
-      <button className="btn btn-green" disabled={sav} onClick={async () => { setSav(true); await onSave(res); setSav(false); }}>
+      {BONUS_QS.map(q => {
+        // In de bewerk-status houden we elk antwoord als array (incl. lege regels).
+        const rows = Array.isArray(res[q.id])
+          ? (res[q.id].length ? res[q.id] : [""])
+          : [res[q.id] == null ? "" : res[q.id]];
+        const setRows = next => setRes(r => ({ ...r, [q.id]: next.length ? next : [""] }));
+        const setRow = (idx, val) => { const n = [...rows]; n[idx] = val; setRows(n); };
+        const addRow = () => setRows([...rows, ""]);
+        const removeRow = idx => setRows(rows.filter((_, i) => i !== idx));
+        return (
+          <div key={q.id} className="bq">
+            <div style={{ fontWeight:700, fontSize:13, marginBottom:9 }}>{q.label}</div>
+            {rows.map((val, idx) => (
+              <div key={idx} style={{ display:"flex", gap:6, alignItems:"center", marginBottom:6 }}>
+                {q.type === "team"
+                  ? <select className="sel" style={{ flex:1 }} value={val || ""} onChange={e => setRow(idx, e.target.value)}>
+                      <option value="">— Kies een land —</option>
+                      {ALL_TEAMS.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  : <input className="inp" style={{ flex:1 }} type={q.type === "number" ? "number" : "text"}
+                      placeholder={q.type === "number" ? "Aantal goals..." : "Naam speler..."}
+                      value={val || ""} onChange={e => setRow(idx, e.target.value)} />
+                }
+                {rows.length > 1 && (
+                  <button className="btn btn-out btn-sm btn-ic" title="Antwoord verwijderen"
+                    style={{ width:32, height:32, fontSize:14, flexShrink:0, color:"var(--re)" }}
+                    onClick={() => removeRow(idx)}>✕</button>
+                )}
+              </div>
+            ))}
+            <button className="btn btn-out btn-sm" style={{ fontSize:11, padding:"5px 10px", marginTop:2 }} onClick={addRow}>
+              + antwoord toevoegen
+            </button>
+          </div>
+        );
+      })}
+      <button className="btn btn-green" disabled={sav} onClick={async () => {
+        setSav(true);
+        // Normaliseer: lege regels weg; 1 antwoord → string, meerdere → array, geen → "".
+        const clean = { ...res };
+        for (const q of BONUS_QS) {
+          const vals = bonusAnswerList(clean[q.id]);
+          clean[q.id] = vals.length === 0 ? "" : vals.length === 1 ? vals[0] : vals;
+        }
+        await onSave(clean);
+        setSav(false);
+      }}>
         {sav ? "Opslaan..." : "✓ Resultaten opslaan"}
       </button>
     </div>
@@ -3075,7 +3118,7 @@ export default function App() {
                   <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8, marginBottom:12 }}>
                     {[
                       { val:`${exact}×`, lbl:"Exact", sub:`+${exact*7}pt`, c:"var(--gr)" },
-                      { val:`${bp}pt`, lbl:"Bonus", sub:`${BONUS_QS.filter(q => bonusR?.[q.id] && myBonusAns[q.id]?.toString().toLowerCase().trim() === bonusR[q.id].toString().toLowerCase().trim()).length}/${BONUS_QS.length} goed`, c:"var(--am)" },
+                      { val:`${bp}pt`, lbl:"Bonus", sub:`${BONUS_QS.filter(q => bonusIsCorrect(myBonusAns[q.id], bonusR?.[q.id], q.type)).length}/${BONUS_QS.length} goed`, c:"var(--am)" },
                       { val:`${winPct}%`, lbl:"Winnaar goed", sub:`${winnerOk}/${donePreds.length}`, c:"#60a5fa" },
                     ].map((s,i) => (
                       <div key={i} style={{ background:"var(--c2)", border:"1px solid var(--bd)", borderRadius:10, padding:"14px 10px", textAlign:"center" }}>
