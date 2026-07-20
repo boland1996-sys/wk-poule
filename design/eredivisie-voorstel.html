@@ -3,151 +3,196 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Eredivisie Poule — ontwerpvoorstel "De Stijl"</title>
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<title>Eredivisie Poule — ontwerpvoorstel "3D Arena"</title>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root{
-    --paper:#f6f3ec; --ink:#111111; --red:#e0332c; --blue:#1f4bd8; --yellow:#f6c700;
-    --line:3px solid var(--ink);
+    --bg0:#07020f; --bg1:#140a2e; --acid:#b6ff00; --cyan:#00e5ff; --pink:#ff2fb3; --purp:#7b2fff;
+    --glass:rgba(255,255,255,.06); --glassbd:rgba(255,255,255,.14);
   }
   *{margin:0;padding:0;box-sizing:border-box}
-  body{background:#ddd9d0;font-family:Inter,sans-serif;color:var(--ink);display:flex;justify-content:center;padding:20px 0}
-  .phone{width:375px;background:var(--paper);border:var(--line);box-shadow:8px 8px 0 rgba(17,17,17,.85)}
-  h1,h2,.big{font-family:'Archivo Black',sans-serif;text-transform:uppercase;letter-spacing:.5px}
+  body{background:#0a0714;display:flex;justify-content:center;padding:20px 0;font-family:Inter,sans-serif;color:#fff}
+  .phone{width:375px;background:
+      radial-gradient(120% 60% at 50% -10%, #2a1060 0%, transparent 60%),
+      radial-gradient(90% 40% at 50% 110%, #0b3d1e 0%, transparent 60%),
+      linear-gradient(180deg,var(--bg1),var(--bg0) 45%);
+    overflow:hidden;position:relative;border-radius:28px;border:1px solid #2b2342;
+    box-shadow:0 30px 80px rgba(0,0,0,.8)}
+  /* 3D grasveld-grid dat naar achter loopt */
+  .pitch{position:absolute;left:-40%;right:-40%;height:340px;bottom:-60px;
+    background:
+      repeating-linear-gradient(90deg, rgba(182,255,0,.20) 0 2px, transparent 2px 46px),
+      repeating-linear-gradient(0deg, rgba(182,255,0,.20) 0 2px, transparent 2px 38px);
+    transform:perspective(420px) rotateX(62deg);transform-origin:50% 100%;
+    -webkit-mask-image:linear-gradient(180deg,transparent,black 45%);mask-image:linear-gradient(180deg,transparent,black 45%);
+    pointer-events:none}
+  .inner{position:relative;z-index:1;padding:18px 14px 90px}
 
-  /* HEADER */
-  .hdr{border-bottom:var(--line);display:flex;align-items:stretch}
-  .hdr .blocks{display:flex;flex-direction:column;width:26px;border-right:var(--line)}
-  .hdr .blocks span{flex:1}
-  .hdr .blocks span:nth-child(1){background:var(--red)}
-  .hdr .blocks span:nth-child(2){background:var(--yellow);border-top:var(--line);border-bottom:var(--line)}
-  .hdr .blocks span:nth-child(3){background:var(--blue)}
-  .hdr .title{padding:12px 14px;flex:1}
-  .hdr h1{font-size:24px;line-height:1}
-  .hdr h1 em{font-style:normal;color:var(--red)}
-  .hdr .sub{font-size:10px;font-weight:800;letter-spacing:3px;margin-top:3px}
-  .hdr .user{border-left:var(--line);display:flex;flex-direction:column;justify-content:center;padding:0 12px;font-size:11px;font-weight:800;background:var(--yellow)}
+  /* ══ 3D CHROME TITEL ══ */
+  .titlewrap{perspective:600px;margin-bottom:4px}
+  h1{font-family:Anton,sans-serif;font-size:44px;line-height:.95;text-transform:uppercase;
+    transform:rotateX(14deg) rotateZ(-2deg);
+    background:linear-gradient(180deg,#fff 15%,#9be1ff 38%,#3f7dbf 50%,#e8f7ff 54%,#7fa8d0 78%,#fff);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 10px 0 rgba(21,10,50,.9)) drop-shadow(0 14px 22px rgba(0,229,255,.35))}
+  h1 .accent{display:block;
+    background:linear-gradient(180deg,#eaffb0 10%,var(--acid) 45%,#5c9400 52%,#d9ff70 58%,#8fd400);
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .subtitle{font-size:10px;font-weight:800;letter-spacing:4px;color:var(--cyan);text-transform:uppercase;
+    text-shadow:0 0 12px var(--cyan);margin:10px 0 20px;transform:rotateZ(-2deg)}
 
-  /* SECTION KOP */
-  .kop{display:flex;align-items:center;border-bottom:var(--line)}
-  .kop .blk{width:18px;align-self:stretch;border-right:var(--line)}
-  .kop h2{font-size:15px;padding:9px 12px;flex:1}
-  .kop .meta{font-size:10px;font-weight:700;padding-right:12px}
+  /* ══ SECTIEKOP ══ */
+  .seckop{display:flex;align-items:baseline;gap:8px;margin:22px 0 12px}
+  .seckop h2{font-family:Anton,sans-serif;font-size:20px;letter-spacing:1px;text-transform:uppercase;
+    color:#fff;text-shadow:0 0 18px rgba(123,47,255,.9),0 3px 0 #2a1060}
+  .seckop small{font-size:9px;font-weight:800;letter-spacing:2px;color:#9d8fc7}
 
-  /* SPEELRONDE NAV */
-  .rondenav{display:flex;border-bottom:var(--line)}
-  .rondenav button{font-family:'Archivo Black',sans-serif;font-size:16px;background:var(--paper);border:none;width:46px;padding:10px 0;cursor:pointer}
-  .rondenav .cur{flex:1;text-align:center;padding:10px;border-left:var(--line);border-right:var(--line);background:var(--blue);color:#fff}
-  .rondenav .cur .r{font-family:'Archivo Black',sans-serif;font-size:14px;text-transform:uppercase}
-  .rondenav .cur .d{font-size:9px;font-weight:700;letter-spacing:1px;margin-top:2px;color:#dbe4ff}
+  /* ══ PODIUM 3D ══ */
+  .podium{display:flex;align-items:flex-end;gap:8px;perspective:700px;margin-bottom:10px}
+  .step{flex:1;border-radius:14px;padding:12px 8px 10px;text-align:center;background:var(--glass);
+    border:1px solid var(--glassbd);backdrop-filter:blur(6px);transform-style:preserve-3d}
+  .step .nm{font-weight:800;font-size:12px}
+  .step .pt{font-family:Anton,sans-serif;font-size:24px;letter-spacing:1px}
+  .step .rk{font-family:Anton,sans-serif;font-size:11px;opacity:.7;margin-bottom:2px}
+  .step.s2{transform:rotateY(16deg) translateZ(-12px);box-shadow:0 14px 30px rgba(0,229,255,.15);border-color:rgba(0,229,255,.4)}
+  .step.s2 .pt{color:var(--cyan);text-shadow:0 0 14px var(--cyan)}
+  .step.s1{transform:translateY(-14px) translateZ(20px);padding-top:16px;
+    border-color:rgba(182,255,0,.55);box-shadow:0 0 0 1px rgba(182,255,0,.25),0 20px 44px rgba(182,255,0,.22)}
+  .step.s1 .pt{color:var(--acid);font-size:32px;text-shadow:0 0 20px var(--acid)}
+  .step.s1 .crown{font-size:16px}
+  .step.s3{transform:rotateY(-16deg) translateZ(-12px);box-shadow:0 14px 30px rgba(255,47,179,.15);border-color:rgba(255,47,179,.4)}
+  .step.s3 .pt{color:var(--pink);text-shadow:0 0 14px var(--pink)}
 
-  /* WEDSTRIJDKAART */
-  .match{border-bottom:var(--line);padding:10px 12px;display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;position:relative}
+  /* ══ KLASSEMENT-RIJEN ══ */
+  .rows{perspective:800px;display:flex;flex-direction:column;gap:7px}
+  .row{display:grid;grid-template-columns:30px 1fr auto 52px;gap:8px;align-items:center;
+    background:var(--glass);border:1px solid var(--glassbd);border-radius:12px;padding:9px 12px;
+    transform:rotateX(7deg);backdrop-filter:blur(6px)}
+  .row .pos{font-family:Anton,sans-serif;font-size:15px;color:#9d8fc7}
+  .row .nm{font-weight:800;font-size:13px}
+  .row .nm small{display:block;font-weight:600;font-size:9px;color:#8f83b8}
+  .row .ex{font-size:9px;font-weight:700;color:#9d8fc7}
+  .row .pt{font-family:Anton,sans-serif;font-size:18px;text-align:right;color:#fff}
+
+  /* ══ SPEELRONDE-KUBUS-NAV ══ */
+  .rnav{display:flex;align-items:center;gap:10px;perspective:600px;margin-bottom:12px}
+  .rnav .arrow{width:38px;height:38px;border-radius:10px;background:var(--glass);border:1px solid var(--glassbd);
+    display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--cyan)}
+  .rcube{flex:1;text-align:center;padding:10px;border-radius:14px;transform:rotateX(12deg);
+    background:linear-gradient(160deg,#7b2fff 0%,#3d1690 60%,#2a1060);
+    box-shadow:0 12px 0 #1b0a45,0 22px 34px rgba(123,47,255,.4);border:1px solid rgba(255,255,255,.25)}
+  .rcube .r{font-family:Anton,sans-serif;font-size:17px;letter-spacing:1px;text-transform:uppercase}
+  .rcube .d{font-size:9px;font-weight:700;letter-spacing:2px;color:#cdb9ff;margin-top:2px}
+
+  /* ══ WEDSTRIJDKAARTEN 3D ══ */
+  .matches{perspective:900px;display:flex;flex-direction:column;gap:10px}
+  .m{background:var(--glass);border:1px solid var(--glassbd);border-radius:16px;padding:12px;
+    transform:rotateX(6deg);backdrop-filter:blur(6px);position:relative;overflow:hidden}
+  .m .time{position:absolute;top:8px;right:10px;font-size:8px;font-weight:800;letter-spacing:1.5px;color:var(--cyan);text-shadow:0 0 8px var(--cyan)}
+  .m .teams{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center}
   .club{display:flex;align-items:center;gap:8px;font-weight:800;font-size:13px}
   .club.away{justify-content:flex-end}
-  .badge{width:26px;height:26px;border:2.5px solid var(--ink);display:flex;align-items:center;justify-content:center;font-family:'Archivo Black',sans-serif;font-size:11px;color:#fff;flex-shrink:0}
-  .tip{display:flex;align-items:center;gap:5px}
-  .tip input{width:34px;height:34px;border:var(--line);background:#fff;text-align:center;font-family:'Archivo Black',sans-serif;font-size:15px;outline:none}
-  .tip .dash{font-family:'Archivo Black',sans-serif}
-  .mtime{position:absolute;top:-1px;right:12px;background:var(--ink);color:var(--paper);font-size:8.5px;font-weight:800;letter-spacing:1px;padding:2px 6px}
-  .match.done{background:repeating-linear-gradient(-45deg,transparent 0 12px,rgba(17,17,17,.045) 12px 24px)}
-  .score{font-family:'Archivo Black',sans-serif;font-size:17px;background:var(--ink);color:var(--paper);padding:4px 10px}
-  .pts{position:absolute;bottom:6px;right:12px;font-size:9px;font-weight:800;background:var(--yellow);border:2px solid var(--ink);padding:1px 5px}
-  .mijntip{font-size:9px;font-weight:700;color:#555;grid-column:1/-1;margin-top:-2px}
+  .logo3d{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    font-family:Anton,sans-serif;font-size:10px;transform:rotateZ(-6deg);
+    box-shadow:0 5px 0 rgba(0,0,0,.45),0 8px 16px rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.3)}
+  /* scorebord-kubussen */
+  .cube{width:38px;height:40px;border-radius:9px;background:linear-gradient(180deg,#241246,#0d0620);
+    border:1px solid var(--glassbd);color:var(--acid);font-family:Anton,sans-serif;font-size:19px;
+    display:flex;align-items:center;justify-content:center;text-shadow:0 0 12px var(--acid);
+    box-shadow:inset 0 2px 8px rgba(0,0,0,.8),0 6px 0 #05020c}
+  .vs{display:flex;gap:6px;align-items:center}
+  .vs .dash{color:#5c4f85;font-family:Anton,sans-serif}
+  .mijntip{margin-top:8px;font-size:9px;font-weight:700;color:#8f83b8}
+  .chip{display:inline-block;margin-left:6px;padding:2px 8px;border-radius:20px;font-size:9px;font-weight:800}
+  .chip.win{background:rgba(182,255,0,.15);color:var(--acid);border:1px solid rgba(182,255,0,.5)}
+  .chip.exact{background:rgba(255,47,179,.18);color:var(--pink);border:1px solid rgba(255,47,179,.6);
+    text-shadow:0 0 10px var(--pink);box-shadow:0 0 16px rgba(255,47,179,.35)}
+  .m.live{border-color:rgba(255,47,179,.55);box-shadow:0 0 26px rgba(255,47,179,.25)}
+  .m.live .time{color:var(--pink);text-shadow:0 0 10px var(--pink)}
 
-  /* KLASSEMENT */
-  .rij{display:grid;grid-template-columns:34px 1fr 46px 52px;align-items:center;border-bottom:2px solid var(--ink);font-size:13px}
-  .rij:last-child{border-bottom:none}
-  .rij .pos{font-family:'Archivo Black',sans-serif;text-align:center;border-right:var(--line);align-self:stretch;display:flex;align-items:center;justify-content:center;font-size:14px}
-  .rij:nth-child(1) .pos{background:var(--yellow)}
-  .rij:nth-child(2) .pos{background:var(--red);color:#fff}
-  .rij:nth-child(3) .pos{background:var(--blue);color:#fff}
-  .rij .naam{padding:9px 10px;font-weight:800}
-  .rij .naam small{display:block;font-size:9px;font-weight:600;color:#666}
-  .rij .ex{font-size:10px;font-weight:700;text-align:center;color:#555}
-  .rij .tot{font-family:'Archivo Black',sans-serif;font-size:16px;text-align:right;padding-right:12px}
-  .balk{height:4px;background:var(--blue);margin:0 10px 8px}
-
-  /* TABS */
-  .tabs{display:flex;border-top:var(--line);background:#fff}
-  .tabs div{flex:1;text-align:center;padding:9px 0 7px;font-size:8.5px;font-weight:800;letter-spacing:.5px;border-right:2px solid var(--ink)}
-  .tabs div:last-child{border-right:none}
-  .tabs .actief{background:var(--red);color:#fff}
-  .tabs span{display:block;font-size:15px;margin-bottom:2px}
-  .gap{height:26px;background:#ddd9d0;border-top:var(--line);border-bottom:var(--line)}
+  /* ══ TABBAR ZWEVEND ══ */
+  .tabbar{position:absolute;left:14px;right:14px;bottom:14px;z-index:5;display:flex;gap:4px;
+    background:rgba(13,7,30,.85);border:1px solid var(--glassbd);border-radius:18px;padding:7px;
+    backdrop-filter:blur(12px);box-shadow:0 16px 40px rgba(0,0,0,.7)}
+  .tabbar div{flex:1;text-align:center;font-size:8px;font-weight:800;letter-spacing:.5px;color:#8f83b8;padding:5px 0}
+  .tabbar span{display:block;font-size:15px;margin-bottom:2px}
+  .tabbar .act{background:linear-gradient(160deg,#b6ff00,#6fae00);border-radius:12px;color:#0a1400;
+    box-shadow:0 0 20px rgba(182,255,0,.5),0 5px 0 #3d6000;transform:translateY(-3px)}
 </style>
 </head>
 <body>
 <div class="phone">
+  <div class="pitch"></div>
+  <div class="inner">
 
-  <!-- ══ SCHERM 1: KLASSEMENT ══ -->
-  <div class="hdr">
-    <div class="blocks"><span></span><span></span><span></span></div>
-    <div class="title">
-      <h1>Eredivisie <em>Poule</em></h1>
-      <div class="sub">BOLAND'S SPECIAL · 26/27</div>
+    <div class="titlewrap">
+      <h1>Eredivisie<span class="accent">Poule</span></h1>
     </div>
-    <div class="user">RAMON</div>
+    <div class="subtitle">⚡ Boland's Special · 26/27</div>
+
+    <!-- ══ KLASSEMENT ══ -->
+    <div class="seckop"><h2>Klassement</h2><small>NA SPEELRONDE 3</small></div>
+
+    <div class="podium">
+      <div class="step s2"><div class="rk">2</div><div class="nm">TIMB</div><div class="pt">36</div></div>
+      <div class="step s1"><div class="crown">👑</div><div class="nm">OORTJE</div><div class="pt">38</div></div>
+      <div class="step s3"><div class="rk">3</div><div class="nm">MONICA</div><div class="pt">31</div></div>
+    </div>
+
+    <div class="rows">
+      <div class="row"><div class="pos">4</div><div class="nm">DOANI<small>▲2 deze ronde</small></div><div class="ex">2× exact</div><div class="pt">29</div></div>
+      <div class="row"><div class="pos">5</div><div class="nm">DANNY<small>▼1</small></div><div class="ex">1× exact</div><div class="pt">24</div></div>
+    </div>
+
+    <!-- ══ TIPPEN ══ -->
+    <div class="seckop"><h2>Tippen</h2><small>TOT 5 MIN VOOR AFTRAP</small></div>
+
+    <div class="rnav">
+      <div class="arrow">◀</div>
+      <div class="rcube"><div class="r">Speelronde 4</div><div class="d">VR 4 SEP — ZO 6 SEP</div></div>
+      <div class="arrow">▶</div>
+    </div>
+
+    <div class="matches">
+      <div class="m">
+        <div class="time">VR 20:00</div>
+        <div class="teams">
+          <div class="club"><span class="logo3d" style="background:linear-gradient(160deg,#e0332c,#7a0d0d)">AJA</span> Ajax</div>
+          <div class="vs"><div class="cube">2</div><span class="dash">–</span><div class="cube">1</div></div>
+          <div class="club away">Feyenoord <span class="logo3d" style="background:linear-gradient(160deg,#3d8f3d,#0d3d14)">FEY</span></div>
+        </div>
+        <div class="mijntip">JOUW TIP STAAT VAST · ✏️ wijzig</div>
+      </div>
+
+      <div class="m live">
+        <div class="time">● LIVE 63'</div>
+        <div class="teams">
+          <div class="club"><span class="logo3d" style="background:linear-gradient(160deg,#e0332c,#5c0a35)">PSV</span> PSV</div>
+          <div class="vs"><div class="cube" style="color:#ff2fb3;text-shadow:0 0 12px #ff2fb3">1</div><span class="dash">–</span><div class="cube" style="color:#ff2fb3;text-shadow:0 0 12px #ff2fb3">1</div></div>
+          <div class="club away">AZ <span class="logo3d" style="background:linear-gradient(160deg,#d40f27,#3a0308)">AZ</span></div>
+        </div>
+        <div class="mijntip">JOUW TIP: 2–1 <span class="chip win">op koers: winnaar</span></div>
+      </div>
+
+      <div class="m">
+        <div class="time">GESPEELD</div>
+        <div class="teams">
+          <div class="club"><span class="logo3d" style="background:linear-gradient(160deg,#c8102e,#4a0512)">TWE</span> FC Twente</div>
+          <div class="vs"><div class="cube">1</div><span class="dash">–</span><div class="cube">1</div></div>
+          <div class="club away">NEC <span class="logo3d" style="background:linear-gradient(160deg,#0f7a3c,#062e17)">NEC</span></div>
+        </div>
+        <div class="mijntip">JOUW TIP: 1–1 <span class="chip exact">+7 EXACT!</span></div>
+      </div>
+    </div>
+
   </div>
 
-  <div class="kop"><div class="blk" style="background:var(--yellow)"></div><h2>Klassement</h2><div class="meta">NA SPEELRONDE 3</div></div>
-
-  <div class="rij"><div class="pos">1</div><div class="naam">OORTJE<small>▲1 · titelverdediger WK-poule</small></div><div class="ex">4× exact</div><div class="tot">38</div></div>
-  <div class="rij"><div class="pos">2</div><div class="naam">TIMB<small>▼1</small></div><div class="ex">3× exact</div><div class="tot">36</div></div>
-  <div class="rij"><div class="pos">3</div><div class="naam">MONICA<small>–</small></div><div class="ex">3× exact</div><div class="tot">31</div></div>
-  <div class="rij"><div class="pos">4</div><div class="naam">DOANI<small>▲2</small></div><div class="ex">2× exact</div><div class="tot">29</div></div>
-  <div class="rij"><div class="pos">5</div><div class="naam">DANNY<small>▼1</small></div><div class="ex">1× exact</div><div class="tot">24</div></div>
-
-  <div class="gap"></div>
-
-  <!-- ══ SCHERM 2: SPEELRONDE / TIPPEN ══ -->
-  <div class="kop"><div class="blk" style="background:var(--red)"></div><h2>Tippen</h2><div class="meta">TOT 5 MIN VOOR AFTRAP</div></div>
-
-  <div class="rondenav">
-    <button>◀</button>
-    <div class="cur"><div class="r">Speelronde 4</div><div class="d">VR 4 SEP — ZO 6 SEP</div></div>
-    <button>▶</button>
-  </div>
-
-  <div class="match">
-    <div class="mtime">VR 20:00</div>
-    <div class="club"><span class="badge" style="background:var(--red)">AJA</span> Ajax</div>
-    <div class="tip"><input value="2"><span class="dash">–</span><input value="1"></div>
-    <div class="club away">Feyenoord <span class="badge" style="background:var(--blue)">FEY</span></div>
-  </div>
-
-  <div class="match">
-    <div class="mtime">ZA 18:45</div>
-    <div class="club"><span class="badge" style="background:var(--blue)">PSV</span> PSV</div>
-    <div class="tip"><input placeholder=""><span class="dash">–</span><input placeholder=""></div>
-    <div class="club away">AZ <span class="badge" style="background:var(--red)">AZ</span></div>
-  </div>
-
-  <div class="match done">
-    <div class="mtime">GESPEELD</div>
-    <div class="club"><span class="badge" style="background:var(--yellow);color:var(--ink)">UTR</span> FC Utrecht</div>
-    <div class="score">3–1</div>
-    <div class="club away">Heracles <span class="badge" style="background:var(--ink)">HER</span></div>
-    <div class="mijntip">JOUW TIP: 2–1 → winnaar goed</div>
-    <div class="pts">+3 PT</div>
-  </div>
-
-  <div class="match done">
-    <div class="mtime">GESPEELD</div>
-    <div class="club"><span class="badge" style="background:var(--blue)">TWE</span> FC Twente</div>
-    <div class="score">1–1</div>
-    <div class="club away">NEC <span class="badge" style="background:var(--red)">NEC</span></div>
-    <div class="mijntip">JOUW TIP: 1–1 → EXACT!</div>
-    <div class="pts" style="background:var(--red);color:#fff">+7 EXACT</div>
-  </div>
-
-  <!-- TABS -->
-  <div class="tabs">
-    <div class="actief"><span>▦</span>STAND</div>
+  <div class="tabbar">
+    <div class="act"><span>🏆</span>STAND</div>
     <div><span>⚽</span>TIPPEN</div>
-    <div><span>▤</span>PROGRAMMA</div>
-    <div><span>★</span>SEIZOEN</div>
-    <div><span>€</span>POT</div>
+    <div><span>📅</span>PROGRAMMA</div>
+    <div><span>⭐</span>SEIZOEN</div>
+    <div><span>💶</span>POT</div>
   </div>
 </div>
 </body>
