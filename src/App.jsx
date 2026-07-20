@@ -208,6 +208,10 @@ function getStanding(matches, grp) {
   ).map(t => ({ team: t, ...s[t] }));
 }
 
+// Archiefmodus: het WK is afgelopen. De database staat op alleen-lezen (RLS),
+// registreren en profiel wijzigen zijn dicht — terugkijken kan gewoon.
+const ARCHIEF = true;
+
 function hashPw(pw) { let h = 0; for (let c of pw) h = Math.imul(31, h) + c.charCodeAt(0) | 0; return h.toString(36); }
 function avatarColor(name) { let h = 0; for (let c of name) h = Math.imul(31, h) + c.charCodeAt(0) | 0; return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length]; }
 
@@ -1186,8 +1190,15 @@ function AuthPage({ mode, setMode, form, setForm, err, loading, onLogin, onRegis
 
         {/* Card */}
         <div style={{ background:"var(--c1)", border:"1px solid rgba(255,107,0,.15)", borderRadius:20, padding:"22px 20px", boxShadow:"0 20px 60px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.03), 0 0 40px rgba(255,107,0,.08)" }}>
+          {/* Archief-melding (registratie gesloten) */}
+          {ARCHIEF && (
+            <div style={{ background:"rgba(255,180,0,.08)", border:"1px solid rgba(255,180,0,.25)", borderRadius:12, padding:"10px 14px", marginBottom:18, fontSize:12.5, lineHeight:1.5, color:"var(--am)" }}>
+              🏁 <b>Het WK is afgelopen.</b> Log in om alle uitslagen, standen en jouw punten terug te kijken. Nieuwe accounts aanmaken kan niet meer.
+            </div>
+          )}
+
           {/* Tabs */}
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", background:"var(--bg)", borderRadius:12, padding:3, gap:3, marginBottom:20 }}>
+          {!ARCHIEF && <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", background:"var(--bg)", borderRadius:12, padding:3, gap:3, marginBottom:20 }}>
             {["login","register"].map(m => (
               <button key={m} onClick={() => setMode(m)} style={{
                 padding:"11px 8px", border:"none", borderRadius:10, fontSize:13, fontWeight:700, cursor:"pointer", transition:"all .2s",
@@ -1198,7 +1209,7 @@ function AuthPage({ mode, setMode, form, setForm, err, loading, onLogin, onRegis
                 {m==="login" ? "🔑 Inloggen" : "✨ Aanmaken"}
               </button>
             ))}
-          </div>
+          </div>}
 
           {/* Fields */}
           <div style={{ marginBottom:14 }}>
@@ -1242,13 +1253,13 @@ function AuthPage({ mode, setMode, form, setForm, err, loading, onLogin, onRegis
             {loading ? <span className="spin">⚽</span> : mode==="login" ? "Inloggen →" : "Account aanmaken →"}
           </button>
 
-          <div style={{ textAlign:"center", marginTop:16, fontSize:13, color:"var(--t3)" }}>
+          {!ARCHIEF && <div style={{ textAlign:"center", marginTop:16, fontSize:13, color:"var(--t3)" }}>
             {mode==="login" ? "Nog geen account? " : "Al een account? "}
             <button onClick={() => setMode(mode==="login" ? "register" : "login")}
               style={{ background:"none", border:"none", color:"var(--gr)", fontWeight:700, fontSize:13, cursor:"pointer", textDecoration:"underline" }}>
               {mode==="login" ? "Aanmaken" : "Inloggen"}
             </button>
-          </div>
+          </div>}
         </div>
       </div>
 
@@ -2556,7 +2567,7 @@ export default function App() {
           <div style={{ display:"flex", alignItems:"center", gap:6 }}>
             {isAdmin && <span style={{ background:"rgba(255,107,0,.15)", color:"var(--gr)", fontSize:9, fontWeight:900, borderRadius:4, padding:"2px 6px", letterSpacing:.5, border:"1px solid rgba(255,107,0,.15)", flexShrink:0 }}>ADMIN</span>}
             <span style={{ fontSize:11, color:"var(--t3)", fontWeight:700, maxWidth:70, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{session.username}</span>
-            <button className="btn btn-out btn-sm" style={{ padding:"4px 8px", fontSize:11 }} onClick={() => setShowProfile(true)}>👤</button>
+            {!ARCHIEF && <button className="btn btn-out btn-sm" style={{ padding:"4px 8px", fontSize:11 }} onClick={() => setShowProfile(true)}>👤</button>}
             <button className="btn btn-out btn-sm" style={{ padding:"4px 8px", fontSize:11 }} onClick={async () => { if (session?.id && !isAdmin) { await sb.from("users").update({ last_seen: new Date().toISOString() }).eq("id", session.id); } setSession(null); setTab("stand"); }}>Uit</button>
           </div>
         </div>
@@ -2582,6 +2593,13 @@ export default function App() {
             </div>
 
             <CountdownCard />
+
+            {ARCHIEF && (
+              <div className="card" style={{ padding:"12px 14px", marginBottom:12, border:"1px solid rgba(255,180,0,.25)", background:"rgba(255,180,0,.06)" }}>
+                <div style={{ fontSize:13, fontWeight:800, color:"var(--am)", marginBottom:3 }}>🏁 WK 2026 is afgelopen</div>
+                <div style={{ fontSize:12, color:"var(--t2)", lineHeight:1.5 }}>Dit is het archief van Boland's Special — alle uitslagen, standen en punten blijven hier terug te kijken. Tippen en wijzigen kan niet meer.</div>
+              </div>
+            )}
 
             {wkStarted && <LiveOrNext matches={matches} nextMatch={nextMatch} liveData={liveData} isAdmin={isAdmin} myPreds={myPreds} onPred={savePred} />}
 
@@ -3290,6 +3308,12 @@ export default function App() {
         {/* ── BEHEER ── */}
         {tab === "beheer" && isAdmin && (
           <div className="fu">
+            {ARCHIEF && (
+              <div className="card" style={{ padding:"12px 14px", marginBottom:12, border:"1px solid rgba(255,180,0,.25)", background:"rgba(255,180,0,.06)" }}>
+                <div style={{ fontSize:13, fontWeight:800, color:"var(--am)", marginBottom:3 }}>📦 Archiefmodus</div>
+                <div style={{ fontSize:12, color:"var(--t2)", lineHeight:1.5 }}>De database staat op alleen-lezen (RLS). Beheer-acties zoals uitslagen invoeren, vergrendelen en verwijderen zullen mislukken. Wil je weer wijzigen, zet dan eerst de schrijf-policies terug in Supabase.</div>
+              </div>
+            )}
             <div className="sec-title">👑 Deelnemers Beheer</div>
             <div className="sec-sub">{users.length} deelnemer{users.length !== 1 ? "s" : ""} · 🔑 wachtwoord · 🗑️ verwijderen</div>
 

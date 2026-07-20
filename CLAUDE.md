@@ -4,7 +4,7 @@
 
 ## Wat is het
 
-Een WK 2026 poule-app voor Ramon Boland en vrienden ("Boland's Special"). Deelnemers voorspellen wedstrijduitslagen en verdienen punten. Bevat: tussenstand/klassement, bonusvragen, groepsstand-voorspellingen, chat, en potbeheer (prijzengeld). De app is **live en wordt actief gebruikt** tijdens het WK.
+Een WK 2026 poule-app voor Ramon Boland en vrienden ("Boland's Special"). Deelnemers voorspellen wedstrijduitslagen en verdienen punten. Bevat: tussenstand/klassement, bonusvragen, groepsstand-voorspellingen, chat, en potbeheer (prijzengeld). **Het WK is afgelopen (jul 2026) — de site staat nu in archiefmodus** (zie "Archiefmodus / beveiliging" hieronder): alles is terug te kijken, niets is meer te wijzigen.
 
 - **Domein:** ramonboland.com
 - **Repo:** boland1996-sys/wk-poule (GitHub)
@@ -24,7 +24,8 @@ Een WK 2026 poule-app voor Ramon Boland en vrienden ("Boland's Special"). Deelne
 | `src/App.jsx` | Alles: componenten, state, CSS (als string-const, via `<style>`), render |
 | `src/main.jsx` | Entry point |
 | `src/assets/` | hero.png / gullit.jpg |
-| `api/auth.js` | Server-side login & registratie (verbergt wachtwoord-hash) |
+| `api/auth.js` | Server-side login (scrypt-hash, verbergt wachtwoord-hash; registratie gesloten in archiefmodus) |
+| `supabase/archief-rls.sql` | SQL-script voor de Supabase SQL Editor: RLS aan, database alleen-lezen (archiefmodus) |
 | `api/football-scores.js` | Proxy naar flashscore (verbergt RapidAPI-key) |
 | `api/cron-import.js` | Server-side (elke minuut): importeert eindstanden + vult tegenstanders volgende KO-ronde in + vergrendelt wedstrijden 5 min voor aftrap |
 | `vercel.json` | Alleen rewrite voor `/api/*`. Geen Vercel-cron |
@@ -96,12 +97,26 @@ Admin: idem, laatste tab = 👑 Beheer (i.p.v. Mijn). 9 tabs; op smalle telefoon
 
 Inleg × aantal deelnemers. Verdeling: winnaar 50% · nr.2 30% · nr.3 20%.
 
+## Archiefmodus / beveiliging (jul 2026, na afloop WK)
+
+De beveiliging is in "lagen" opgebouwd:
+
+- **Laag 1 (jun 2026):** login/registratie server-side via `api/auth.js` met de service-role-key; `pw_hash` gaat nooit naar de browser. In Supabase: `REVOKE SELECT (pw_hash) ON public.users FROM anon, authenticated`.
+- **Laag 2 (jul 2026):** wachtwoorden gehasht met **scrypt** (formaat `s2$salt$hash`, `node:crypto` scryptSync + timingSafeEqual). Oude accounts met de zwakke 32-bit hash worden bij hun eerstvolgende succesvolle login automatisch geüpgraded (login vergelijkt eerst scrypt, valt terug op legacy-hash en PATCH't dan de nieuwe hash).
+- **Laag 3 = archiefmodus (jul 2026):** RLS aan op alle 7 tabellen met alleen een SELECT-policy (`supabase/archief-rls.sql`, uitvoeren in de Supabase SQL Editor). Schrijven met de publieke anon-key is onmogelijk; extra `REVOKE insert/update/delete` op grant-niveau; storage-schrijfpolicies (avatars) verwijderd. Login blijft werken (service-role-key gaat langs RLS heen).
+
+In de app: const `ARCHIEF = true` bovenin `src/App.jsx` → archief-banner op Stand, registratie-UI verborgen op de loginpagina, 👤 profiel-knop verborgen, archiefmelding op de Beheer-tab. Registratie is ook server-side dicht (403 in `api/auth.js`).
+
+**Terugdraaien voor een volgend toernooi:** zie het commentaarblok onderaan `supabase/archief-rls.sql` + `ARCHIEF = false` zetten + registratie in `api/auth.js` weer activeren.
+
+**Let op:** `api/cron-import.js` schrijft met de anon-key en werkt dus niet meer onder RLS — niet erg, het WK is voorbij. De externe cron (cron-job.org, elke minuut) kan uitgezet worden, dat scheelt RapidAPI-quota.
+
 ## Bekende beperkingen
 
 - **Geen doelpuntenmakers:** flashscore4 heeft alleen `matches/{list-by-date,live,h2h,odds,standings}` — geen events/scorers. ~60 endpoint-combinaties getest (juni 2026), niet mogelijk. Zou een andere API vereisen (bv. API-Football). Niet opnieuw onderzoeken.
 - **Geen penalty-uitslag:** flashscore geeft bij een shootout alleen de gelijke stand na verlenging, geen penalty-score of winnaar. Daarom worden penalty-wedstrijden niet automatisch geïmporteerd; admin vult ze handmatig in. Niet opnieuw onderzoeken.
-- **Wachtwoord-hash** is nog de zwakke `hashPw` (32-bit, niet-cryptografisch) — toekomstige verbetering.
-- **Admin-rechten** (`isAdmin`) zitten client-side; schrijfacties lopen via de anon-key (RLS uit).
+- **Admin-rechten** (`isAdmin`) zitten client-side. In archiefmodus maakt dat niet uit (schrijven is sowieso geblokkeerd door RLS); bij hergebruik voor een volgend toernooi zouden admin-schrijfacties eigenlijk via een server-endpoint moeten.
+- De client-side `hashPw` in `App.jsx` wordt alleen nog gebruikt door de (in archiefmodus toch niet-werkende) admin wachtwoord-reset; echte hashing gebeurt server-side met scrypt.
 
 ## Workflow-afspraak
 
