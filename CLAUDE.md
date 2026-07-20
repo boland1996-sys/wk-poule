@@ -52,7 +52,7 @@ Een WK 2026 poule-app voor Ramon Boland en vrienden ("Boland's Special"). Deelne
 
 **Uitslagen-import:**
 - Bron: flashscore4 (`flashscore4.p.rapidapi.com`, `/api/flashscore/v2/`, Ultra-plan: 10.000 req/dag).
-- **cron-job.org** (externe dienst, NIET in repo) roept **elke minuut** `https://www.ramonboland.com/api/cron-import?secret=...` aan.
+- **cron-job.org** (externe dienst, NIET in repo) riep **elke minuut** `https://www.ramonboland.com/api/cron-import?secret=...` aan — **verwijderd op 20 jul 2026** (WK afgelopen, archiefmodus).
 - `cron-import.js` pakt afgewerkte matches, vertaalt teamnamen via `TEAM_MAP` (EN→NL), matcht op DB-wedstrijden zonder uitslag, en PATCH't de score. Daarnaast (stappen 4 en 5, kosten geen flashscore-calls): (4) vult `"Winnaar duel N"` / `"Verliezer duel N"` van de volgende ronde met het echte team zodra duel N een duidelijke winnaar heeft, en (5) zet `locked=true` zodra het 5 min voor aftrap is (CEST→UTC via `Date.UTC(...,hh-2,...)`).
 - GitHub Actions (`.github/workflows/import-scores.yml`) is nu **alleen handmatig** (`workflow_dispatch`) als reserve — geen schema meer.
 - Client-side aanvulling: admin-app draait import + doorstroom + lock elke 5 min/60s als die open is.
@@ -109,7 +109,7 @@ In de app: const `ARCHIEF = true` bovenin `src/App.jsx` → archief-banner op St
 
 **Terugdraaien voor een volgend toernooi:** zie het commentaarblok onderaan `supabase/archief-rls.sql` + `ARCHIEF = false` zetten + registratie in `api/auth.js` weer activeren.
 
-**Let op:** `api/cron-import.js` schrijft met de anon-key en werkt dus niet meer onder RLS — niet erg, het WK is voorbij. De externe cron (cron-job.org, elke minuut) kan uitgezet worden, dat scheelt RapidAPI-quota.
+**Let op:** `api/cron-import.js` schrijft met de anon-key en werkt dus niet meer onder RLS — niet erg, het WK is voorbij. De externe cron (cron-job.org) is op 20 jul 2026 door Ramon verwijderd; bij een volgend toernooi moet die opnieuw aangemaakt worden (elke minuut naar `https://www.ramonboland.com/api/cron-import?secret=...`).
 
 ## Bekende beperkingen
 
