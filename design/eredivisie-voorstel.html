@@ -3,287 +3,268 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Eredivisie Poule — levende demo "3D Arena"</title>
-<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<title>Eredivisie Poule — levende demo "Vibrant Blocks"</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg0:#07020f; --bg1:#140a2e; --acid:#b6ff00; --cyan:#00e5ff; --pink:#ff2fb3; --purp:#7b2fff;
-    --glass:rgba(255,255,255,.06); --glassbd:rgba(255,255,255,.14);
+    --primary:#E11D48; --secondary:#FB7185; --accent:#2563EB; --bg:#FFF1F2;
+    --fg:#18060C; --wine:#881337; --muted:#F0ECF2; --border:#FECDD3; --white:#fff;
+    --shadow:0 2px 0 var(--fg);
   }
   *{margin:0;padding:0;box-sizing:border-box}
-  body{background:#0a0714;display:flex;justify-content:center;padding:16px 0;font-family:Inter,sans-serif;color:#fff;min-height:100vh}
-  .phone{width:375px;height:780px;background:
-      radial-gradient(120% 60% at 50% -10%, #2a1060 0%, transparent 60%),
-      radial-gradient(90% 40% at 50% 110%, #0b3d1e 0%, transparent 60%),
-      linear-gradient(180deg,var(--bg1),var(--bg0) 45%);
-    overflow:hidden;position:relative;border-radius:28px;border:1px solid #2b2342;
-    box-shadow:0 30px 80px rgba(0,0,0,.8)}
+  body{background:#efe6e7;display:flex;justify-content:center;padding:16px 0;font-family:Barlow,sans-serif;color:var(--fg);min-height:100vh}
+  .phone{width:375px;height:780px;background:var(--bg);overflow:hidden;position:relative;border-radius:28px;
+    border:2px solid var(--fg);box-shadow:0 24px 60px rgba(136,19,55,.25)}
 
-  /* ── LEVENDE ACHTERGROND ── */
-  .pitch{position:absolute;left:-40%;right:-40%;height:360px;bottom:-70px;
-    background:
-      repeating-linear-gradient(90deg, rgba(182,255,0,.16) 0 2px, transparent 2px 46px),
-      repeating-linear-gradient(0deg, rgba(182,255,0,.16) 0 2px, transparent 2px 38px);
-    background-size:auto, auto 40px;
-    transform:perspective(420px) rotateX(62deg);transform-origin:50% 100%;
-    -webkit-mask-image:linear-gradient(180deg,transparent,black 45%);mask-image:linear-gradient(180deg,transparent,black 45%);
-    animation:gridmove 3.2s linear infinite;pointer-events:none}
-  @keyframes gridmove{to{background-position:0 0, 0 40px}}
-  .orb{position:absolute;border-radius:50%;filter:blur(30px);opacity:.5;pointer-events:none;animation:orbfloat 9s ease-in-out infinite alternate}
-  .orb.o1{width:150px;height:150px;background:var(--purp);top:-30px;left:-40px}
-  .orb.o2{width:120px;height:120px;background:var(--pink);top:32%;right:-50px;animation-delay:-3s;opacity:.35}
-  .orb.o3{width:110px;height:110px;background:var(--cyan);bottom:12%;left:-40px;animation-delay:-6s;opacity:.3}
-  @keyframes orbfloat{from{transform:translateY(-14px) translateX(0)}to{transform:translateY(16px) translateX(14px)}}
+  /* zacht bewegende geo-vormen op de achtergrond */
+  .shape{position:absolute;pointer-events:none;opacity:.5;animation:drift 11s ease-in-out infinite alternate}
+  .shape.c1{width:170px;height:170px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ffd9de,#ffb3bd);top:-50px;right:-55px}
+  .shape.c2{width:110px;height:110px;background:#dbe7ff;transform:rotate(12deg);bottom:24%;left:-45px;animation-delay:-4s}
+  .shape.c3{width:74px;height:74px;border-radius:50%;border:14px solid #ffd2d9;top:38%;right:-26px;animation-delay:-8s}
+  @keyframes drift{from{transform:translateY(-10px) rotate(0deg)}to{transform:translateY(14px) rotate(9deg)}}
 
-  .inner{position:absolute;inset:0;z-index:1;padding:14px 14px 96px;overflow-y:auto;scrollbar-width:none}
+  .inner{position:absolute;inset:0;z-index:1;padding:0 0 92px;overflow-y:auto;scrollbar-width:none}
   .inner::-webkit-scrollbar{display:none}
 
   /* ── TICKER ── */
-  .ticker{overflow:hidden;border:1px solid var(--glassbd);border-radius:20px;background:rgba(13,7,30,.7);
-    backdrop-filter:blur(8px);margin-bottom:14px;position:relative}
-  .ticker .tk{display:inline-block;white-space:nowrap;font-size:10px;font-weight:800;letter-spacing:1.5px;
-    padding:6px 0;color:#c9bdf0;animation:tick 16s linear infinite}
-  .ticker b{color:var(--acid)} .ticker i{color:var(--pink);font-style:normal}
+  .ticker{background:var(--fg);color:var(--bg);overflow:hidden;position:relative}
+  .ticker .tk{display:inline-block;white-space:nowrap;font-family:'Barlow Condensed';font-weight:700;font-size:12px;
+    letter-spacing:1.5px;text-transform:uppercase;padding:7px 0;animation:tick 18s linear infinite}
+  .ticker b{color:var(--secondary)} .ticker i{color:#7fb0ff;font-style:normal}
   @keyframes tick{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 
-  /* ── TITEL ── */
-  .titlewrap{perspective:600px}
-  h1{font-family:Anton,sans-serif;font-size:42px;line-height:.95;text-transform:uppercase;position:relative;
-    transform:rotateX(14deg) rotateZ(-2deg);
-    background:linear-gradient(180deg,#fff 15%,#9be1ff 38%,#3f7dbf 50%,#e8f7ff 54%,#7fa8d0 78%,#fff);
-    -webkit-background-clip:text;background-clip:text;color:transparent;
-    filter:drop-shadow(0 9px 0 rgba(21,10,50,.9)) drop-shadow(0 14px 22px rgba(0,229,255,.35));
-    animation:titlein .9s cubic-bezier(.2,1.6,.4,1) both}
-  h1 .accent{display:block;
-    background:linear-gradient(180deg,#eaffb0 10%,var(--acid) 45%,#5c9400 52%,#d9ff70 58%,#8fd400);
-    -webkit-background-clip:text;background-clip:text;color:transparent}
-  @keyframes titlein{from{opacity:0;transform:rotateX(65deg) rotateZ(-2deg) translateY(-30px) scale(.7)}}
-  .shine{position:absolute;inset:0;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.85) 50%,transparent 62%);
-    -webkit-background-clip:text;background-clip:text;color:transparent;background-size:250% 100%;
-    animation:shine 3.5s ease-in-out infinite}
-  @keyframes shine{0%,20%{background-position:180% 0}55%,100%{background-position:-80% 0}}
-  .subtitle{font-size:10px;font-weight:800;letter-spacing:4px;color:var(--cyan);text-transform:uppercase;
-    text-shadow:0 0 12px var(--cyan);margin:10px 0 18px;transform:rotateZ(-2deg);animation:fadein 1s .3s both}
-  @keyframes fadein{from{opacity:0}}
+  /* ── HEADER ── */
+  .hdr{padding:20px 16px 6px;position:relative}
+  h1{font-family:'Barlow Condensed';font-weight:800;font-size:54px;line-height:.86;text-transform:uppercase;letter-spacing:.5px}
+  h1 .r1{display:block;overflow:hidden}
+  h1 .r2{display:block;color:var(--primary);overflow:hidden}
+  h1 .r1 span,h1 .r2 span{display:inline-block;transform:translateY(110%);animation:riseup .7s cubic-bezier(.2,1,.3,1) forwards}
+  h1 .r2 span{animation-delay:.12s}
+  @keyframes riseup{to{transform:translateY(0)}}
+  .hsub{display:flex;align-items:center;gap:8px;margin-top:10px;opacity:0;animation:fadein .6s .5s forwards}
+  .hsub .blk{width:10px;height:10px;background:var(--accent)}
+  .hsub .blk.b2{background:var(--primary)}
+  .hsub .blk.b3{background:var(--secondary)}
+  .hsub small{font-weight:800;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--wine)}
+  @keyframes fadein{to{opacity:1}}
 
-  .seckop{display:flex;align-items:baseline;gap:8px;margin:20px 0 12px}
-  .seckop h2{font-family:Anton,sans-serif;font-size:20px;letter-spacing:1px;text-transform:uppercase;
-    text-shadow:0 0 18px rgba(123,47,255,.9),0 3px 0 #2a1060}
-  .seckop small{font-size:9px;font-weight:800;letter-spacing:2px;color:#9d8fc7}
+  .sec{padding:14px 16px 4px}
+  .seckop{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  .seckop .tag{background:var(--fg);color:var(--bg);font-family:'Barlow Condensed';font-weight:700;font-size:19px;
+    letter-spacing:1px;text-transform:uppercase;padding:4px 12px}
+  .seckop small{font-weight:700;font-size:10px;letter-spacing:2px;color:var(--wine);text-transform:uppercase}
 
   /* ── ENTRANCE ── */
-  .rise{opacity:0;transform:translateY(26px);transition:opacity .6s ease,transform .6s cubic-bezier(.2,1.4,.4,1)}
-  .rise.in{opacity:1;transform:translateY(0)}
+  .rise{opacity:0;transform:translateY(22px) scale(.96)}
+  .rise.in{opacity:1;transform:none;transition:opacity .45s ease,transform .5s cubic-bezier(.3,1.4,.4,1)}
 
-  /* ── PODIUM ── */
-  .podium{display:flex;align-items:flex-end;gap:8px;perspective:700px;margin-bottom:10px}
-  .step{flex:1;border-radius:14px;padding:12px 8px 10px;text-align:center;background:var(--glass);
-    border:1px solid var(--glassbd);backdrop-filter:blur(6px);position:relative;
-    transition:transform .5s cubic-bezier(.2,1.4,.4,1)}
-  .step .nm{font-weight:800;font-size:12px}
-  .step .pt{font-family:Anton,sans-serif;font-size:24px;letter-spacing:1px}
-  .step .rk{font-family:Anton,sans-serif;font-size:11px;opacity:.7;margin-bottom:2px}
-  .step.s2{transform:rotateY(16deg) translateZ(-12px);border-color:rgba(0,229,255,.4);box-shadow:0 14px 30px rgba(0,229,255,.15)}
-  .step.s2 .pt{color:var(--cyan);text-shadow:0 0 14px var(--cyan)}
-  .step.s1{transform:translateY(-14px) translateZ(20px);padding-top:14px;border-color:rgba(182,255,0,.55);
-    animation:bob 3.4s ease-in-out infinite;
-    box-shadow:0 0 0 1px rgba(182,255,0,.25),0 20px 44px rgba(182,255,0,.22)}
-  @keyframes bob{0%,100%{transform:translateY(-14px) translateZ(20px)}50%{transform:translateY(-20px) translateZ(20px)}}
-  .step.s1 .pt{color:var(--acid);font-size:32px;text-shadow:0 0 20px var(--acid);animation:pulseglow 2.4s ease-in-out infinite}
-  @keyframes pulseglow{50%{text-shadow:0 0 34px var(--acid),0 0 8px var(--acid)}}
-  .step.s1 .crown{font-size:17px;display:inline-block;animation:crown 2.8s ease-in-out infinite}
-  @keyframes crown{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg) translateY(-3px)}}
-  .step.s3{transform:rotateY(-16deg) translateZ(-12px);border-color:rgba(255,47,179,.4);box-shadow:0 14px 30px rgba(255,47,179,.15)}
-  .step.s3 .pt{color:var(--pink);text-shadow:0 0 14px var(--pink)}
+  /* ── KOPLOPER-BLOK ── */
+  .leader{background:var(--primary);color:#fff;border:2px solid var(--fg);box-shadow:4px 4px 0 var(--fg);
+    padding:16px;display:grid;grid-template-columns:1fr auto;gap:6px;position:relative;overflow:hidden;margin-bottom:10px}
+  .leader::after{content:"";position:absolute;right:-30px;top:-40px;width:130px;height:130px;border-radius:50%;
+    background:rgba(255,255,255,.14);animation:drift 8s ease-in-out infinite alternate}
+  .leader .lbl{font-family:'Barlow Condensed';font-weight:700;font-size:13px;letter-spacing:2px;text-transform:uppercase;color:#ffd6de}
+  .leader .nm{font-family:'Barlow Condensed';font-weight:800;font-size:34px;line-height:1;text-transform:uppercase}
+  .leader .sub{font-size:11px;font-weight:600;color:#ffd6de;margin-top:4px}
+  .leader .pts{font-family:'Barlow Condensed';font-weight:800;font-size:56px;line-height:.9;align-self:center;position:relative;z-index:1}
+  .leader .pts small{display:block;font-size:12px;letter-spacing:2px;text-align:right;color:#ffd6de}
 
-  .rows{display:flex;flex-direction:column;gap:7px;perspective:800px}
-  .row{display:grid;grid-template-columns:30px 1fr auto 52px;gap:8px;align-items:center;
-    background:var(--glass);border:1px solid var(--glassbd);border-radius:12px;padding:9px 12px;
-    transform:rotateX(7deg);backdrop-filter:blur(6px)}
-  .row .pos{font-family:Anton,sans-serif;font-size:15px;color:#9d8fc7}
-  .row .nm{font-weight:800;font-size:13px}
-  .row .nm small{display:block;font-weight:600;font-size:9px;color:#8f83b8}
-  .row .ex{font-size:9px;font-weight:700;color:#9d8fc7}
-  .row .pt{font-family:Anton,sans-serif;font-size:18px;text-align:right}
+  /* ── KLASSEMENT-RIJEN ── */
+  .rows{display:flex;flex-direction:column;gap:8px}
+  .row{display:grid;grid-template-columns:38px 1fr auto 58px;align-items:center;background:#fff;border:2px solid var(--fg);
+    box-shadow:var(--shadow);transition:transform .18s cubic-bezier(.3,1.4,.4,1),box-shadow .18s}
+  .row:hover{transform:translate(-2px,-2px);box-shadow:4px 4px 0 var(--fg);cursor:pointer}
+  .row .pos{font-family:'Barlow Condensed';font-weight:800;font-size:18px;text-align:center;align-self:stretch;
+    display:flex;align-items:center;justify-content:center;border-right:2px solid var(--fg)}
+  .row.p2 .pos{background:var(--accent);color:#fff}
+  .row.p3 .pos{background:var(--secondary);color:#fff}
+  .row .nm{font-weight:800;font-size:14px;padding:10px 12px;text-transform:uppercase}
+  .row .nm .delta{font-size:10px;font-weight:700;margin-left:6px}
+  .row .nm .delta.up{color:#0a8a3c}.row .nm .delta.down{color:var(--primary)}
+  .row .ex{font-size:10px;font-weight:700;color:var(--wine)}
+  .row .pt{font-family:'Barlow Condensed';font-weight:800;font-size:22px;text-align:right;padding-right:14px}
 
   /* ── SPEELRONDE NAV ── */
-  .rnav{display:flex;align-items:center;gap:10px;perspective:600px;margin-bottom:12px}
-  .rnav .arrow{width:38px;height:38px;border-radius:10px;background:var(--glass);border:1px solid var(--glassbd);
-    display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--cyan);cursor:pointer;
-    transition:transform .15s,box-shadow .15s}
-  .rnav .arrow:active{transform:scale(.85);box-shadow:0 0 18px rgba(0,229,255,.5)}
-  .rcube{flex:1;text-align:center;padding:10px;border-radius:14px;transform:rotateX(12deg);
-    background:linear-gradient(160deg,#7b2fff 0%,#3d1690 60%,#2a1060);
-    box-shadow:0 12px 0 #1b0a45,0 22px 34px rgba(123,47,255,.4);border:1px solid rgba(255,255,255,.25)}
-  .rcube .r{font-family:Anton,sans-serif;font-size:17px;letter-spacing:1px;text-transform:uppercase}
-  .rcube .d{font-size:9px;font-weight:700;letter-spacing:2px;color:#cdb9ff;margin-top:2px}
-  .rcube.flip{animation:cubeflip .45s cubic-bezier(.2,1.4,.4,1)}
-  @keyframes cubeflip{0%{transform:rotateX(12deg)}45%{transform:rotateX(100deg)}55%{transform:rotateX(-70deg)}100%{transform:rotateX(12deg)}}
+  .rnav{display:flex;gap:8px;margin-bottom:12px}
+  .rnav button{width:44px;background:#fff;border:2px solid var(--fg);box-shadow:var(--shadow);font-size:16px;cursor:pointer;
+    font-family:'Barlow Condensed';font-weight:800;transition:transform .12s}
+  .rnav button:active{transform:translateY(2px);box-shadow:none}
+  .rblok{flex:1;background:var(--accent);color:#fff;border:2px solid var(--fg);box-shadow:var(--shadow);
+    text-align:center;padding:8px;position:relative;overflow:hidden}
+  .rblok .r{font-family:'Barlow Condensed';font-weight:800;font-size:21px;letter-spacing:1px;text-transform:uppercase}
+  .rblok .d{font-size:10px;font-weight:700;letter-spacing:2px;color:#cfe0ff;text-transform:uppercase}
+  .rblok .wipe{position:absolute;inset:0;background:var(--fg);transform:scaleX(0);transform-origin:left}
+  .rblok.wiping .wipe{animation:wipe .5s cubic-bezier(.7,0,.3,1)}
+  @keyframes wipe{0%{transform:scaleX(0);transform-origin:left}49%{transform:scaleX(1);transform-origin:left}51%{transform:scaleX(1);transform-origin:right}100%{transform:scaleX(0);transform-origin:right}}
 
   /* ── WEDSTRIJDKAARTEN ── */
-  .matches{perspective:900px;display:flex;flex-direction:column;gap:10px}
-  .m{--rx:6deg;--ry:0deg;background:var(--glass);border:1px solid var(--glassbd);border-radius:16px;padding:12px;
-    transform:rotateX(var(--rx)) rotateY(var(--ry));backdrop-filter:blur(6px);position:relative;overflow:hidden;
-    transition:transform .2s ease,box-shadow .2s ease;touch-action:pan-y}
-  .m .time{position:absolute;top:8px;right:10px;font-size:8px;font-weight:800;letter-spacing:1.5px;color:var(--cyan);text-shadow:0 0 8px var(--cyan)}
-  .m .teams{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center}
-  .club{display:flex;align-items:center;gap:8px;font-weight:800;font-size:13px}
+  .matches{display:flex;flex-direction:column;gap:10px}
+  .m{background:#fff;border:2px solid var(--fg);box-shadow:var(--shadow);position:relative;overflow:hidden;
+    transition:transform .18s cubic-bezier(.3,1.4,.4,1),box-shadow .18s}
+  .m:hover{transform:translate(-2px,-2px);box-shadow:4px 4px 0 var(--fg)}
+  .m .band{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid var(--fg);padding:4px 10px;
+    font-family:'Barlow Condensed';font-weight:700;font-size:12px;letter-spacing:2px;text-transform:uppercase}
+  .m .teams{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;padding:12px 10px 6px}
+  .club{display:flex;align-items:center;gap:8px;font-weight:800;font-size:14px;text-transform:uppercase}
   .club.away{justify-content:flex-end}
-  .logo3d{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;
-    font-family:Anton,sans-serif;font-size:10px;transform:rotateZ(-6deg);
-    box-shadow:0 5px 0 rgba(0,0,0,.45),0 8px 16px rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.3)}
-  .cube{width:38px;height:40px;border-radius:9px;background:linear-gradient(180deg,#241246,#0d0620);
-    border:1px solid var(--glassbd);color:var(--acid);font-family:Anton,sans-serif;font-size:19px;
-    display:flex;align-items:center;justify-content:center;text-shadow:0 0 12px var(--acid);
-    box-shadow:inset 0 2px 8px rgba(0,0,0,.8),0 6px 0 #05020c}
-  .cube.flip{animation:scoreflip .5s cubic-bezier(.2,1.4,.4,1)}
-  @keyframes scoreflip{0%{transform:rotateX(0)}45%{transform:rotateX(95deg)}55%{transform:rotateX(-85deg)}100%{transform:rotateX(0)}}
-  .vs{display:flex;gap:6px;align-items:center}
-  .vs .dash{color:#5c4f85;font-family:Anton,sans-serif}
-  .mijntip{margin-top:8px;font-size:9px;font-weight:700;color:#8f83b8}
-  .chip{display:inline-block;margin-left:6px;padding:2px 8px;border-radius:20px;font-size:9px;font-weight:800;cursor:pointer}
-  .chip.win{background:rgba(182,255,0,.15);color:var(--acid);border:1px solid rgba(182,255,0,.5)}
-  .chip.exact{background:rgba(255,47,179,.18);color:var(--pink);border:1px solid rgba(255,47,179,.6);
-    text-shadow:0 0 10px var(--pink);box-shadow:0 0 16px rgba(255,47,179,.35);animation:pulseglow 2s ease-in-out infinite}
-  .m.live{border-color:rgba(255,47,179,.55);animation:livepulse 2.2s ease-in-out infinite}
-  @keyframes livepulse{0%,100%{box-shadow:0 0 14px rgba(255,47,179,.2)}50%{box-shadow:0 0 34px rgba(255,47,179,.5)}}
-  .m.live .time{color:var(--pink);text-shadow:0 0 10px var(--pink)}
-  .m.live .time .dot{animation:blink 1s steps(2) infinite}
-  @keyframes blink{50%{opacity:0}}
-
-  /* GOAL-overlay */
-  .goal{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;
-    font-family:Anton,sans-serif;font-size:38px;letter-spacing:3px;color:var(--acid);
-    text-shadow:0 0 30px var(--acid),0 4px 0 #1b3000;opacity:0;transform:scale(.4) rotate(-6deg);z-index:3}
-  .goal.show{animation:goalpop 1.6s cubic-bezier(.2,1.5,.4,1)}
-  @keyframes goalpop{8%{opacity:1;transform:scale(1.15) rotate(2deg)}30%{transform:scale(1) rotate(-1deg)}75%{opacity:1}100%{opacity:0;transform:scale(1.3)}}
+  .crest{width:30px;height:30px;border:2px solid var(--fg);display:flex;align-items:center;justify-content:center;
+    font-family:'Barlow Condensed';font-weight:800;font-size:11px;color:#fff;flex-shrink:0}
+  .score{display:flex;gap:5px;align-items:center}
+  .sq{width:38px;height:42px;border:2px solid var(--fg);background:var(--muted);display:flex;align-items:center;justify-content:center;
+    font-family:'Barlow Condensed';font-weight:800;font-size:24px}
+  .sq.big{background:var(--fg);color:#fff}
+  .sq.flip{animation:sqflip .5s cubic-bezier(.2,1.2,.4,1)}
+  @keyframes sqflip{0%{transform:rotateX(0)}45%{transform:rotateX(95deg)}55%{transform:rotateX(-85deg)}100%{transform:rotateX(0)}}
+  .score .d{font-family:'Barlow Condensed';font-weight:800}
+  .foot{padding:0 10px 10px;font-size:11px;font-weight:700;color:var(--wine);display:flex;align-items:center;gap:6px}
+  .chip{font-family:'Barlow Condensed';font-weight:700;font-size:12px;letter-spacing:1px;text-transform:uppercase;
+    padding:2px 8px;border:2px solid var(--fg);cursor:pointer}
+  .chip.win{background:#d6f5e0;color:#0a5c28}
+  .chip.exact{background:var(--primary);color:#fff;box-shadow:var(--shadow);animation:chipjump 2.6s ease-in-out infinite}
+  @keyframes chipjump{0%,86%,100%{transform:translateY(0)}92%{transform:translateY(-3px) rotate(-2deg)}}
+  .m.live .band{background:var(--primary);color:#fff;border-bottom-color:var(--fg)}
+  .m.live .band .dot{width:8px;height:8px;border-radius:50%;background:#fff;display:inline-block;margin-right:6px;animation:blink 1s steps(2) infinite}
+  @keyframes blink{50%{opacity:.15}}
+  .goal{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:3;
+    background:var(--accent);opacity:0;transform:translateY(100%)}
+  .goal span{font-family:'Barlow Condensed';font-weight:800;font-size:46px;letter-spacing:4px;color:#fff;text-transform:uppercase}
+  .goal.show{animation:goalslam 1.7s cubic-bezier(.2,1,.3,1)}
+  @keyframes goalslam{6%{opacity:1;transform:translateY(0)}80%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-100%)}}
 
   /* ── SCHERMEN / TABS ── */
-  .screen{display:none;animation:screenin .4s cubic-bezier(.2,1.2,.4,1)}
-  .screen.act{display:block}
-  @keyframes screenin{from{opacity:0;transform:translateX(34px)}}
-  .tabbar{position:absolute;left:14px;right:14px;bottom:14px;z-index:5;display:flex;gap:4px;
-    background:rgba(13,7,30,.85);border:1px solid var(--glassbd);border-radius:18px;padding:7px;
-    backdrop-filter:blur(12px);box-shadow:0 16px 40px rgba(0,0,0,.7)}
-  .tabbar div{flex:1;text-align:center;font-size:8px;font-weight:800;letter-spacing:.5px;color:#8f83b8;
-    padding:5px 0;border-radius:12px;cursor:pointer;transition:transform .25s cubic-bezier(.2,1.6,.4,1),background .25s,color .25s,box-shadow .25s}
-  .tabbar span{display:block;font-size:15px;margin-bottom:2px}
-  .tabbar .act{background:linear-gradient(160deg,#b6ff00,#6fae00);color:#0a1400;
-    box-shadow:0 0 20px rgba(182,255,0,.5),0 5px 0 #3d6000;transform:translateY(-4px)}
+  .screen{display:none}
+  .screen.act{display:block;animation:scrin .35s cubic-bezier(.2,1,.3,1)}
+  @keyframes scrin{from{opacity:0;transform:translateX(26px)}}
+  .tabbar{position:absolute;left:12px;right:12px;bottom:12px;z-index:5;display:flex;background:#fff;
+    border:2px solid var(--fg);box-shadow:4px 4px 0 var(--fg)}
+  .tab{flex:1;text-align:center;padding:8px 0 6px;cursor:pointer;font-family:'Barlow Condensed';font-weight:700;
+    font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--wine);border-right:2px solid var(--fg);
+    transition:background .2s,color .2s,transform .15s}
+  .tab:last-child{border-right:none}
+  .tab svg{display:block;margin:0 auto 3px;width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+  .tab.act{background:var(--primary);color:#fff}
+  .tab:active{transform:scale(.93)}
 
-  /* toast */
-  .toast{position:absolute;bottom:88px;left:50%;transform:translateX(-50%) translateY(16px);z-index:6;
-    background:rgba(13,7,30,.95);border:1px solid var(--glassbd);border-radius:20px;padding:8px 16px;
-    font-size:11px;font-weight:700;color:#cdc2ee;opacity:0;pointer-events:none;transition:all .3s}
+  .toast{position:absolute;bottom:86px;left:50%;transform:translateX(-50%) translateY(14px);z-index:6;background:var(--fg);
+    color:var(--bg);padding:8px 16px;font-weight:700;font-size:12px;opacity:0;pointer-events:none;transition:all .3s}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .cf{position:absolute;width:8px;height:12px;z-index:9;pointer-events:none}
 
-  /* confetti */
-  .cf{position:absolute;width:7px;height:11px;z-index:9;pointer-events:none;border-radius:2px}
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
+  }
 </style>
 </head>
 <body>
 <div class="phone" id="phone">
-  <div class="pitch"></div>
-  <div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div>
+  <div class="shape c1"></div><div class="shape c2"></div><div class="shape c3"></div>
 
   <div class="inner" id="inner">
 
-    <div class="ticker"><div class="tk">⚡ <i>LIVE</i> PSV 1–1 AZ (63') &nbsp;·&nbsp; <b>OORTJE</b> pakt +7 EXACT bij Twente–NEC &nbsp;·&nbsp; DOANI stijgt naar plek 4 &nbsp;·&nbsp; Speelronde 4 sluit VR 19:55 &nbsp;·&nbsp; 💶 POT: €150 &nbsp;·&nbsp; ⚡ <i>LIVE</i> PSV 1–1 AZ (63') &nbsp;·&nbsp; <b>OORTJE</b> pakt +7 EXACT bij Twente–NEC &nbsp;·&nbsp; DOANI stijgt naar plek 4 &nbsp;·&nbsp; Speelronde 4 sluit VR 19:55 &nbsp;·&nbsp; 💶 POT: €150 &nbsp;·&nbsp;</div></div>
+    <div class="ticker"><div class="tk">&nbsp;<i>LIVE</i> PSV 1–1 AZ (63') &nbsp;•&nbsp; <b>OORTJE</b> pakt +7 exact bij Twente–NEC &nbsp;•&nbsp; DOANI stijgt naar plek 4 &nbsp;•&nbsp; Speelronde 4 sluit vr 19:55 &nbsp;•&nbsp; Pot: €150 &nbsp;•&nbsp; <i>LIVE</i> PSV 1–1 AZ (63') &nbsp;•&nbsp; <b>OORTJE</b> pakt +7 exact bij Twente–NEC &nbsp;•&nbsp; DOANI stijgt naar plek 4 &nbsp;•&nbsp; Speelronde 4 sluit vr 19:55 &nbsp;•&nbsp; Pot: €150 &nbsp;•&nbsp;</div></div>
 
-    <div class="titlewrap">
-      <h1>Eredivisie<span class="accent">Poule</span><span class="shine">Eredivisie<br>Poule</span></h1>
+    <div class="hdr">
+      <h1><span class="r1"><span>Eredivisie</span></span><span class="r2"><span>Poule&nbsp;26/27</span></span></h1>
+      <div class="hsub"><span class="blk"></span><span class="blk b2"></span><span class="blk b3"></span><small>Boland's Special</small></div>
     </div>
-    <div class="subtitle">⚡ Boland's Special · 26/27</div>
 
     <!-- ══ SCHERM: STAND ══ -->
     <div class="screen act" id="scr-stand">
-      <div class="seckop"><h2>Klassement</h2><small>NA SPEELRONDE 3</small></div>
+      <div class="sec">
+        <div class="seckop"><span class="tag">Klassement</span><small>na speelronde 3</small></div>
 
-      <div class="podium">
-        <div class="step s2 rise tilt"><div class="rk">2</div><div class="nm">TIMB</div><div class="pt cnt" data-t="36">0</div></div>
-        <div class="step s1 rise tilt"><div class="crown">👑</div><div class="nm">OORTJE</div><div class="pt cnt" data-t="38">0</div></div>
-        <div class="step s3 rise tilt"><div class="rk">3</div><div class="nm">MONICA</div><div class="pt cnt" data-t="31">0</div></div>
-      </div>
+        <div class="leader rise">
+          <div>
+            <div class="lbl">Koploper</div>
+            <div class="nm">Oortje</div>
+            <div class="sub">4× exact · titelverdediger WK-poule</div>
+          </div>
+          <div class="pts"><span class="cnt" data-t="38">0</span><small>punten</small></div>
+        </div>
 
-      <div class="rows">
-        <div class="row rise"><div class="pos">4</div><div class="nm">DOANI<small>▲2 deze ronde</small></div><div class="ex">2× exact</div><div class="pt cnt" data-t="29">0</div></div>
-        <div class="row rise"><div class="pos">5</div><div class="nm">DANNY<small>▼1</small></div><div class="ex">1× exact</div><div class="pt cnt" data-t="24">0</div></div>
+        <div class="rows">
+          <div class="row p2 rise"><div class="pos">2</div><div class="nm">Timb<span class="delta down">▼1</span></div><div class="ex">3× exact</div><div class="pt cnt" data-t="36">0</div></div>
+          <div class="row p3 rise"><div class="pos">3</div><div class="nm">Monica</div><div class="ex">3× exact</div><div class="pt cnt" data-t="31">0</div></div>
+          <div class="row rise"><div class="pos">4</div><div class="nm">Doani<span class="delta up">▲2</span></div><div class="ex">2× exact</div><div class="pt cnt" data-t="29">0</div></div>
+          <div class="row rise"><div class="pos">5</div><div class="nm">Danny<span class="delta down">▼1</span></div><div class="ex">1× exact</div><div class="pt cnt" data-t="24">0</div></div>
+        </div>
       </div>
     </div>
 
     <!-- ══ SCHERM: TIPPEN ══ -->
     <div class="screen" id="scr-tippen">
-      <div class="seckop"><h2>Tippen</h2><small>TOT 5 MIN VOOR AFTRAP</small></div>
+      <div class="sec">
+        <div class="seckop"><span class="tag">Tippen</span><small>tot 5 min voor aftrap</small></div>
 
-      <div class="rnav">
-        <div class="arrow" id="prevR">◀</div>
-        <div class="rcube" id="rcube"><div class="r" id="rTitle">Speelronde 4</div><div class="d" id="rDate">VR 4 SEP — ZO 6 SEP</div></div>
-        <div class="arrow" id="nextR">▶</div>
-      </div>
-
-      <div class="matches">
-        <div class="m rise tilt">
-          <div class="time">VR 20:00</div>
-          <div class="teams">
-            <div class="club"><span class="logo3d" style="background:linear-gradient(160deg,#e0332c,#7a0d0d)">AJA</span> Ajax</div>
-            <div class="vs"><div class="cube">2</div><span class="dash">–</span><div class="cube">1</div></div>
-            <div class="club away">Feyenoord <span class="logo3d" style="background:linear-gradient(160deg,#3d8f3d,#0d3d14)">FEY</span></div>
-          </div>
-          <div class="mijntip">JOUW TIP STAAT VAST · ✏️ wijzig</div>
+        <div class="rnav">
+          <button id="prevR">◀</button>
+          <div class="rblok" id="rblok"><div class="r" id="rTitle">Speelronde 4</div><div class="d" id="rDate">vr 4 sep — zo 6 sep</div><div class="wipe"></div></div>
+          <button id="nextR">▶</button>
         </div>
 
-        <div class="m live tilt rise">
-          <div class="time"><span class="dot">●</span> LIVE <span id="liveMin">63</span>'</div>
-          <div class="teams">
-            <div class="club"><span class="logo3d" style="background:linear-gradient(160deg,#e0332c,#5c0a35)">PSV</span> PSV</div>
-            <div class="vs"><div class="cube" id="lh" style="color:#ff2fb3;text-shadow:0 0 12px #ff2fb3">1</div><span class="dash">–</span><div class="cube" id="la" style="color:#ff2fb3;text-shadow:0 0 12px #ff2fb3">1</div></div>
-            <div class="club away">AZ <span class="logo3d" style="background:linear-gradient(160deg,#d40f27,#3a0308)">AZ</span></div>
+        <div class="matches">
+          <div class="m rise">
+            <div class="band"><span>Vrijdag 20:00</span><span>De Klassieker</span></div>
+            <div class="teams">
+              <div class="club"><span class="crest" style="background:#e11d48">AJA</span> Ajax</div>
+              <div class="score"><div class="sq">2</div><span class="d">–</span><div class="sq">1</div></div>
+              <div class="club away">Feyen. <span class="crest" style="background:#0a8a3c">FEY</span></div>
+            </div>
+            <div class="foot">Jouw tip staat vast · <span class="chip">✎ wijzig</span></div>
           </div>
-          <div class="mijntip">JOUW TIP: 2–1 <span class="chip win" id="koersChip">op koers: winnaar</span></div>
-          <div class="goal" id="goalOv">GOAL!</div>
-        </div>
 
-        <div class="m rise tilt">
-          <div class="time">GESPEELD</div>
-          <div class="teams">
-            <div class="club"><span class="logo3d" style="background:linear-gradient(160deg,#c8102e,#4a0512)">TWE</span> FC Twente</div>
-            <div class="vs"><div class="cube">1</div><span class="dash">–</span><div class="cube">1</div></div>
-            <div class="club away">NEC <span class="logo3d" style="background:linear-gradient(160deg,#0f7a3c,#062e17)">NEC</span></div>
+          <div class="m live rise">
+            <div class="band"><span><span class="dot"></span>Live · <span id="liveMin">63</span>'</span><span>Philips Stadion</span></div>
+            <div class="teams">
+              <div class="club"><span class="crest" style="background:#c8102e">PSV</span> PSV</div>
+              <div class="score"><div class="sq big" id="lh">1</div><span class="d">–</span><div class="sq big" id="la">1</div></div>
+              <div class="club away">AZ <span class="crest" style="background:#d40f27">AZ</span></div>
+            </div>
+            <div class="foot">Jouw tip: 2–1 <span class="chip win" id="koersChip">op koers: winnaar</span></div>
+            <div class="goal" id="goalOv"><span>Goal!</span></div>
           </div>
-          <div class="mijntip">JOUW TIP: 1–1 <span class="chip exact" id="exactChip">+7 EXACT! 🎉 tik mij</span></div>
+
+          <div class="m rise">
+            <div class="band"><span>Gespeeld</span><span>Eindstand</span></div>
+            <div class="teams">
+              <div class="club"><span class="crest" style="background:#c8102e">TWE</span> Twente</div>
+              <div class="score"><div class="sq">1</div><span class="d">–</span><div class="sq">1</div></div>
+              <div class="club away">NEC <span class="crest" style="background:#0a8a3c">NEC</span></div>
+            </div>
+            <div class="foot">Jouw tip: 1–1 <span class="chip exact" id="exactChip">+7 exact — tik!</span></div>
+          </div>
         </div>
       </div>
     </div>
 
   </div>
 
+  <!-- SVG-iconen, geen emoji (pro-rules) -->
   <div class="tabbar" id="tabbar">
-    <div class="act" data-scr="stand"><span>🏆</span>STAND</div>
-    <div data-scr="tippen"><span>⚽</span>TIPPEN</div>
-    <div data-scr="x"><span>📅</span>PROGRAMMA</div>
-    <div data-scr="x"><span>⭐</span>SEIZOEN</div>
-    <div data-scr="x"><span>💶</span>POT</div>
+    <div class="tab act" data-scr="stand"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0V4z"/><path d="M7 6H4a3 3 0 0 0 3 3M17 6h3a3 3 0 0 1-3 3"/></svg>Stand</div>
+    <div class="tab" data-scr="tippen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5l4.3 3.1-1.6 5h-5.4l-1.6-5z"/></svg>Tippen</div>
+    <div class="tab" data-scr="x"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M16 3v4M8 3v4M4 11h16"/></svg>Agenda</div>
+    <div class="tab" data-scr="x"><svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9L3.5 9.2l5.9-.8z"/></svg>Seizoen</div>
+    <div class="tab" data-scr="x"><svg viewBox="0 0 24 24"><path d="M17.5 7.5a6.5 6.5 0 1 0 0 9"/><path d="M4.5 10.5h8M4.5 13.5h8"/></svg>Pot</div>
   </div>
 
   <div class="toast" id="toast"></div>
 </div>
 
 <script>
-  // Entrance: kaarten zweven gestaffeld binnen
   function enter(scope){
     scope.querySelectorAll(".rise").forEach((el,i)=>{
       el.classList.remove("in"); void el.offsetWidth;
-      setTimeout(()=>el.classList.add("in"), 90*i+120);
+      setTimeout(()=>el.classList.add("in"), 80*i+140);
     });
   }
   enter(document);
 
-  // Punten tellen op
   function countUp(scope){
     scope.querySelectorAll(".cnt").forEach(el=>{
       const t=+el.dataset.t, start=performance.now();
       (function tick(now){
-        const p=Math.min((now-start)/1200,1), e=1-Math.pow(1-p,3);
+        const p=Math.min((now-start)/1100,1), e=1-Math.pow(1-p,3);
         el.textContent=Math.round(t*e);
         if(p<1) requestAnimationFrame(tick);
       })(start);
@@ -291,47 +272,37 @@
   }
   countUp(document);
 
-  // 3D tilt met muis/vinger
-  document.querySelectorAll(".tilt").forEach(el=>{
-    el.addEventListener("pointermove",e=>{
-      const r=el.getBoundingClientRect();
-      const dx=(e.clientX-r.left)/r.width-.5, dy=(e.clientY-r.top)/r.height-.5;
-      el.style.transform=`rotateX(${6-dy*14}deg) rotateY(${dx*14}deg) translateZ(6px)`;
-    });
-    el.addEventListener("pointerleave",()=>{ el.style.transform=""; });
-  });
-
-  // Tabs
   const toast=document.getElementById("toast");
   function showToast(msg){ toast.textContent=msg; toast.classList.add("show"); clearTimeout(toast._t);
     toast._t=setTimeout(()=>toast.classList.remove("show"),1800); }
+
   document.getElementById("tabbar").addEventListener("click",e=>{
-    const btn=e.target.closest("[data-scr]"); if(!btn) return;
-    if(btn.dataset.scr==="x"){ showToast("Komt in de echte app 😉"); return; }
-    document.querySelectorAll("#tabbar [data-scr]").forEach(b=>b.classList.toggle("act",b===btn));
+    const btn=e.target.closest(".tab"); if(!btn) return;
+    if(btn.dataset.scr==="x"){ showToast("Komt in de echte app"); return; }
+    document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("act",b===btn));
     document.querySelectorAll(".screen").forEach(s=>s.classList.remove("act"));
     const scr=document.getElementById("scr-"+btn.dataset.scr);
     scr.classList.add("act"); enter(scr); countUp(scr);
     document.getElementById("inner").scrollTo({top:0,behavior:"smooth"});
   });
 
-  // Speelronde-kubus flipt
+  // Speelronde-wissel met zwarte veeg-animatie
   let ronde=4;
-  const rondes={3:"VR 28 AUG — ZO 30 AUG",4:"VR 4 SEP — ZO 6 SEP",5:"VR 11 SEP — ZO 13 SEP"};
+  const rondes={3:"vr 28 aug — zo 30 aug",4:"vr 4 sep — zo 6 sep",5:"vr 11 sep — zo 13 sep"};
   function setRonde(n){
     if(!rondes[n]) return;
     ronde=n;
-    const c=document.getElementById("rcube");
-    c.classList.remove("flip"); void c.offsetWidth; c.classList.add("flip");
+    const b=document.getElementById("rblok");
+    b.classList.remove("wiping"); void b.offsetWidth; b.classList.add("wiping");
     setTimeout(()=>{
       document.getElementById("rTitle").textContent="Speelronde "+n;
       document.getElementById("rDate").textContent=rondes[n];
-    },200);
+    },240);
   }
   document.getElementById("prevR").onclick=()=>setRonde(ronde-1);
   document.getElementById("nextR").onclick=()=>setRonde(ronde+1);
 
-  // Live-demo: PSV scoort na een paar seconden — GOAL! knalt in beeld
+  // Live: minuten tellen door, PSV scoort — blauw GOAL!-paneel schuift over de kaart
   let liveMin=63;
   setInterval(()=>{ document.getElementById("liveMin").textContent=++liveMin; },5000);
   let scored=false;
@@ -344,27 +315,27 @@
         setTimeout(()=>{lh.textContent="2";},250);
         const ov=document.getElementById("goalOv");
         ov.classList.remove("show"); void ov.offsetWidth; ov.classList.add("show");
-        document.getElementById("koersChip").textContent="EXACT op koers! 2–1";
+        document.getElementById("koersChip").textContent="exact op koers! 2–1";
         setTimeout(()=>{scored=false; lh.classList.remove("flip");
           setTimeout(()=>{lh.textContent="1";document.getElementById("koersChip").textContent="op koers: winnaar";},8000);
-        },1500);
-      },2500);
+        },1600);
+      },2200);
     }
-  },12000);
+  },11000);
 
-  // Confetti bij tikken op EXACT-chip
+  // Confetti bij tikken op de exact-chip
   document.getElementById("exactChip").addEventListener("click",e=>{
     const phone=document.getElementById("phone"), pr=phone.getBoundingClientRect();
-    const colors=["#b6ff00","#00e5ff","#ff2fb3","#7b2fff","#ffffff"];
-    for(let i=0;i<26;i++){
+    const colors=["#E11D48","#2563EB","#FB7185","#18060C","#FFD166"];
+    for(let i=0;i<28;i++){
       const c=document.createElement("div"); c.className="cf";
       c.style.background=colors[i%colors.length];
       c.style.left=(e.clientX-pr.left)+"px"; c.style.top=(e.clientY-pr.top)+"px";
       phone.appendChild(c);
-      const ang=Math.random()*Math.PI*2, v=60+Math.random()*130;
+      const ang=Math.random()*Math.PI*2, v=70+Math.random()*140;
       c.animate([
         {transform:"translate(0,0) rotate(0deg)",opacity:1},
-        {transform:`translate(${Math.cos(ang)*v}px,${Math.sin(ang)*v+120}px) rotate(${Math.random()*720-360}deg)`,opacity:0}
+        {transform:`translate(${Math.cos(ang)*v}px,${Math.sin(ang)*v+130}px) rotate(${Math.random()*720-360}deg)`,opacity:0}
       ],{duration:900+Math.random()*600,easing:"cubic-bezier(.2,.8,.4,1)"}).onfinish=()=>c.remove();
     }
   });
