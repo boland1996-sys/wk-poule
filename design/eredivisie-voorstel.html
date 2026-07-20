@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eredivisie Poule — ontwerpvoorstel "De Stijl"</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f6f3ec; --ink:#111111; --red:#e0332c; --blue:#1f4bd8; --yellow:#f6c700;
+    --line:3px solid var(--ink);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#ddd9d0;font-family:Inter,sans-serif;color:var(--ink);display:flex;justify-content:center;padding:20px 0}
+  .phone{width:375px;background:var(--paper);border:var(--line);box-shadow:8px 8px 0 rgba(17,17,17,.85)}
+  h1,h2,.big{font-family:'Archivo Black',sans-serif;text-transform:uppercase;letter-spacing:.5px}
+
+  /* HEADER */
+  .hdr{border-bottom:var(--line);display:flex;align-items:stretch}
+  .hdr .blocks{display:flex;flex-direction:column;width:26px;border-right:var(--line)}
+  .hdr .blocks span{flex:1}
+  .hdr .blocks span:nth-child(1){background:var(--red)}
+  .hdr .blocks span:nth-child(2){background:var(--yellow);border-top:var(--line);border-bottom:var(--line)}
+  .hdr .blocks span:nth-child(3){background:var(--blue)}
+  .hdr .title{padding:12px 14px;flex:1}
+  .hdr h1{font-size:24px;line-height:1}
+  .hdr h1 em{font-style:normal;color:var(--red)}
+  .hdr .sub{font-size:10px;font-weight:800;letter-spacing:3px;margin-top:3px}
+  .hdr .user{border-left:var(--line);display:flex;flex-direction:column;justify-content:center;padding:0 12px;font-size:11px;font-weight:800;background:var(--yellow)}
+
+  /* SECTION KOP */
+  .kop{display:flex;align-items:center;border-bottom:var(--line)}
+  .kop .blk{width:18px;align-self:stretch;border-right:var(--line)}
+  .kop h2{font-size:15px;padding:9px 12px;flex:1}
+  .kop .meta{font-size:10px;font-weight:700;padding-right:12px}
+
+  /* SPEELRONDE NAV */
+  .rondenav{display:flex;border-bottom:var(--line)}
+  .rondenav button{font-family:'Archivo Black',sans-serif;font-size:16px;background:var(--paper);border:none;width:46px;padding:10px 0;cursor:pointer}
+  .rondenav .cur{flex:1;text-align:center;padding:10px;border-left:var(--line);border-right:var(--line);background:var(--blue);color:#fff}
+  .rondenav .cur .r{font-family:'Archivo Black',sans-serif;font-size:14px;text-transform:uppercase}
+  .rondenav .cur .d{font-size:9px;font-weight:700;letter-spacing:1px;margin-top:2px;color:#dbe4ff}
+
+  /* WEDSTRIJDKAART */
+  .match{border-bottom:var(--line);padding:10px 12px;display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;position:relative}
+  .club{display:flex;align-items:center;gap:8px;font-weight:800;font-size:13px}
+  .club.away{justify-content:flex-end}
+  .badge{width:26px;height:26px;border:2.5px solid var(--ink);display:flex;align-items:center;justify-content:center;font-family:'Archivo Black',sans-serif;font-size:11px;color:#fff;flex-shrink:0}
+  .tip{display:flex;align-items:center;gap:5px}
+  .tip input{width:34px;height:34px;border:var(--line);background:#fff;text-align:center;font-family:'Archivo Black',sans-serif;font-size:15px;outline:none}
+  .tip .dash{font-family:'Archivo Black',sans-serif}
+  .mtime{position:absolute;top:-1px;right:12px;background:var(--ink);color:var(--paper);font-size:8.5px;font-weight:800;letter-spacing:1px;padding:2px 6px}
+  .match.done{background:repeating-linear-gradient(-45deg,transparent 0 12px,rgba(17,17,17,.045) 12px 24px)}
+  .score{font-family:'Archivo Black',sans-serif;font-size:17px;background:var(--ink);color:var(--paper);padding:4px 10px}
+  .pts{position:absolute;bottom:6px;right:12px;font-size:9px;font-weight:800;background:var(--yellow);border:2px solid var(--ink);padding:1px 5px}
+  .mijntip{font-size:9px;font-weight:700;color:#555;grid-column:1/-1;margin-top:-2px}
+
+  /* KLASSEMENT */
+  .rij{display:grid;grid-template-columns:34px 1fr 46px 52px;align-items:center;border-bottom:2px solid var(--ink);font-size:13px}
+  .rij:last-child{border-bottom:none}
+  .rij .pos{font-family:'Archivo Black',sans-serif;text-align:center;border-right:var(--line);align-self:stretch;display:flex;align-items:center;justify-content:center;font-size:14px}
+  .rij:nth-child(1) .pos{background:var(--yellow)}
+  .rij:nth-child(2) .pos{background:var(--red);color:#fff}
+  .rij:nth-child(3) .pos{background:var(--blue);color:#fff}
+  .rij .naam{padding:9px 10px;font-weight:800}
+  .rij .naam small{display:block;font-size:9px;font-weight:600;color:#666}
+  .rij .ex{font-size:10px;font-weight:700;text-align:center;color:#555}
+  .rij .tot{font-family:'Archivo Black',sans-serif;font-size:16px;text-align:right;padding-right:12px}
+  .balk{height:4px;background:var(--blue);margin:0 10px 8px}
+
+  /* TABS */
+  .tabs{display:flex;border-top:var(--line);background:#fff}
+  .tabs div{flex:1;text-align:center;padding:9px 0 7px;font-size:8.5px;font-weight:800;letter-spacing:.5px;border-right:2px solid var(--ink)}
+  .tabs div:last-child{border-right:none}
+  .tabs .actief{background:var(--red);color:#fff}
+  .tabs span{display:block;font-size:15px;margin-bottom:2px}
+  .gap{height:26px;background:#ddd9d0;border-top:var(--line);border-bottom:var(--line)}
+</style>
+</head>
+<body>
+<div class="phone">
+
+  <!-- ══ SCHERM 1: KLASSEMENT ══ -->
+  <div class="hdr">
+    <div class="blocks"><span></span><span></span><span></span></div>
+    <div class="title">
+      <h1>Eredivisie <em>Poule</em></h1>
+      <div class="sub">BOLAND'S SPECIAL · 26/27</div>
+    </div>
+    <div class="user">RAMON</div>
+  </div>
+
+  <div class="kop"><div class="blk" style="background:var(--yellow)"></div><h2>Klassement</h2><div class="meta">NA SPEELRONDE 3</div></div>
+
+  <div class="rij"><div class="pos">1</div><div class="naam">OORTJE<small>▲1 · titelverdediger WK-poule</small></div><div class="ex">4× exact</div><div class="tot">38</div></div>
+  <div class="rij"><div class="pos">2</div><div class="naam">TIMB<small>▼1</small></div><div class="ex">3× exact</div><div class="tot">36</div></div>
+  <div class="rij"><div class="pos">3</div><div class="naam">MONICA<small>–</small></div><div class="ex">3× exact</div><div class="tot">31</div></div>
+  <div class="rij"><div class="pos">4</div><div class="naam">DOANI<small>▲2</small></div><div class="ex">2× exact</div><div class="tot">29</div></div>
+  <div class="rij"><div class="pos">5</div><div class="naam">DANNY<small>▼1</small></div><div class="ex">1× exact</div><div class="tot">24</div></div>
+
+  <div class="gap"></div>
+
+  <!-- ══ SCHERM 2: SPEELRONDE / TIPPEN ══ -->
+  <div class="kop"><div class="blk" style="background:var(--red)"></div><h2>Tippen</h2><div class="meta">TOT 5 MIN VOOR AFTRAP</div></div>
+
+  <div class="rondenav">
+    <button>◀</button>
+    <div class="cur"><div class="r">Speelronde 4</div><div class="d">VR 4 SEP — ZO 6 SEP</div></div>
+    <button>▶</button>
+  </div>
+
+  <div class="match">
+    <div class="mtime">VR 20:00</div>
+    <div class="club"><span class="badge" style="background:var(--red)">AJA</span> Ajax</div>
+    <div class="tip"><input value="2"><span class="dash">–</span><input value="1"></div>
+    <div class="club away">Feyenoord <span class="badge" style="background:var(--blue)">FEY</span></div>
+  </div>
+
+  <div class="match">
+    <div class="mtime">ZA 18:45</div>
+    <div class="club"><span class="badge" style="background:var(--blue)">PSV</span> PSV</div>
+    <div class="tip"><input placeholder=""><span class="dash">–</span><input placeholder=""></div>
+    <div class="club away">AZ <span class="badge" style="background:var(--red)">AZ</span></div>
+  </div>
+
+  <div class="match done">
+    <div class="mtime">GESPEELD</div>
+    <div class="club"><span class="badge" style="background:var(--yellow);color:var(--ink)">UTR</span> FC Utrecht</div>
+    <div class="score">3–1</div>
+    <div class="club away">Heracles <span class="badge" style="background:var(--ink)">HER</span></div>
+    <div class="mijntip">JOUW TIP: 2–1 → winnaar goed</div>
+    <div class="pts">+3 PT</div>
+  </div>
+
+  <div class="match done">
+    <div class="mtime">GESPEELD</div>
+    <div class="club"><span class="badge" style="background:var(--blue)">TWE</span> FC Twente</div>
+    <div class="score">1–1</div>
+    <div class="club away">NEC <span class="badge" style="background:var(--red)">NEC</span></div>
+    <div class="mijntip">JOUW TIP: 1–1 → EXACT!</div>
+    <div class="pts" style="background:var(--red);color:#fff">+7 EXACT</div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="actief"><span>▦</span>STAND</div>
+    <div><span>⚽</span>TIPPEN</div>
+    <div><span>▤</span>PROGRAMMA</div>
+    <div><span>★</span>SEIZOEN</div>
+    <div><span>€</span>POT</div>
+  </div>
+</div>
+</body>
+</html>
