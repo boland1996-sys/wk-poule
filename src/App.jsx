@@ -2598,6 +2598,7 @@ export default function App() {
               <div className="card" style={{ padding:"12px 14px", marginBottom:12, border:"1px solid rgba(255,180,0,.25)", background:"rgba(255,180,0,.06)" }}>
                 <div style={{ fontSize:13, fontWeight:800, color:"var(--am)", marginBottom:3 }}>🏁 WK 2026 is afgelopen</div>
                 <div style={{ fontSize:12, color:"var(--t2)", lineHeight:1.5 }}>Dit is het archief van Boland's Special — alle uitslagen, standen en punten blijven hier terug te kijken. Tippen en wijzigen kan niet meer.</div>
+                <div style={{ fontSize:12, color:"var(--t1)", lineHeight:1.5, marginTop:6, fontWeight:600 }}>⚠️ Ik controleer alles nog even handmatig — dit weekend krijgen jullie de definitieve uitslag! — Ramon</div>
               </div>
             )}
 
